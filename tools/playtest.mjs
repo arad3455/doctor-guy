@@ -57,52 +57,56 @@ async function treat(name) {
 }
 const tp = (x, z) => g(([x, z]) => { __game.player.pos.set(x, 0, z); __game.player.vel.set(0, 0, 0); }, [x, z]);
 
-// Spawn everything now
+// Spawn everything now, then rescue each kid in turn
+// a wide look at the beach from the end of the boardwalk, and back at the park gate
+await g(() => { __game.player.pos.set(0, 0, 82); __game.input.yaw = 0; __game.input.pitch = 0.3; __game.input.distance = 13; });
+await wait(1500);
+await shot('25-beach-wide');
+await g(() => { __game.player.pos.set(0, 0, 62); __game.input.yaw = Math.PI; __game.input.pitch = 0.25; __game.input.distance = 10; });
+await wait(1000);
+await shot('26-boardwalk');
 await g(() => { const ms = __game.missions; while (ms.queue.length) ms.spawnMission(ms.queue.shift()); });
 await wait(300);
-
-// Knee
-await tp(15, 11.5); await wait(400);
-await shot('05-knee-kid');
-await g(() => { __game.input.yaw = Math.PI * 0.6; __game.input.distance = 5; __game.input.pitch = 0.25; });
-console.log('knee minigame opened:', await treat('06-minigame'));
-await shot('06b-cheer');
-await g(() => { __game.input.yaw = Math.PI; __game.input.distance = 8; __game.input.pitch = 0.35; });
-// Tower
-await tp(-13.2, 7.5); await wait(400);
-await shot('07-tower');
-console.log('tower opened:', await treat());
-await wait(1200);
-// Pond
-await tp(17.0, -12.6); await wait(400);
-await shot('08-pond');
-console.log('pond opened:', await treat());
-await wait(300);
-await g(() => { __game.input.yaw = 0.6; __game.input.distance = 5; });
-await wait(500);
-await shot('09-carrying');
-await tp(0, -40.5); await wait(300);
-await page.keyboard.press('KeyE'); await wait(800);
-await shot('10-dropoff');
-await wait(1500);
-// Bee
-await tp(-28.8, 21); await wait(300);
-console.log('bee opened:', await treat());
-// Arm
-await tp(36.8, -6); await wait(300);
-console.log('arm opened:', await treat());
-await tp(0, -40.5); await wait(300);
-await page.keyboard.press('KeyE'); await wait(300);
-// Lost toddler
-await tp(-38, 38); await wait(500);
-await tp(-44, 42); await wait(300);
-await shot('11-lost');
-console.log('lost opened:', await treat());
-await g(() => { const m = __game.missions.mom.root.position; __game.player.pos.set(m.x + 1.5, 0, m.z + 1); });
-await wait(300);
-await page.keyboard.press('KeyE'); await wait(600);
-await shot('12-mom');
-console.log('state:', await g(() => ({ rescued: __game.missions.rescued, total: __game.missions.total, pops: __game.missions.lollipops, states: __game.missions.missions.map((m) => `${m.def.id}:${m.state}`) })));
+const ids = await g(() => __game.missions.missions.map((m) => m.def.id));
+const SHOTS = { knee: '06-minigame', float: '20-beach-float', sunburn: '21-beach-sunburn', crab: '22-beach-crab' };
+for (const id of ids) {
+  // stand next to the kid (on the shore side for kids in the water; below the slide tower for Maya)
+  await g((id) => {
+    const m = __game.missions.missions.find((x) => x.def.id === id);
+    const k = m.kid.root.position;
+    if (id === 'tower') __game.player.pos.set(-13.2, 0, 7.5);
+    else if (m.def.water || id === 'pond') __game.player.pos.set(k.x, 0, k.z - 1.6);
+    else __game.player.pos.set(k.x, 0, k.z - 1.5);
+    __game.player.vel.set(0, 0, 0);
+    if (!m.found) { m.found = true; m.bubble.visible = m.icon.visible = m.beacon.visible = true; }
+  }, id);
+  await wait(500);
+  if (SHOTS[id]) {
+    await g(() => { __game.input.yaw = Math.PI * 0.85; __game.input.distance = 6; __game.input.pitch = 0.3; });
+    await wait(500);
+    await shot(SHOTS[id].replace('06-minigame', '05-knee-kid'));
+  }
+  const opened = await treat(id === 'knee' ? '06-minigame' : null);
+  if (id === 'knee') await shot('06b-cheer');
+  // hand carried kids over at their drop-off
+  const carried = await g((id) => __game.missions.missions.find((x) => x.def.id === id).state === 'carried', id);
+  if (carried) {
+    if (id === 'float') { await g(() => { __game.input.yaw = 0.6; __game.input.distance = 6; }); await wait(400); await shot('23-beach-carry'); }
+    await g((id) => {
+      const ms = __game.missions, m = ms.missions.find((x) => x.def.id === id);
+      const t = ms.dropPos(m.def);
+      __game.player.pos.set(t.x + 1.2, 0, t.z + 0.6);
+    }, id);
+    await wait(300);
+    await page.keyboard.press('KeyE');
+    await wait(900);
+    if (id === 'heat') await shot('24-beach-firstaid');
+  }
+  const state = await g((id) => __game.missions.missions.find((x) => x.def.id === id).state, id);
+  console.log(`${id.padEnd(8)} minigame:${opened} → ${state}`);
+  await g(() => { __game.input.yaw = Math.PI; __game.input.distance = 8; __game.input.pitch = 0.35; });
+}
+console.log('state:', await g(() => ({ rescued: __game.missions.rescued, total: __game.missions.total, pops: __game.missions.lollipops })));
 await wait(3500);
 await shot('13-end');
 console.log('ERRORS:', errors.length ? errors : 'none');

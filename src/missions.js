@@ -1,55 +1,106 @@
-// Park emergencies, ambient kids, collectibles and the interaction loop.
+// Emergencies in every zone, ambient kids, collectibles and the interaction loop.
 import * as THREE from 'three';
 import { buildKid, animateRig, makeBubble, makeAlertIcon } from './characters.js';
-import { WORLD, getColliders } from './world.js';
+import { WORLD, getColliders, zoneAt } from './world.js';
+import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
 import { toon, part } from './toon.js';
 
-const DROP = WORLD.hospitalDoor;
+// Where carried kids are handed over
+export const DROPS = {
+  hospital: { pos: WORLD.hospitalDoor, action: 'Hand %s to the nurses', toast: '🏥 Take %s to the hospital!', step: 'Carry to the hospital drop-off.', walkTo: new THREE.Vector3(0, 0, -46.5) },
+  tower: { pos: WORLD.lifeguardDrop, action: 'Bring %s to the first-aid station', toast: '⛑️ Take %s to the lifeguard first-aid station!', step: 'Carry to the lifeguard tower (first aid).', walkTo: new THREE.Vector3(WORLD.lifeguardDrop.x + 2.2, 0, WORLD.lifeguardDrop.z + 1.6) },
+  mom: { action: 'Reunite %s with Mom', toast: '💛 Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.' },
+};
+const fill = (text, name) => text.replace('%s', name);
 const sleep = (s) => new Promise((r) => setTimeout(r, s * 1000));
 
 export const MISSIONS = [
   {
-    id: 'knee', name: 'Ido', title: 'Scraped Knee', look: 'redShirt',
+    id: 'knee', zone: 'park', name: 'Ido', title: 'Scraped Knee', look: 'redShirt',
     at: [15, 13.2], pose: 'cry', bubble: 'Owwie!', range: 2.4,
     blurb: 'Ido fell off the swing.',
     treatment: { title: 'Patch up Ido', speed: 0.9, zone: 0.22, steps: [{ icon: '🧼', label: 'Clean the scrape' }, { icon: '🩹', label: 'Stick on a bandage' }] },
     deliver: null, reward: 3, bonusTime: 45,
   },
   {
-    id: 'tower', name: 'Maya', title: 'Scared at the Top', look: 'pinkHat',
+    id: 'tower', zone: 'park', name: 'Maya', title: 'Scared at the Top', look: 'pinkHat',
     at: [WORLD.tower.x + 0.4, WORLD.tower.z + 0.4], y: WORLD.tower.top + 0.1, pose: 'cry', bubble: 'Too high!', range: 3.2,
     blurb: 'Maya is stuck on the slide tower. Stand below and catch her!',
     treatment: { title: 'Catch Maya!', speed: 1.5, zone: 0.14, steps: [{ icon: '🫶', label: '"Jump, I got you!"' }, { icon: '🙌', label: 'Catch!' }] },
     deliver: null, reward: 4, bonusTime: 50, special: 'catch',
   },
   {
-    id: 'pond', name: 'Yoni', title: 'Splash! Kid in the Pond', look: 'capKid',
+    id: 'pond', zone: 'park', name: 'Yoni', title: 'Splash! Kid in the Pond', look: 'capKid',
     at: [WORLD.pond.x - 1.5, WORLD.pond.z + 1], y: -0.55, pose: 'flail', bubble: 'HELP!', range: 2.4,
     blurb: 'Yoni fell into the pond. Wade in, pull him out, then take him to the hospital.',
     treatment: { title: 'Pond rescue', speed: 1.2, zone: 0.18, steps: [{ icon: '🛟', label: 'Pull him out' }, { icon: '🩺', label: 'Check breathing' }] },
     deliver: 'hospital', reward: 6, bonusTime: 35,
   },
   {
-    id: 'bee', name: 'Tamar', title: 'Bee Sting', look: 'ponytail',
+    id: 'bee', zone: 'park', name: 'Tamar', title: 'Bee Sting', look: 'ponytail',
     at: [-30, 21], pose: 'cry', bubble: 'A bee!!', range: 2.4,
     blurb: 'Tamar got stung by the flower beds.',
     treatment: { title: 'Bee sting first aid', speed: 1.1, zone: 0.18, steps: [{ icon: '🐝', label: 'Scrape out the stinger' }, { icon: '🧊', label: 'Ice pack' }, { icon: '🍭', label: 'Bravery lollipop' }] },
     deliver: null, reward: 4, bonusTime: 45,
   },
   {
-    id: 'arm', name: 'Ariel', title: 'Broken Arm', look: 'glassesKid',
+    id: 'arm', zone: 'park', name: 'Ariel', title: 'Broken Arm', look: 'glassesKid',
     at: [38, -6], pose: 'sit', bubble: 'My arm...', range: 2.4,
     blurb: 'Ariel fell out of a tree. Splint the arm, then carry him to the hospital.',
     treatment: { title: 'Splint the arm', speed: 1.25, zone: 0.16, steps: [{ icon: '🪵', label: 'Line up the splint' }, { icon: '🩹', label: 'Wrap it' }, { icon: '🎗️', label: 'Make a sling' }] },
     deliver: 'hospital', reward: 6, bonusTime: 60, cast: true,
   },
   {
-    id: 'lost', name: 'Noa', title: 'Lost Toddler', look: 'teddyToddler',
+    id: 'lost', zone: 'park', name: 'Noa', title: 'Lost Toddler', look: 'teddyToddler',
     at: [-45, 43], pose: 'cry', bubble: 'Mommy?', range: 2.2, hidden: true,
     blurb: 'Noa wandered off. Search the northwest woods, then bring her to her mom at the lollipop stand.',
     treatment: { title: 'Comfort Noa', speed: 0.8, zone: 0.26, steps: [{ icon: '🧸', label: 'Hug the teddy' }, { icon: '🍭', label: 'Lollipop!' }] },
     deliver: 'mom', reward: 6, bonusTime: 70,
+  },
+
+  // ---------------- Zone 2: the Beach ----------------
+  {
+    id: 'sunburn', zone: 'beach', name: 'Shira', title: 'Sunburn', look: 'ponytail',
+    at: [18, 91], pose: 'cry', bubble: 'So hot!', range: 2.4, tint: 0xff9c8c, prop: 'sunscreen',
+    blurb: 'Shira played in the sun all morning without sunscreen.',
+    treatment: { title: 'Cool down Shira', speed: 1.0, zone: 0.2, steps: [{ icon: '🧴', label: 'SPF 50 sunscreen' }, { icon: '👒', label: 'Sun hat on' }, { icon: '💧', label: 'Drink some water' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'float', zone: 'beach', name: 'Lior', title: 'Drifting Away!', look: 'glassesKid',
+    at: [22, 124.5], y: -0.5, pose: 'flail', bubble: 'HELP!', range: 2.8, prop: 'ring', drift: [1, 0], water: true,
+    blurb: 'Lior’s float is drifting away. Wade out, tow him in, then take him to the lifeguard tower.',
+    treatment: { title: 'Float rescue', speed: 1.3, zone: 0.17, steps: [{ icon: '🛟', label: 'Grab the float' }, { icon: '🏊', label: 'Tow him in' }] },
+    deliver: 'tower', reward: 6, bonusTime: 40,
+  },
+  {
+    id: 'crab', zone: 'beach', name: 'Roni', title: 'Crab Pinch', look: 'redShirt',
+    at: [40, 108], pose: 'cry', bubble: 'A crab!!', range: 2.4, prop: 'crab',
+    blurb: 'A crab grabbed Roni’s toe by the rocks.',
+    treatment: { title: 'Free Roni’s toe', speed: 1.15, zone: 0.17, steps: [{ icon: '🦀', label: 'Gently free the toe' }, { icon: '🌊', label: 'Rinse it' }, { icon: '🩹', label: 'Bandage' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'jelly', zone: 'beach', name: 'Gal', title: 'Jellyfish Sting', look: 'capKid',
+    at: [-36, 120], y: -0.3, pose: 'cry', bubble: 'It stings!', range: 2.6, prop: 'jelly', water: true,
+    blurb: 'Gal brushed against a jellyfish in the shallow water.',
+    treatment: { title: 'Jellyfish first aid', speed: 1.1, zone: 0.18, steps: [{ icon: '🌊', label: 'Rinse with sea water' }, { icon: '🧊', label: 'Cold pack' }, { icon: '🍭', label: 'Bravery lollipop' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'sand', zone: 'beach', name: 'Eitan', title: 'Sand in the Eyes', look: 'bandageBoy',
+    at: [BEACH.castles.x + 0.6, BEACH.castles.z - 2.8], pose: 'cry', bubble: 'My eyes!', range: 2.4,
+    blurb: 'A sandcastle tower collapsed right into Eitan’s face.',
+    treatment: { title: 'Rinse Eitan’s eyes', speed: 0.95, zone: 0.22, steps: [{ icon: '💧', label: 'Rinse the eyes' }, { icon: '👀', label: 'Blink test' }] },
+    deliver: null, reward: 3, bonusTime: 40,
+  },
+  {
+    id: 'heat', zone: 'beach', name: 'Yael', title: 'Too Much Sun', look: 'pinkHat',
+    at: [46, 93], pose: 'sit', bubble: 'Dizzy…', range: 2.4, tint: 0xffb3a3,
+    blurb: 'Yael feels dizzy from the heat. Cool her down, then carry her into the shade at the lifeguard tower.',
+    treatment: { title: 'Heat first aid', speed: 1.2, zone: 0.17, steps: [{ icon: '💧', label: 'Small sips of water' }, { icon: '🧊', label: 'Cool, wet towel' }] },
+    deliver: 'tower', reward: 6, bonusTime: 55,
   },
 ];
 
@@ -83,6 +134,7 @@ export class MissionSystem {
     this.leaving = [];
     this.busy = false;
     this.finished = false;
+    this.zonesSeen = new Set(['park']);
 
     // Mom waiting at the stand
     this.mom = buildKid('mom');
@@ -124,6 +176,28 @@ export class MissionSystem {
     waver.root.rotation.y = 0.8;
     this.group.add(waver.root);
     this.ambient.push({ kid: waver, mode: 'wave' });
+
+    // ---- Beach: kids bobbing on floats, one chasing a beach ball, one by the sandcastles
+    [['redShirt', 6, 121, 0xffd23f], ['ponytail', -14, 122.5, 0xff5fa2]].forEach(([look, x, z, col], i) => {
+      const kid = buildKid(look);
+      kid.root.position.set(x, -0.5, z);
+      kid.root.rotation.y = Math.PI;
+      const ring = makeFloatRing(col);
+      ring.position.y = 0.55;
+      kid.root.add(ring);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'float', x, z, phase: i * 2 });
+    });
+    const baller = buildKid('capKid');
+    this.group.add(baller.root);
+    const ball = makeBeachBall();
+    this.group.add(ball);
+    this.ambient.push({ kid: baller, mode: 'ball', ball });
+    const builder = buildKid('gownKid');
+    builder.root.position.set(BEACH.castles.x - 2.4, 0, BEACH.castles.z - 1.2);
+    builder.root.rotation.y = 1.2;
+    this.group.add(builder.root);
+    this.ambient.push({ kid: builder, mode: 'wave' });
   }
 
   spawnLollipops() {
@@ -156,6 +230,21 @@ export class MissionSystem {
       this.pops.push(g);
       n++;
     }
+    // a trail down the boardwalk and some on the sand
+    const spots = [[0, 64], [0, 72], [-20, 88], [10, 100], [30, 96], [-40, 106], [44, 112], [-10, 112], [52, 88], [-48, 96]];
+    spots.forEach(([x, z], i) => {
+      const g = new THREE.Group();
+      const candy = part(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 20), colors[i % colors.length], { outline: 0.03 });
+      candy.rotation.x = Math.PI / 2;
+      candy.position.y = 0.55;
+      g.add(candy);
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.5, 6), toon(0xffffff));
+      stick.position.y = 0.2;
+      g.add(stick);
+      g.position.set(x, 0.4, z);
+      this.group.add(g);
+      this.pops.push(g);
+    });
   }
 
   spawnMission(def) {
@@ -176,13 +265,31 @@ export class MissionSystem {
     this.group.add(bc);
     if (def.hidden) { bubble.visible = false; icon.visible = false; }
     const m = { def, kid, bubble, icon, beacon: bc, state: 'active', spawnedAt: this.time, found: !def.hidden };
-    if (def.id === 'tower') getColliders(); // kid is on the tower deck, nothing to add
+    if (def.tint) m.untint = tintKid(kid, def.tint);
+    if (def.prop) m.prop = this.makeProp(def.prop, kid);
     this.missions.push(m);
     sfx.alert();
     const p = this.player;
     if (!this.busy && !p.carrying && Math.hypot(p.vel.x, p.vel.z) < 0.5) p.rig.playOnce?.('wave', { timeScale: 1.2, maxTime: 2.6 });
     this.ui.toast(`🚨 ${def.title}!`, 2600);
     return m;
+  }
+
+  /** Mission props: a float ring around the kid, a crab at the toes, a jellyfish nearby, sunscreen. */
+  makeProp(kind, kid) {
+    if (kind === 'ring') {
+      const ring = makeFloatRing(0x3fb6ff);
+      ring.position.y = 0.55;
+      kid.root.add(ring);
+      return ring;
+    }
+    const prop = kind === 'crab' ? makeCrab() : kind === 'jelly' ? makeJellyfish() : makeSunscreen();
+    const kp = kid.root.position;
+    if (kind === 'crab') prop.position.set(kp.x + 0.35, 0, kp.z + 0.45);
+    if (kind === 'jelly') prop.position.set(kp.x + 1.1, 0.05, kp.z + 0.8);
+    if (kind === 'sunscreen') prop.position.set(kp.x - 0.7, 0, kp.z + 0.5);
+    this.group.add(prop);
+    return prop;
   }
 
   get total() { return MISSIONS.length; }
@@ -192,11 +299,21 @@ export class MissionSystem {
     this.time += dt;
     const p = this.player.pos;
 
-    // Spawn schedule: next emergency after a delay, sooner if the player is idle
+    // Entering a zone for the first time
+    const zone = zoneAt(p.z);
+    if (!this.zonesSeen.has(zone)) {
+      this.zonesSeen.add(zone);
+      this.ui.toast(zone === 'beach' ? '🏖️ Zone 2 — The Beach<br><small>Kids are splashing around… keep an eye on them!</small>' : '🌳 The Park', 3000);
+      this.nextSpawn = Math.min(this.nextSpawn, this.time + 4);
+    }
+
+    // Spawn schedule: next emergency after a delay, sooner if the player is idle.
+    // Emergencies in the zone you're in come first.
     const open = this.missions.filter((m) => m.state !== 'done').length;
     if (this.queue.length && (this.time > this.nextSpawn || open === 0)) {
       if (open < 3) {
-        this.spawnMission(this.queue.shift());
+        const i = this.queue.findIndex((d) => d.zone === zone);
+        this.spawnMission(this.queue.splice(i >= 0 ? i : 0, 1)[0]);
         this.nextSpawn = this.time + 28;
       }
     }
@@ -211,6 +328,19 @@ export class MissionSystem {
         a.kid.root.position.set(x, 0, z);
         a.kid.root.rotation.y = Math.atan2(-Math.sin(a.a) * a.speed, Math.cos(a.a) * a.speed);
         animateRig(a.kid, 'walk', t + a.r, dt);
+      } else if (a.mode === 'float') {
+        a.kid.root.position.set(a.x + Math.sin(t * 0.3 + a.phase) * 1.5, -0.5 + Math.sin(t * 2 + a.phase) * 0.08, a.z + Math.sin(t * 0.5 + a.phase) * 0.6);
+        a.kid.root.rotation.y = Math.PI + Math.sin(t * 0.4 + a.phase) * 0.6;
+        animateRig(a.kid, Math.sin(t * 0.5 + a.phase) > 0.6 ? 'wave' : 'flail', t, dt);
+      } else if (a.mode === 'ball') {
+        // run back and forth chasing the ball along the beach
+        const u = (t * 0.08) % 2, k = u < 1 ? u : 2 - u, dir = u < 1 ? 1 : -1;
+        const x = -6 + k * 22, z = 110 + Math.sin(t * 0.4) * 1.5;
+        a.kid.root.position.set(x, 0, z);
+        a.kid.root.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+        animateRig(a.kid, 'run', t, dt, 5);
+        a.ball.position.set(x + dir * 1.2, 0.32 + Math.abs(Math.sin(t * 5)) * 0.9, z);
+        a.ball.rotation.z -= dir * dt * 6;
       }
     }
 
@@ -234,6 +364,13 @@ export class MissionSystem {
         m.kid.tears.visible = m.def.pose === 'cry';
         m.icon.position.y = m.kid.height + 1.9 + Math.sin(t * 4) * 0.12;
         if (m.def.id === 'pond') kp.y = -0.55 + Math.sin(t * 3) * 0.08;
+        if (m.def.water && m.def.id !== 'pond') kp.y = (m.def.y ?? 0) + Math.sin(t * 2.5) * 0.06;
+        if (m.def.drift && kp.x < m.def.at[0] + 16) {
+          kp.x += m.def.drift[0] * dt * 0.35; // the current pulls the float along the shore
+          m.beacon.position.x = kp.x;
+        }
+        if (m.def.prop === 'jelly' && m.prop) m.prop.position.y = 0.05 + Math.sin(t * 2) * 0.05;
+        if (m.def.prop === 'crab' && m.prop) m.prop.userData.legs.forEach((l, j) => { l.rotation.z = Math.sin(t * 18 + j) * 0.3; });
         // face the player
         const target = Math.atan2(p.x - kp.x, p.z - kp.z);
         m.kid.root.rotation.y += (Math.atan2(Math.sin(target - m.kid.root.rotation.y), Math.cos(target - m.kid.root.rotation.y))) * Math.min(1, dt * 3);
@@ -263,11 +400,15 @@ export class MissionSystem {
       }
     }
 
-    // Kids walking into the hospital after hand-off
+    // Kids walking into the hospital / into the shade after hand-off
     for (const l of this.leaving) {
       const kp = l.kid.root.position;
-      const dir = new THREE.Vector3(0 - kp.x, 0, -46.5 - kp.z);
-      if (dir.length() < 0.3) { l.kid.root.visible = false; continue; }
+      const dir = l.to.clone().sub(kp).setY(0);
+      if (dir.length() < 0.3) {
+        if (l.vanish) l.kid.root.visible = false;
+        else animateRig(l.kid, 'idle', t, dt);
+        continue;
+      }
       dir.normalize();
       kp.addScaledVector(dir, dt * 2.5);
       l.kid.root.rotation.y = Math.atan2(dir.x, dir.z);
@@ -284,7 +425,7 @@ export class MissionSystem {
     const carried = this.missions.find((m) => m.state === 'carried');
     this.deliverBeacon.visible = !!carried;
     if (carried) {
-      const target = carried.def.deliver === 'mom' ? this.mom.root.position : DROP;
+      const target = this.dropPos(carried.def);
       this.deliverBeacon.position.set(target.x, 20, target.z);
     }
 
@@ -296,6 +437,8 @@ export class MissionSystem {
     }
   }
 
+  dropPos(def) { return def.deliver === 'mom' ? this.mom.root.position : DROPS[def.deliver].pos; }
+
   /** Find what E would do right now, show prompt, act on E. */
   handleInteraction(input) {
     if (this.busy) { this.ui.prompt(null); return; }
@@ -304,10 +447,9 @@ export class MissionSystem {
     const carried = this.missions.find((m) => m.state === 'carried');
 
     if (carried) {
-      if (carried.def.deliver === 'hospital' && Math.hypot(p.x - DROP.x, p.z - DROP.z) < 3) {
-        action = { label: `Hand ${carried.def.name} to the nurses`, run: () => this.deliver(carried) };
-      } else if (carried.def.deliver === 'mom' && this.mom.root.position.distanceTo(new THREE.Vector3(p.x, 0, p.z)) < 3) {
-        action = { label: `Reunite ${carried.def.name} with Mom`, run: () => this.deliver(carried) };
+      const at = this.dropPos(carried.def);
+      if (Math.hypot(p.x - at.x, p.z - at.z) < 3) {
+        action = { label: fill(DROPS[carried.def.deliver].action, carried.def.name), run: () => this.deliver(carried) };
       }
     } else {
       let best = null, bestD = Infinity;
@@ -357,13 +499,19 @@ export class MissionSystem {
       m.jumpTo = this.player.pos.clone().addScaledVector(fwd, 1.0).setY(0);
       return;
     }
-    if (m.def.id === 'pond') {
-      // pulled out onto the bank next to the doctor
+    if (m.def.id === 'pond' || m.def.water) {
+      // pulled out of the water next to the doctor
       kp.set(this.player.pos.x, 0, this.player.pos.z);
+    }
+    if (m.def.prop === 'ring' && m.prop) {
+      // the empty float stays bobbing where he was
+      m.kid.root.remove(m.prop);
+      m.prop.position.copy(kp).setY(0.08);
+      this.group.add(m.prop);
     }
     if (m.def.deliver) {
       this.pickUp(m);
-      this.ui.toast(m.def.deliver === 'hospital' ? `🏥 Take ${m.def.name} to the hospital!` : `💛 Bring ${m.def.name} to Mom at the lollipop stand!`, 2400);
+      this.ui.toast(fill(DROPS[m.def.deliver].toast, m.def.name), 2400);
     } else {
       this.complete(m);
     }
@@ -399,8 +547,10 @@ export class MissionSystem {
     if (m.kid.legL) m.kid.legL.rotation.z = m.kid.legR.rotation.z = 0;
     const fwd = new THREE.Vector3(Math.sin(this.player.facing), 0, Math.cos(this.player.facing));
     m.kid.root.position.copy(this.player.pos).addScaledVector(fwd, 0.9).setY(0);
-    if (m.def.deliver === 'hospital') this.leaving.push({ kid: m.kid });
-    else {
+    if (m.def.deliver !== 'mom') {
+      const d = DROPS[m.def.deliver];
+      this.leaving.push({ kid: m.kid, to: d.walkTo, vanish: m.def.deliver === 'hospital' });
+    } else {
       m.kid.root.position.copy(this.mom.root.position).add(new THREE.Vector3(0.8, 0, 0.5));
       m.kid.root.rotation.y = this.mom.root.rotation.y;
     }
@@ -413,7 +563,17 @@ export class MissionSystem {
     m.celebrate = 4;
     m.beacon.visible = false;
     m.kid.tears.visible = false;
-    if (m.def.id === 'tower' || m.def.id === 'pond') m.kid.root.position.y = 0;
+    if (m.def.id === 'tower' || m.def.id === 'pond' || m.def.water) m.kid.root.position.y = 0;
+    m.untint?.();
+    if (m.prop && m.def.prop !== 'ring') {
+      const prop = m.prop;
+      if (m.def.prop === 'crab') {
+        // the crab scuttles off sideways and disappears
+        const t0 = this.time;
+        const run = () => { prop.position.x += 0.12; if (this.time - t0 < 2.5) requestAnimationFrame(run); else this.group.remove(prop); };
+        run();
+      } else setTimeout(() => this.group.remove(prop), 1500);
+    }
     const elapsed = this.time - m.spawnedAt;
     let reward = m.def.reward;
     const bonuses = [];
@@ -429,4 +589,18 @@ export class MissionSystem {
     this.ui.toast(`✅ ${m.def.name} is safe! +${reward} 🍭${bonuses.length ? `<br><small>${bonuses.join(' · ')}</small>` : ''}`, 2600);
     this.nextSpawn = Math.min(this.nextSpawn, this.time + 6);
   }
+}
+
+/** Tints a kid (sunburn / overheated). Clones materials so other kids with the same look stay normal. */
+function tintKid(kid, color) {
+  const restore = [];
+  kid.root.traverse((o) => {
+    if (!o.isMesh || o.material?.type === 'ShaderMaterial' || o.material?.type === 'SpriteMaterial') return;
+    if (!o.material?.color) return;
+    const original = o.material;
+    o.material = original.clone();
+    o.material.color.multiply(new THREE.Color(color));
+    restore.push(() => { o.material = original; });
+  });
+  return () => restore.forEach((r) => r());
 }

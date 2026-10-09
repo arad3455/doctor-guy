@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildWorld } from './world.js';
+import { buildBeach } from './beach.js';
 import { Player, Input, FollowCamera } from './player.js';
 import { MissionSystem } from './missions.js';
 import { MiniGame } from './minigame.js';
@@ -36,7 +37,9 @@ sun.shadow.bias = -0.0005;
 scene.add(sun);
 scene.add(sun.target);
 
-const { animated, swingSeats } = buildWorld(scene);
+const { world: park, animated, swingSeats } = buildWorld(scene);
+const beach = buildBeach(scene);
+animated.push(...beach.animated);
 const input = new Input(canvas);
 if (isTouch) input.distance = 9.5; // a bit further out on small screens
 const player = new Player(scene);
@@ -58,7 +61,7 @@ const ui = {
     sfx.fanfare();
     const mins = Math.floor(missions.time / 60), secs = Math.floor(missions.time % 60);
     document.getElementById('end-stats').innerHTML =
-      `🍭 <b>${missions.lollipops}</b> lollipops · ⏱️ ${mins}:${String(secs).padStart(2, '0')}<br><small>Next zone: The Beach 🏖️ (coming soon)</small>`;
+      `🍭 <b>${missions.lollipops}</b> lollipops · ⏱️ ${mins}:${String(secs).padStart(2, '0')}<br><small>Next zone: The Zoo 🦁 (coming soon)</small>`;
     document.getElementById('end').classList.remove('hidden');
     hud.show(false);
     started = false;
@@ -73,7 +76,7 @@ function start() {
   document.getElementById('end').classList.add('hidden');
   hud.show(true);
   started = true;
-  hud.toast('Your shift at the park begins!<br><small>Keep an eye out for kids in trouble 🚨</small>', 3000);
+  hud.toast('Your shift begins!<br><small>The beach is through the park’s south gate 🏖️</small>', 3000);
 }
 document.getElementById('start').addEventListener('click', start);
 document.getElementById('restart').addEventListener('click', () => {
@@ -112,6 +115,10 @@ function frame() {
     player.update(dt, t, { down: () => false, hit: () => false, yaw: input.yaw });
   }
   follow.update(dt, player, started ? input : { yaw: input.yaw, pitch: 0.45, distance: 22 });
+
+  // Streaming: only draw a zone's props when you're near it (the sea/sand horizon always stays)
+  park.visible = player.pos.z < 105;
+  beach.group.visible = player.pos.z > 25;
 
   // Keep shadows centred on the player
   sun.position.set(player.pos.x + 30, 50, player.pos.z + 20);

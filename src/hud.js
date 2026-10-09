@@ -1,5 +1,7 @@
 // DOM HUD: stats, mission list, prompt, toasts, minimap.
 import { WORLD } from './world.js';
+import { BEACH } from './beach.js';
+import { DROPS } from './missions.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,14 +41,19 @@ export class HUD {
     $('total').textContent = ms.total;
     $('stamina-fill').style.width = `${player.stamina * 100}%`;
 
-    const rows = ms.missions.filter((m) => m.state !== 'done' || ms.time - (m.doneAt ?? (m.doneAt = ms.time)) < 4);
+    // open emergencies first (carried kid on top), then just-finished ones; at most 5 rows
+    const rank = (m) => (m.state === 'carried' ? 0 : m.state === 'done' ? 2 : 1);
+    const rows = ms.missions
+      .filter((m) => m.state !== 'done' || ms.time - (m.doneAt ?? (m.doneAt = ms.time)) < 4)
+      .sort((a, b) => rank(a) - rank(b))
+      .slice(0, 5);
     const html = rows.map((m) => {
       const step = {
         active: m.found ? m.def.blurb : 'Someone is missing… search the northwest woods.',
         jumping: 'Catch!',
         treated: `Pick up ${m.def.name}.`,
         lifting: `Lifting ${m.def.name}…`,
-        carried: m.def.deliver === 'mom' ? 'Bring Noa to Mom at the lollipop stand.' : 'Carry to the hospital drop-off.',
+        carried: DROPS[m.def.deliver]?.step ?? '',
         done: 'Rescued!',
       }[m.state];
       const left = Math.ceil(m.def.bonusTime - (ms.time - m.spawnedAt));
@@ -61,12 +68,16 @@ export class HUD {
     this.drawMap(ms, player);
   }
 
+  /** Player-centred minimap (north up) showing ~110 m of the world around Doctor Guy. */
   drawMap(ms, player) {
     const ctx = this.mapCtx;
-    const S = 180, half = WORLD.half + 2;
-    const sc = S / (half * 2);
-    const tx = (x) => (x + half) * sc;
-    const tz = (z) => (z + half) * sc;
+    const S = 180, RANGE = 55;
+    const sc = S / (RANGE * 2);
+    const ox = player.pos.x, oz = player.pos.z;
+    const tx = (x) => S / 2 + (x - ox) * sc;
+    const tz = (z) => S / 2 + (z - oz) * sc;
+    const rect = (x0, z0, x1, z1) => ctx.fillRect(tx(x0), tz(z0), (x1 - x0) * sc, (z1 - z0) * sc);
+    const dot = (x, z, r) => { ctx.beginPath(); ctx.arc(tx(x), tz(z), r, 0, Math.PI * 2); };
     ctx.clearRect(0, 0, S, S);
     ctx.save();
     ctx.beginPath();
@@ -74,57 +85,76 @@ export class HUD {
     ctx.clip();
     ctx.fillStyle = '#6cc24a';
     ctx.fillRect(0, 0, S, S);
-    // paths
+
+    // Beach: sand, wet sand, sea, boardwalk, lifeguard tower, sandcastles
+    ctx.fillStyle = '#f2d38a';
+    rect(-85, 66, 85, WORLD.shoreline);
+    ctx.fillStyle = '#5cc8f2';
+    rect(-400, WORLD.shoreline, 400, WORLD.wadeLimit + 4);
+    ctx.fillStyle = '#2b8fd8';
+    rect(-400, WORLD.wadeLimit + 4, 400, 600);
+    ctx.fillStyle = '#a8743f';
+    rect(-2.2, 55, 2.2, 84);
+    ctx.fillStyle = '#e0323a';
+    rect(BEACH.tower.x - 1.5, BEACH.tower.z - 1.5, BEACH.tower.x + 1.5, BEACH.tower.z + 1.5);
+    ctx.fillStyle = '#d9ae5c';
+    dot(BEACH.castles.x, BEACH.castles.z, 2.5 * sc + 1); ctx.fill();
+
+    // Park: fence outline, paths, pond, hospital, playground, stand
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(tx(-57), tz(-57), 114 * sc, 114 * sc);
     ctx.strokeStyle = '#e6c88f';
     ctx.lineWidth = 4 * sc * 1.2;
-    ctx.beginPath(); ctx.arc(tx(0), tz(0), 23 * sc, 0, Math.PI * 2); ctx.stroke();
+    dot(0, 0, 23 * sc); ctx.stroke();
     ctx.fillStyle = '#e6c88f';
-    ctx.fillRect(tx(-2.5), tz(-42), 5 * sc, 20 * sc);
-    // pond
+    rect(-2.5, -42, 2.5, -22);
+    rect(-2, 35, 2, 57);
     ctx.fillStyle = '#3fa9f5';
-    ctx.beginPath(); ctx.arc(tx(WORLD.pond.x), tz(WORLD.pond.z), WORLD.pond.r * sc, 0, Math.PI * 2); ctx.fill();
-    // hospital
+    dot(WORLD.pond.x, WORLD.pond.z, WORLD.pond.r * sc); ctx.fill();
     ctx.fillStyle = '#efe3cf';
-    ctx.fillRect(tx(-17), tz(-57), 34 * sc, 10 * sc);
+    rect(-17, -57, 17, -47);
     ctx.fillStyle = '#e0323a';
-    ctx.fillRect(tx(-1.5), tz(-53), 3 * sc, 2 * sc * 1.2);
-    // playground
-    ctx.fillStyle = '#e0323a';
-    ctx.fillRect(tx(WORLD.tower.x - 1.5), tz(WORLD.tower.z - 1.5), 3 * sc, 3 * sc);
+    rect(-1.5, -53, 1.5, -50.6);
+    rect(WORLD.tower.x - 1.5, WORLD.tower.z - 1.5, WORLD.tower.x + 1.5, WORLD.tower.z + 1.5);
     ctx.fillStyle = '#2457c5';
-    ctx.fillRect(tx(WORLD.swings.x - 3.5), tz(WORLD.swings.z - 0.3), 7 * sc, 0.8 * sc + 1);
-    // stand
+    rect(WORLD.swings.x - 3.5, WORLD.swings.z - 0.4, WORLD.swings.x + 3.5, WORLD.swings.z + 0.6);
     ctx.fillStyle = '#9a6234';
-    ctx.fillRect(tx(WORLD.stand.x - 0.7), tz(WORLD.stand.z - 1.5), 1.4 * sc + 1, 3 * sc);
+    rect(WORLD.stand.x - 0.7, WORLD.stand.z - 1.5, WORLD.stand.x + 0.7, WORLD.stand.z + 1.5);
 
+    // Emergencies (clamped to the rim when off-map, so you always know which way to go)
     const pulse = 1 + Math.sin(ms.time * 6) * 0.25;
+    const marker = (x, z, color, r) => {
+      let px = tx(x) - S / 2, pz = tz(z) - S / 2;
+      const d = Math.hypot(px, pz), max = S / 2 - 8;
+      if (d > max) { px *= max / d; pz *= max / d; }
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(S / 2 + px, S / 2 + pz, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    };
     for (const m of ms.missions) {
       if (m.state === 'done' || m.state === 'carried') continue;
-      const [x, z] = m.def.at;
       if (!m.found) {
         ctx.strokeStyle = '#e0323a';
         ctx.setLineDash([4, 3]);
         ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(tx(x + 4), tz(z - 4), 12 * sc, 0, Math.PI * 2); ctx.stroke();
+        const [x, z] = m.def.at;
+        dot(x + 4, z - 4, 12 * sc); ctx.stroke();
         ctx.setLineDash([]);
         continue;
       }
-      ctx.fillStyle = '#e0323a';
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(tx(x), tz(z), 5 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      const kp = m.kid.root.position;
+      marker(kp.x, kp.z, '#e0323a', 5 * pulse);
     }
     const carried = ms.missions.find((m) => m.state === 'carried');
     if (carried) {
-      const t = carried.def.deliver === 'mom' ? ms.mom.root.position : WORLD.hospitalDoor;
-      ctx.fillStyle = '#4cc35a';
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(tx(t.x), tz(t.z), 6 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      const t = ms.dropPos(carried.def);
+      marker(t.x, t.z, '#4cc35a', 6 * pulse);
     }
-    // player arrow
+    // player arrow (always centred)
     ctx.save();
-    ctx.translate(tx(player.pos.x), tz(player.pos.z));
+    ctx.translate(S / 2, S / 2);
     ctx.rotate(-player.facing + Math.PI);
     ctx.fillStyle = '#ffd90f';
     ctx.strokeStyle = '#1b1b1b';

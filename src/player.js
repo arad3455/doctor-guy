@@ -1,7 +1,7 @@
 // Third-person controller: WASD relative to camera, run with stamina, jump, collisions.
 import * as THREE from 'three';
 import { buildDoctor, animateRig } from './characters.js';
-import { getColliders, groundHeight, inPond, WORLD } from './world.js';
+import { getColliders, groundHeight, inWater, clampWalkable } from './world.js';
 
 const WALK = 4.2;
 const RUN = 8.5;
@@ -152,7 +152,7 @@ export class Player {
     const moving = move.lengthSq() > 0;
     if (moving) move.normalize();
 
-    const wet = inPond(this.pos.x, this.pos.z) && this.pos.y < 0.3;
+    const wet = inWater(this.pos.x, this.pos.z) && this.pos.y < 0.3;
     const wantsRun = (input.down('ShiftLeft', 'ShiftRight') || stickMag > 0.9) && moving && this.stamina > 0.02;
     let speed = wantsRun ? RUN : WALK;
     if (this.carrying) speed *= 0.85;
@@ -236,9 +236,7 @@ export class Player {
         }
       }
     }
-    const H = WORLD.half - 0.5;
-    p.x = THREE.MathUtils.clamp(p.x, -H, H);
-    p.z = THREE.MathUtils.clamp(p.z, -H, H);
+    clampWalkable(p);
   }
 }
 

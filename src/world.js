@@ -1,10 +1,16 @@
-// The Park zone: terrain, playground, pond, hospital, props, colliders.
+// The open world: shared terrain + walkable areas, and Zone 1 (the Park: playground, pond, hospital).
+// The Beach lives in beach.js and is reached through the park's south gate along the boardwalk.
 import * as THREE from 'three';
 import { part, toon, instanced, signTexture, canvasTexture, FONT } from './toon.js';
 
 export const WORLD = {
-  half: 56, // walkable half-size
+  half: 56, // park half-size (fence at half + 1)
   hospitalDoor: new THREE.Vector3(0, 0, -41),
+  // Beach: sand from z=beachStart, the sea starts at the shoreline, wading allowed until wadeLimit
+  beachStart: 80,
+  shoreline: 116,
+  wadeLimit: 127,
+  lifeguardDrop: new THREE.Vector3(-22, 0, 96),
   pond: { x: 20, z: -14, r: 7.5 },
   tower: { x: -15, z: 6, top: 2.4 },
   swings: { x: 15, z: 9 },
@@ -28,6 +34,38 @@ export function inPond(x, z) {
   const { pond } = WORLD;
   return Math.hypot(x - pond.x, z - pond.z) < pond.r - 0.6;
 }
+
+/** True where Doctor Guy is wading (pond or the shallow sea) — slower, and he sinks to the knees. */
+export function inWater(x, z) {
+  return inPond(x, z) || z > WORLD.shoreline + 1;
+}
+
+/** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
+export const zoneAt = (z) => (z > 62 ? 'beach' : 'park');
+
+// Walkable areas: the park, the boardwalk through the south gate, and the beach up to wading depth
+const WALKABLE = [
+  { minX: -55.5, maxX: 55.5, minZ: -55.5, maxZ: 55.5 },
+  { minX: -2.1, maxX: 2.1, minZ: 50, maxZ: 82 },
+  { minX: -57, maxX: 57, minZ: 79, maxZ: 127 },
+];
+
+/** Keeps a position inside the walkable areas (moves it to the nearest one if it left them all). */
+export function clampWalkable(p) {
+  let best = null, bestD = Infinity;
+  for (const r of WALKABLE) {
+    const x = THREE.MathUtils.clamp(p.x, r.minX, r.maxX);
+    const z = THREE.MathUtils.clamp(p.z, r.minZ, r.maxZ);
+    const d = (x - p.x) ** 2 + (z - p.z) ** 2;
+    if (d === 0) return;
+    if (d < bestD) { bestD = d; best = [x, z]; }
+  }
+  p.x = best[0];
+  p.z = best[1];
+}
+
+/** For other zone modules that register their own colliders. */
+export { addBox, addCircle };
 
 function addBox(cx, cz, w, d) {
   colliders.push({ type: 'box', minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2 });
@@ -57,14 +95,17 @@ function keepClear(x, z) {
   if (rr > 20.5 && rr < 25.5) return false; // ring path
   if (Math.abs(x) < 3.5 && z < -20) return false; // hospital path
   if (z < -34) return false; // hospital plaza
+  if (Math.abs(x) < 6 && z > 44) return false; // path to the south gate
   return true;
 }
 
 export function buildWorld(scene) {
   colliders.length = 0;
   platforms.length = 0;
-  const world = new THREE.Group();
+  const world = new THREE.Group(); // park props (hidden when far away, see main.js)
   scene.add(world);
+  const base = new THREE.Group(); // always visible: sky and ground
+  scene.add(base);
   const animated = []; // { update(t, dt) }
 
   // ---- Sky dome
@@ -79,13 +120,19 @@ export function buildWorld(scene) {
         void main(){ float h = clamp(normalize(vP).y*1.6, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, h), 1.0); }`,
     }),
   );
-  world.add(sky);
+  base.add(sky);
 
-  // ---- Ground
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(160, 64), toon(0x6cc24a));
+  // ---- Ground (big enough for park, boardwalk and beach)
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), toon(0x6cc24a));
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
-  world.add(ground);
+  base.add(ground);
+  // path from the fountain spoke out to the south gate
+  const gatePath = new THREE.Mesh(new THREE.PlaneGeometry(4, 22), toon(0xe6c88f));
+  gatePath.rotation.x = -Math.PI / 2;
+  gatePath.position.set(0, 0.021, 46);
+  gatePath.receiveShadow = true;
+  world.add(gatePath);
 
   const pathMat = toon(0xe6c88f);
   const ring = new THREE.Mesh(new THREE.RingGeometry(21, 25, 72), pathMat);
@@ -206,7 +253,7 @@ export function buildWorld(scene) {
   // ---- Clouds
   buildClouds(world, animated);
 
-  return { world, animated, swingSeats };
+  return { world, base, animated, swingSeats };
 }
 
 /* ------------------------------------------------------------------ */
@@ -662,11 +709,13 @@ function buildFence(world) {
   for (let i = -H; i <= H; i += 0.8) {
     for (const [x, z] of [[i, -H], [i, H], [-H, i], [H, i]]) {
       if (z === -H && Math.abs(x) < 20) continue; // hospital side open
+      if (z === H && Math.abs(x) < 3) continue; // south gate to the beach
       pickets.push(new THREE.Matrix4().compose(new THREE.Vector3(x, 0.55, z), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)));
     }
   }
   world.add(instanced(new THREE.BoxGeometry(0.14, 1.1, 0.14), 0xffffff, pickets, { outline: 0.025 }));
-  for (const [x, z, w, d] of [[0, H, 2 * H, 0.08], [-H, 0, 0.08, 2 * H], [H, 0, 0.08, 2 * H]]) {
+  const halfRail = (H - 3) / 2;
+  for (const [x, z, w, d] of [[-(3 + halfRail), H, 2 * halfRail, 0.08], [3 + halfRail, H, 2 * halfRail, 0.08], [-H, 0, 0.08, 2 * H], [H, 0, 0.08, 2 * H]]) {
     const rail = part(new THREE.BoxGeometry(w, 0.1, d), 0xffffff, { outline: 0.02 });
     rail.position.set(x, 0.8, z);
     world.add(rail);
@@ -678,6 +727,7 @@ function buildSkyline(world) {
   for (let i = 0; i < 60; i++) {
     const a = (i / 60) * Math.PI * 2;
     if (Math.sin(a) < -0.6) continue; // keep the hospital backdrop clean
+    if (Math.sin(a) > 0.05) continue; // the south is open sea
     const d = 95 + rand() * 30;
     const h = 10 + rand() * 30;
     const w = 6 + rand() * 8;
