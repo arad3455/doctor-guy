@@ -6,7 +6,8 @@
     "glassesKid": "glassesKid.glb",
     "ponytail": "ponytail.glb",
     "redShirt": "redShirt.glb",
-    "capKid": "capKid.glb"
+    "capKid": "capKid.glb",
+    "pinkHat": "pinkHat.glb"
   },
   "clips": {
     "walk": "anims/walk.glb",
