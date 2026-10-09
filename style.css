@@ -295,3 +295,6 @@ html.touch #mg-bar { height: 44px; }
 html.loading #title::before { opacity: 1; }
 #title { isolation: isolate; }
 button:disabled { opacity: 0.75; cursor: progress; box-shadow: 0 5px 0 var(--ink); transform: none; }
+
+/* driving: no stamina bar */
+html.driving #stamina { display: none; }

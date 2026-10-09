@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { buildWorld } from './world.js';
+import { buildWorld, cameraBlockers } from './world.js';
 import { buildBeach } from './beach.js';
 import { Player, Input, FollowCamera } from './player.js';
 import { MissionSystem } from './missions.js';
 import { MiniGame } from './minigame.js';
 import { HUD } from './hud.js';
-import { initAudio, sfx } from './audio.js';
+import { initAudio, sfx, engine, siren } from './audio.js';
+import { Ambulance, PARKING } from './vehicle.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -46,12 +47,64 @@ const player = new Player(scene);
 const doctorReady = loadDoctorModel()
   .then((rig) => { if (rig) { player.setRig(rig); console.info('[doctor] generated model loaded, clips:', rig.clips.join(', ')); } })
   .catch((e) => console.warn('[doctor] generated model failed to load, using procedural model', e));
+const ambulance = new Ambulance(scene);
+const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
 const follow = new FollowCamera(camera);
+follow.blockers = cameraBlockers;
 const hud = new HUD();
 const minigame = new MiniGame();
 
 let started = false;
+
+/* ---- Getting in and out of the ambulance ---- */
+const setButtons = (driving) => {
+  document.documentElement.classList.toggle('driving', driving);
+  document.getElementById('btn-jump').textContent = driving ? '🚨' : '⤒';
+  document.getElementById('btn-action').textContent = driving ? '🚪' : '✋';
+};
+function enterAmbulance() {
+  ambulance.driving = true;
+  player.rig.root.visible = false; // a kid on his shoulders rides along (hidden with him)
+  player.vel.set(0, 0, 0);
+  sfx.door();
+  engine.start();
+  setButtons(true);
+  hud.toast(isTouch ? '🚑 Joystick to drive · 🚨 siren · 🚪 get out' : '🚑 W/S drive · A/D steer · SPACE siren · E get out', 2600);
+}
+function exitAmbulance() {
+  if (Math.abs(ambulance.speed) > 2.5) { hud.toast('Stop first! 🛑', 1000); return; }
+  ambulance.driving = false;
+  ambulance.speed = 0;
+  if (ambulance.siren) { ambulance.siren = false; siren.off(); }
+  player.pos.copy(ambulance.doorPoint);
+  player.collide();
+  player.facing = ambulance.heading;
+  player.rig.root.visible = true;
+  sfx.door();
+  engine.stop();
+  setButtons(false);
+}
+function vehicleAction() {
+  if (ambulance.driving) return { label: 'Get out of the ambulance', run: exitAmbulance };
+  const p = player.pos;
+  // close to the driver's door, or anywhere right next to the van
+  const nearDoor = Math.hypot(p.x - ambulance.doorPoint.x, p.z - ambulance.doorPoint.z) < 2.6;
+  const local = p.clone().sub(ambulance.pos);
+  const along = local.dot(ambulance.forward), across = local.dot(ambulance.right);
+  const beside = Math.abs(along) < 4.2 && Math.abs(across) < ambulance.width / 2 + 1.6;
+  return nearDoor || beside ? { label: 'Drive the ambulance 🚑', run: enterAmbulance } : null;
+}
+function resetAmbulance() {
+  if (ambulance.driving) exitAmbulance();
+  ambulance.speed = 0;
+  ambulance.pos.set(PARKING.x, 0, PARKING.z);
+  ambulance.heading = PARKING.heading;
+  ambulance.syncTransform();
+}
+
 const ui = {
+  isDriving: () => ambulance.driving,
+  vehicleAction,
   swingSeats,
   minigame,
   toast: (h, ms) => hud.toast(h, ms),
@@ -64,6 +117,7 @@ const ui = {
     document.getElementById('end').classList.remove('hidden');
     hud.show(false);
     started = false;
+    resetAmbulance();
   },
 };
 let missions = null; // created once the kids have loaded (see bottom)
@@ -78,6 +132,7 @@ function start() {
 }
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
 document.getElementById('restart').addEventListener('click', () => {
+  resetAmbulance();
   player.reset();
   missions.reset();
   start();
@@ -90,7 +145,7 @@ addEventListener('resize', () => {
 });
 
 // Debug hook for automated checks
-window.__game = { player, missions, input, scene, minigame, follow, renderer, ui };
+window.__game = { player, missions, input, scene, minigame, follow, renderer, ui, ambulance };
 
 const TITLE_VIEW = { pos: new THREE.Vector3(0, 0, 4) }; // fountain area
 const clock = new THREE.Clock();
@@ -100,14 +155,31 @@ function frame() {
   t += dt;
   for (const a of animated) a.update(t, dt);
 
-  if (started) {
+  if (started && ambulance.driving) {
+    input.enabled = true;
+    const k = (...c) => (input.down(...c) ? 1 : 0);
+    const stick = input.stick ?? { x: 0, y: 0 };
+    const stickOn = Math.hypot(stick.x, stick.y) > 0.15;
+    const throttle = THREE.MathUtils.clamp(k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') + (stickOn ? -stick.y : 0), -1, 1);
+    const steer = THREE.MathUtils.clamp(k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft') + (stickOn ? stick.x : 0), -1, 1);
+    if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
+    ambulance.update(dt, t, { throttle, steer });
+    engine.set(ambulance.speed);
+    // Doctor Guy rides inside: zones, spawning, lollipops and the minimap follow the van
+    player.pos.copy(ambulance.pos);
+    player.vel.set(0, 0, 0);
+    player.facing = ambulance.heading;
+    missions.update(dt, t, input);
+    hud.update(missions, player, ambulance);
+  } else if (started) {
+    ambulance.update(dt, t, {});
     input.enabled = !minigame.active;
     const wasGround = player.onGround;
     player.update(dt, t, input);
     if (wasGround && !player.onGround && player.vel.y > 0) sfx.jump();
     missions.update(dt, t, input);
     minigame.update(dt);
-    hud.update(missions, player);
+    hud.update(missions, player, ambulance);
   } else {
     // Title screen: slow orbit around the park
     input.yaw += dt * 0.08;
@@ -115,7 +187,14 @@ function frame() {
   }
   // Title screen: orbit high above the middle of the park (orbiting Doctor Guy at the hospital door put
   // the camera inside the hospital for the first seconds — the old "black background" on start-up)
-  if (started) follow.update(dt, player, input);
+  if (started && ambulance.driving) {
+    // swing round behind the van unless you've just looked around yourself
+    if (performance.now() - (input.lastLook ?? 0) > 1500) {
+      const want = ambulance.heading + Math.PI;
+      input.yaw += Math.atan2(Math.sin(want - input.yaw), Math.cos(want - input.yaw)) * Math.min(1, dt * 2.5);
+    }
+    follow.update(dt, ambulance, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.32), distance: Math.max(input.distance, 12) });
+  } else if (started) follow.update(dt, player, input);
   else follow.update(dt, TITLE_VIEW, { yaw: input.yaw, pitch: 0.42, distance: 30 });
 
   // Streaming: only draw a zone's props when you're near it (the sea/sand horizon always stays)
@@ -134,7 +213,7 @@ function frame() {
 frame();
 
 // Characters load in parallel; the Start button unlocks when they're in
-await Promise.all([doctorReady, preloadKids()]); // kids fall back to procedural ones per look
+await Promise.all([doctorReady, preloadKids(), ambulanceReady]); // kids fall back to procedural ones per look
 missions = new MissionSystem(scene, player, ui);
 window.__game.missions = missions;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades

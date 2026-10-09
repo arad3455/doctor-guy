@@ -18,6 +18,7 @@ export const WORLD = {
 };
 
 const colliders = []; // { type:'circle', x, z, r } | { type:'box', minX, maxX, minZ, maxZ }
+export const cameraBlockers = []; // meshes the follow camera may not pass through (see FollowCamera)
 const platforms = []; // { minX, maxX, minZ, maxZ, y }
 
 export function getColliders() { return colliders; }
@@ -102,6 +103,7 @@ function keepClear(x, z) {
 export function buildWorld(scene) {
   colliders.length = 0;
   platforms.length = 0;
+  cameraBlockers.length = 0;
   const world = new THREE.Group(); // park props (hidden when far away, see main.js)
   scene.add(world);
   const base = new THREE.Group(); // always visible: sky and ground
@@ -446,6 +448,7 @@ function buildHospital(world, animated) {
   const sideMat = toon(0xefe3cf);
   const frontMat = toon(0xffffff, { map: facade });
   const body = part(new THREE.BoxGeometry(34, 14, 10), [sideMat, sideMat, toon(0xd8ccb8), sideMat, frontMat, sideMat], { outline: 0.06, receive: true });
+  cameraBlockers.push(body);
   body.position.y = 7;
   g.add(body);
   // Roof trim
@@ -503,35 +506,7 @@ function buildHospital(world, animated) {
     g.add(c);
   }
 
-  // Ambulance
-  const amb = new THREE.Group();
-  amb.position.set(-11, 0, 12);
-  amb.rotation.y = 0.3;
-  g.add(amb);
-  const ab = part(new THREE.BoxGeometry(2.4, 2.2, 5), 0xffffff, { outline: 0.04 });
-  ab.position.y = 1.5;
-  amb.add(ab);
-  const cab = part(new THREE.BoxGeometry(2.3, 1.4, 1.5), 0xffffff, { outline: 0.04 });
-  cab.position.set(0, 1.1, 3.1);
-  amb.add(cab);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.35, 5.05), toon(0xe0323a));
-  stripe.position.y = 1.4;
-  amb.add(stripe);
-  const windshield = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 0.05), toon(0x7fb8e8));
-  windshield.position.set(0, 1.45, 3.86);
-  amb.add(windshield);
-  const siren = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.25, 0.4), toon(0x3a7cff, { emissive: 0x1030ff }));
-  siren.position.y = 2.75;
-  amb.add(siren);
-  for (const [wx, wz] of [[-1.2, -1.6], [1.2, -1.6], [-1.2, 2.6], [1.2, 2.6]]) {
-    const wheel = part(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 16), 0x222222);
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(wx, 0.42, wz);
-    amb.add(wheel);
-  }
-  animated.push({ update: (t) => { siren.material.emissive.setHex(Math.sin(t * 8) > 0 ? 0x1030ff : 0x400000); } });
-  // collider for ambulance (approx)
-  addCircle(-11 + 0.4, -52 + 12.5, 2.4);
+  // (the ambulance is a drivable vehicle now — see vehicle.js)
 
   // Planters by the entrance
   for (const px of [-8, 8]) {

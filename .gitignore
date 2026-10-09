@@ -4,3 +4,4 @@ node_modules/
 # raw generation inputs/outputs (large, and include the original reference art)
 assets/doctor-guy/source/
 assets/kids/source/
+assets/props/source/

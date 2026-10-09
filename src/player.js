@@ -34,7 +34,7 @@ export class Input {
       drags.set(e.pointerId, { x: e.clientX, y: e.clientY });
       canvas.setPointerCapture(e.pointerId);
     });
-    const release = (e) => { drags.delete(e.pointerId); pinch = 0; };
+    const release = (e) => { drags.delete(e.pointerId); pinch = 0; this.lastLook = performance.now(); };
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
     canvas.addEventListener('pointermove', (e) => {
@@ -50,6 +50,7 @@ export class Input {
         pinch = dist;
         return;
       }
+      this.lastLook = performance.now(); // the driving camera waits a moment before swinging back behind
       const k = e.pointerType === 'touch' ? 0.009 : 0.005;
       this.yaw -= dx * k;
       this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k * 0.8, 0.05, 1.2);
@@ -250,17 +251,28 @@ export class FollowCamera {
     this.camera = camera;
     this.target = new THREE.Vector3(0, 1.8, 4);
     this.shake = 0;
+    this.blockers = []; // big solid meshes (buildings) the camera must never end up inside
+    this.ray = new THREE.Raycaster();
+    this.dist = null; // current (possibly pulled-in) distance
   }
   update(dt, player, input) {
     const goal = player.pos.clone().add(new THREE.Vector3(0, 1.8, 0));
     this.target.lerp(goal, Math.min(1, dt * 10));
-    const d = input.distance;
-    const off = new THREE.Vector3(
-      Math.sin(input.yaw) * Math.cos(input.pitch) * d,
-      Math.sin(input.pitch) * d,
-      Math.cos(input.yaw) * Math.cos(input.pitch) * d,
+    const dir = new THREE.Vector3(
+      Math.sin(input.yaw) * Math.cos(input.pitch),
+      Math.sin(input.pitch),
+      Math.cos(input.yaw) * Math.cos(input.pitch),
     );
-    this.camera.position.copy(this.target).add(off);
+    // Pull the camera in front of any building between it and the player (snap in, ease back out)
+    let d = input.distance;
+    if (this.blockers.length) {
+      this.ray.set(this.target, dir);
+      this.ray.far = d;
+      const hit = this.ray.intersectObjects(this.blockers, false)[0];
+      if (hit) d = Math.max(2.5, hit.distance - 0.6);
+    }
+    this.dist = this.dist === null || d < this.dist ? d : this.dist + (d - this.dist) * Math.min(1, dt * 3);
+    this.camera.position.copy(this.target).addScaledVector(dir, this.dist);
     if (this.camera.position.y < 0.5) this.camera.position.y = 0.5;
     if (this.shake > 0) {
       this.shake = Math.max(0, this.shake - dt);

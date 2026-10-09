@@ -35,7 +35,8 @@ export class HUD {
     this.toastTimer = setTimeout(() => el.classList.add('hidden'), ms);
   }
 
-  update(ms, player) {
+  update(ms, player, ambulance) {
+    this.ambulance = ambulance;
     $('lollipops').textContent = ms.lollipops;
     $('rescued').textContent = ms.rescued;
     $('total').textContent = ms.total;
@@ -122,6 +123,20 @@ export class HUD {
     rect(WORLD.swings.x - 3.5, WORLD.swings.z - 0.4, WORLD.swings.x + 3.5, WORLD.swings.z + 0.6);
     ctx.fillStyle = '#9a6234';
     rect(WORLD.stand.x - 0.7, WORLD.stand.z - 1.5, WORLD.stand.x + 0.7, WORLD.stand.z + 1.5);
+
+    // The ambulance (when you're not in it)
+    const amb = this.ambulance;
+    if (amb && !amb.driving) {
+      ctx.save();
+      ctx.translate(tx(amb.pos.x), tz(amb.pos.z));
+      ctx.rotate(-amb.heading);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#e0323a';
+      ctx.lineWidth = 2;
+      ctx.fillRect(-2.6 * sc - 2, -7 * sc / 2 - 2, 5.2 * sc + 4, 7 * sc + 4);
+      ctx.strokeRect(-2.6 * sc - 2, -7 * sc / 2 - 2, 5.2 * sc + 4, 7 * sc + 4);
+      ctx.restore();
+    }
 
     // Emergencies (clamped to the rim when off-map, so you always know which way to go)
     const pulse = 1 + Math.sin(ms.time * 6) * 0.25;

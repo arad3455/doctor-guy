@@ -59,6 +59,7 @@ export function toonify(model, outline, maxAnisotropy = 8) {
     mesh.material = toon(0xffffff, { map: src.map ?? null, color: src.color ?? new THREE.Color(0xffffff), gradientMap: softGradientMap });
     mesh.castShadow = true;
     mesh.frustumCulled = false; // skinned bounds don't follow animation
+    if (!outline) continue; // no outline (e.g. thin-panelled vehicles where the hull pokes through)
     const olGeo = smoothOutlineGeometry(mesh.geometry);
     const ol = mesh.isSkinnedMesh ? new THREE.SkinnedMesh(olGeo, outlineMaterial(outline)) : new THREE.Mesh(olGeo, outlineMaterial(outline));
     if (mesh.isSkinnedMesh) ol.bind(mesh.skeleton, mesh.bindMatrix);

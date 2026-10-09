@@ -447,6 +447,13 @@ export class MissionSystem {
   /** Find what E would do right now, show prompt, act on E. */
   handleInteraction(input) {
     if (this.busy) { this.ui.prompt(null); return; }
+    if (this.ui.isDriving?.()) {
+      // in the ambulance, E only means "get out"
+      const a = this.ui.vehicleAction();
+      this.ui.prompt(a?.label ?? null);
+      if (a && input.hit('KeyE')) a.run();
+      return;
+    }
     const p = this.player.pos;
     let action = null;
     const carried = this.missions.find((m) => m.state === 'carried');
@@ -472,6 +479,7 @@ export class MissionSystem {
       }
     }
 
+    if (!action) action = this.ui.vehicleAction?.() ?? null; // kids come first, then the ambulance
     this.ui.prompt(action ? action.label : null);
     if (action && input.hit('KeyE')) action.run();
   }
