@@ -6,6 +6,7 @@ import { MiniGame } from './minigame.js';
 import { HUD } from './hud.js';
 import { initAudio, sfx } from './audio.js';
 import { loadDoctorModel } from './doctorModel.js';
+import { preloadKids } from './kidModels.js';
 
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || new URLSearchParams(location.search).has('touch');
 if (isTouch) document.body.classList.add('touch');
@@ -63,6 +64,7 @@ const ui = {
     started = false;
   },
 };
+await preloadKids(); // generated 3D kids (falls back to procedural kids per look)
 const missions = new MissionSystem(scene, player, ui);
 
 function start() {

@@ -17,7 +17,7 @@ for (const [label, device] of [['landscape', KnownDevices['iPhone 13 landscape']
   page.on('pageerror', (e) => errors.push(`${label}: ${e}`));
   page.on('console', (m) => m.type() === 'error' && !/favicon/.test(m.text()) && errors.push(`${label}: ${m.text()}`));
   await page.emulate(device);
-  await page.goto('http://localhost:8765/', { waitUntil: 'networkidle0' });
+  await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
   await wait(1500);
   const shot = (n) => page.screenshot({ path: `${OUT}mobile-${label}-${n}.png` });
   await shot('1-title');

@@ -1,13 +1,14 @@
 // GLB helpers for the Meshy pipeline.
 //   node tools/glb-tools.mjs rig-input <in.glb> <out.glb>   → static textured mesh (no skin/anims), JPEG base colour
-//   node tools/glb-tools.mjs model <in.glb> <out.glb>       → web model: base colour only (WebP 2048), pruned
+//   node tools/glb-tools.mjs model <in.glb> <out.glb> [px]  → web model: base colour only (WebP, default 2048px), pruned
 //   node tools/glb-tools.mjs anim <in.glb> <out.glb>        → animation-only file: skeleton + clips, no mesh/textures
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { prune, dedup, textureCompress } from '@gltf-transform/functions';
 import sharp from 'sharp';
 
-const [, , mode, input, output] = process.argv;
+const [, , mode, input, output, sizeArg] = process.argv;
+const SIZE = Number(sizeArg) || 2048; // max texture size for 'model' mode
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const doc = await io.read(input);
 const root = doc.getRoot();
@@ -34,7 +35,7 @@ if (mode === 'rig-input') {
   await doc.transform(prune(), dedup(), textureCompress({ encoder: sharp, targetFormat: 'jpeg', resize: [2048, 2048], quality: 90 }));
 } else if (mode === 'model') {
   baseColourOnly();
-  await doc.transform(prune(), dedup(), textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], quality: 85 }));
+  await doc.transform(prune(), dedup(), textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [SIZE, SIZE], quality: 85 }));
 } else if (mode === 'anim') {
   for (const node of root.listNodes()) node.setMesh(null);
   for (const m of root.listMeshes()) m.dispose();

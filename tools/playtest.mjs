@@ -18,9 +18,11 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const shot = (name) => page.screenshot({ path: `${OUT}${name}.png` });
 const g = (fn, ...a) => page.evaluate(fn, ...a);
 
-await page.goto('http://localhost:8765/', { waitUntil: 'networkidle0' });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
 await wait(1500);
 await shot('01-title');
+// KIDLOOK=<look> makes every emergency kid use that look (handy for checking a newly generated kid)
+if (process.env.KIDLOOK) await g((look) => { for (const d of __game.missions.queue) d.look = look; }, process.env.KIDLOOK);
 await page.click('#start');
 await wait(1200);
 await shot('02-start');

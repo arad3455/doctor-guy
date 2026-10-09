@@ -1,0 +1,21 @@
+{
+  "kids": {
+    "bandageBoy": "bandageBoy.glb",
+    "mom": "mom.glb",
+    "gownKid": "gownKid.glb",
+    "glassesKid": "glassesKid.glb",
+    "ponytail": "ponytail.glb",
+    "redShirt": "redShirt.glb",
+    "capKid": "capKid.glb"
+  },
+  "clips": {
+    "walk": "anims/walk.glb",
+    "run": "anims/run.glb",
+    "idle": "anims/idle.glb",
+    "help": "anims/help.glb",
+    "swim": "anims/swim.glb",
+    "sit": "anims/sit.glb",
+    "cheer": "anims/cheer.glb",
+    "limp": "anims/limp.glb"
+  }
+}

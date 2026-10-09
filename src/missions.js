@@ -108,7 +108,7 @@ export class MissionSystem {
     const seats = this.ui.swingSeats;
     [['ponytail', 0], ['bandageBoy', 2]].forEach(([look, i]) => {
       const kid = buildKid(look);
-      kid.root.position.set(0, -(3.4 - 0.7) - 0.05, 0);
+      kid.root.position.set(0, kid.seatHeight ? -(3.4 - 0.7) + 0.04 - kid.seatHeight : -(3.4 - 0.7) - 0.05, 0);
       seats[i].pivot.add(kid.root);
       this.ambient.push({ kid, mode: 'swing' });
     });
@@ -230,7 +230,7 @@ export class MissionSystem {
     for (const m of this.missions) {
       const kp = m.kid.root.position;
       if (m.state === 'active') {
-        animateRig(m.kid, m.def.pose, t, dt);
+        animateRig(m.kid, m.kid.generated && m.def.pose === 'sit' ? 'cry' : m.def.pose, t, dt);
         m.kid.tears.visible = m.def.pose === 'cry';
         m.icon.position.y = m.kid.height + 1.9 + Math.sin(t * 4) * 0.12;
         if (m.def.id === 'pond') kp.y = -0.55 + Math.sin(t * 3) * 0.08;
@@ -246,8 +246,10 @@ export class MissionSystem {
         animateRig(m.kid, 'idle', t, dt);
       } else if (m.state === 'carried') {
         animateRig(m.kid, 'carried', t, dt);
-        m.kid.legL.rotation.z = -0.55;
-        m.kid.legR.rotation.z = 0.55;
+        if (m.kid.legL) {
+          m.kid.legL.rotation.z = -0.55;
+          m.kid.legR.rotation.z = 0.55;
+        }
       } else if (m.state === 'jumping') {
         m.jumpT += dt / 0.9;
         const k = Math.min(1, m.jumpT);
@@ -256,7 +258,7 @@ export class MissionSystem {
         animateRig(m.kid, 'air', t, dt);
         if (k >= 1) this.complete(m);
       } else if (m.state === 'done') {
-        animateRig(m.kid, m.celebrate > 0 ? 'wave' : 'idle', t, dt);
+        animateRig(m.kid, m.celebrate > 0 ? 'cheer' : 'idle', t, dt);
         m.celebrate -= dt;
       }
     }
@@ -269,7 +271,7 @@ export class MissionSystem {
       dir.normalize();
       kp.addScaledVector(dir, dt * 2.5);
       l.kid.root.rotation.y = Math.atan2(dir.x, dir.z);
-      animateRig(l.kid, 'walk', t, dt);
+      animateRig(l.kid, 'limp', t, dt);
     }
 
     // Mom
@@ -385,6 +387,7 @@ export class MissionSystem {
     this.player.carrying = m.kid;
     this.player.rig.body.add(m.kid.root);
     m.kid.root.position.copy(this.player.rig.carryOffset ?? new THREE.Vector3(0, 1.62, -0.3));
+    if (m.kid.seatHeight) m.kid.root.position.y += 0.52 - m.kid.seatHeight; // sit on the shoulders, not in the head
     m.kid.root.rotation.set(0, 0, 0);
     sfx.carry();
   }
@@ -393,7 +396,7 @@ export class MissionSystem {
     this.player.rig.body.remove(m.kid.root);
     this.group.add(m.kid.root);
     this.player.carrying = null;
-    m.kid.legL.rotation.z = m.kid.legR.rotation.z = 0;
+    if (m.kid.legL) m.kid.legL.rotation.z = m.kid.legR.rotation.z = 0;
     const fwd = new THREE.Vector3(Math.sin(this.player.facing), 0, Math.cos(this.player.facing));
     m.kid.root.position.copy(this.player.pos).addScaledVector(fwd, 0.9).setY(0);
     if (m.def.deliver === 'hospital') this.leaving.push({ kid: m.kid });

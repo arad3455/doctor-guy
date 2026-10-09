@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { part, toon, canvasTexture, roundRect, FONT } from './toon.js';
 export { buildDoctor } from './doctor.js';
+import { hasKidModel, buildKid3D } from './kidModels.js';
 
 export const SKIN = 0xffd90f;
 const SKIN_DARK = 0xd8a90a; // stubble
@@ -75,6 +76,7 @@ export const KID_LOOKS = {
 };
 
 export function buildKid(lookName = 'redShirt') {
+  if (hasKidModel(lookName)) return buildKid3D(lookName); // generated 3D kid
   const look = KID_LOOKS[lookName] ?? KID_LOOKS.redShirt;
   const root = new THREE.Group();
   const body = new THREE.Group();
@@ -249,6 +251,8 @@ const lerp = (a, b, t) => a + (b - a) * t;
  */
 export function animateRig(rig, state, t, dt, speed = 0) {
   if (rig.animate) { rig.animate(state, dt, speed); return; } // generated model: skeletal clips
+  if (state === 'cheer') state = 'wave';
+  if (state === 'limp') state = 'walk';
   const k = Math.min(1, dt * 12);
   let lL = 0, lR = 0, aL = 0, aR = 0, aLz = -0.12, aRz = 0.12, bob = 0, headTilt = 0, lean = 0;
 
