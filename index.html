@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#2f7fc1" />
+  <title>Doctor Guy — Park</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:," />
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="stats">
+      <div class="stat"><span class="icon">🍭</span><span id="lollipops">0</span></div>
+      <div class="stat"><span class="icon">⛑️</span><span id="rescued">0</span>/<span id="total">0</span></div>
+    </div>
+    <div id="missions"></div>
+    <canvas id="minimap" width="180" height="180"></canvas>
+    <div id="stamina"><div id="stamina-fill"></div></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+
+    <!-- Touch controls (shown on phones/tablets) -->
+    <div id="touch-ui">
+      <div id="stick"><div id="stick-knob"></div></div>
+      <button id="btn-jump" class="touch-btn" aria-label="Jump">⤒</button>
+      <button id="btn-action" class="touch-btn" aria-label="Help">✋</button>
+    </div>
+  </div>
+
+  <!-- Treatment mini-game -->
+  <div id="minigame" class="hidden">
+    <div class="mg-card">
+      <h2 id="mg-title">Treatment</h2>
+      <p id="mg-desc"></p>
+      <div id="mg-bar"><div id="mg-zone"></div><div id="mg-needle"></div></div>
+      <div id="mg-steps"></div>
+      <p class="mg-hint key-hint">Press <kbd>SPACE</kbd> when the needle is in the green zone</p>
+      <p class="mg-hint touch-hint">Tap anywhere when the needle is in the green zone</p>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div id="title">
+    <div class="title-card">
+      <div class="badge">Not a<br />Real<br />Doctor<span>✚</span></div>
+      <h1>Doctor Guy</h1>
+      <p class="subtitle">Small Patients · Big Dreams</p>
+      <p class="zone">Zone 1 — The Park</p>
+      <ul class="controls touch-hint">
+        <li>🕹️ Left thumb: move (push far to run)</li>
+        <li>👆 Drag the right side: look around</li>
+        <li>✋ help / pick up / hand over · ⤒ jump</li>
+      </ul>
+      <ul class="controls key-hint">
+        <li><kbd>W A S D</kbd> move</li>
+        <li><kbd>SHIFT</kbd> run</li>
+        <li><kbd>SPACE</kbd> jump</li>
+        <li><kbd>E</kbd> help / pick up / drop</li>
+        <li><kbd>Mouse drag</kbd> look around · <kbd>wheel</kbd> zoom</li>
+      </ul>
+      <button id="start">Start shift</button>
+    </div>
+  </div>
+
+  <!-- End -->
+  <div id="end" class="hidden">
+    <div class="title-card">
+      <h1>Shift complete!</h1>
+      <p class="subtitle">Every kid in the park is safe.</p>
+      <p id="end-stats"></p>
+      <p class="zone">“Smiles make healing easier.”</p>
+      <button id="restart">Play again</button>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

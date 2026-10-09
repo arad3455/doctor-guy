@@ -1,0 +1,5 @@
+.env
+node_modules/
+.shots/
+# raw generation inputs/outputs (large, and include the original reference art)
+assets/doctor-guy/source/

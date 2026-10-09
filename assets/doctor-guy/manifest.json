@@ -1,0 +1,13 @@
+{
+  "model": "doctor-guy.glb",
+  "clips": {
+    "walk": "anims/walk.glb",
+    "run": "anims/run.glb",
+    "idle": "anims/idle.glb",
+    "jump": "anims/jump.glb",
+    "kneel": "anims/kneel.glb",
+    "pickup": "anims/pickup.glb",
+    "cheer": "anims/cheer.glb",
+    "wave": "anims/wave.glb"
+  }
+}

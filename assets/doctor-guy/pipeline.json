@@ -1,0 +1,9 @@
+{
+  "rig": "01a12116-00b9-7771-9066-e26ee10a372c",
+  "anim_idle": "01a12116-643e-75f2-8d8d-32e19ed057b1",
+  "anim_jump": "01a12116-81b9-74cd-9c61-6b3330b35d20",
+  "anim_kneel": "01a12116-9e6a-7009-976a-d2328ded5400",
+  "anim_pickup": "01a12116-bb5f-7792-89c1-82f91410aa0c",
+  "anim_cheer": "01a12116-ee39-76ee-b9a0-8d2915bd4e35",
+  "anim_wave": "01a12117-2039-7498-917d-f6f97b61ce63"
+}
