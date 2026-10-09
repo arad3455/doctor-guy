@@ -55,7 +55,7 @@ export class HUD {
         jumping: 'Catch!',
         treated: `Pick up ${m.def.name}.`,
         lifting: `Lifting ${m.def.name}…`,
-        carried: DROPS[m.def.deliver]?.step ?? '',
+        carried: (this.ambulance?.driving ? DROPS[m.def.deliver]?.drive : DROPS[m.def.deliver]?.step) ?? '',
         done: 'Rescued!',
       }[m.state];
       const left = Math.ceil(m.def.bonusTime - (ms.time - m.spawnedAt));

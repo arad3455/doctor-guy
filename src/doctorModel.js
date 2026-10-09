@@ -1,11 +1,14 @@
 // Loads the generated, rigged Doctor Guy (assets/doctor-guy/manifest.json) and wraps it in the
 // same rig interface the procedural model exposes. Returns null if no generated model exists yet.
 import * as THREE from 'three';
-import { gltfLoader, normalizeHeight, toonify, clipAlias, stripRootMotion, loadClips, lowestHipsTime, createAnimator, faceForward, standingPoseFrom } from './skinned.js';
+import { gltfLoader, normalizeHeight, toonify, clipAlias, stripRootMotion, loadClips, lowestHipsTime, createAnimator, faceForward, standingPoseFrom, attachToBone, findBone } from './skinned.js';
 
 const BASE = new URL('../assets/doctor-guy/', import.meta.url);
 const GAME_HEIGHT = 2.45; // matches the procedural Doctor Guy so collisions/camera stay the same
 const OUTLINE = 0.011; // in world units (thin: the scanned surface has many small folds)
+const _q = new URLSearchParams(location.search);
+const RIDE_LIFT = Number(_q.get('rideLift') ?? 0.15); // bottom height above the base of the neck
+const RIDE_BACK = Number(_q.get('rideBack') ?? 0.18); // how far behind the neck the bottom sits
 
 // Game animation state → clip names to try, in order
 const STATE_CLIPS = {
@@ -63,6 +66,25 @@ export async function loadDoctorModel() {
     clips: Object.keys(clips),
     // kid rides on the shoulders, just behind the head
     carryOffset: new THREE.Vector3(0, GAME_HEIGHT * 0.78 - 0.36, -0.26),
+    /**
+     * Seats a kid on his shoulders: their bottom rests on the base of his neck and they ride on his
+     * upper spine, so they move with every step instead of floating at a fixed height.
+     * seat = the kid's sitting measurements ({ bottom, z } relative to their feet).
+     */
+    mountRider(kidRoot, seat = { bottom: 0.4, z: 0 }) {
+      const spine = findBone(model, /spine0?2$/i) ?? findBone(model, /spine/i);
+      const neck = findBone(model, /neck/i);
+      if (!spine || !neck) return false;
+      anim.update('idle', 0); // measure in a neutral standing pose
+      root.updateMatrixWorld(true);
+      const n = root.worldToLocal(neck.getWorldPosition(new THREE.Vector3()));
+      // straddling the neck: bottom just above the neck base, thighs forward over the shoulders
+      const point = new THREE.Vector3(n.x, n.y + RIDE_LIFT - seat.bottom, n.z - seat.z - RIDE_BACK);
+      kidRoot.removeFromParent();
+      kidRoot.rotation.set(0, 0, 0);
+      attachToBone(root, spine, kidRoot, point);
+      return true;
+    },
     playOnce: anim.playOnce,
     endOnce: anim.endOnce,
     /** Seconds until the hips are lowest in a clip (e.g. bent over to grab something). */

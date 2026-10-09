@@ -63,5 +63,36 @@ const beach = await drive(['KeyW'], 5);
 console.log('boardwalk run: z', beach.pos[2], '(beach starts at 80; sea at 116)');
 await wait(800);
 await shot('4-beach');
+// ---- Emergency run: Yoni from the pond → ambulance → hospital
+await g(() => { const a = __game.ambulance; if (a.driving) { a.speed = 0; } });
+await page.keyboard.press('KeyE'); // get out (if still in)
+await wait(400);
+const run = await g(async () => {
+  const { missions: ms, ambulance: a, player: p } = __game;
+  const def = ms.queue.find((d) => d.id === 'pond') ?? ms.missions.find((m) => m.def.id === 'pond')?.def;
+  if (ms.queue.includes(def)) ms.queue.splice(ms.queue.indexOf(def), 1);
+  const m = ms.spawnMission(def);
+  p.pos.set(-8, 0, -30);
+  m.kid.root.position.set(-8, 0, -29);
+  await ms.pickUp(m);
+  // park the van next to him
+  a.pos.set(-4, 0, -30); a.heading = 0; a.speed = 0; a.syncTransform();
+  p.pos.copy(a.doorPoint);
+  return m.state;
+});
+await wait(400);
+await page.keyboard.press('KeyE'); // get in with Yoni
+await wait(600);
+const inVan = await g(() => ({ driving: __game.ambulance.driving, siren: __game.ambulance.siren, step: document.querySelector('.mission.active .m-step')?.textContent }));
+// drive up to the hospital drop-off and stop
+await g(() => { const a = __game.ambulance; a.pos.set(3, 0, -38); a.heading = Math.PI; a.speed = 0; a.syncTransform(); });
+await wait(600);
+const prompt2 = await g(() => document.getElementById('prompt').textContent);
+await shot('5-patient-dropoff');
+await page.keyboard.press('KeyE');
+await wait(800);
+const done = await g(() => ({ state: __game.missions.missions.find((m) => m.def.id === 'pond').state, driving: __game.ambulance.driving, toast: document.getElementById('toast').textContent }));
+console.log('patient run:', run, '→ in van', JSON.stringify(inVan), '→ prompt', JSON.stringify(prompt2), '→', JSON.stringify(done));
+await shot('6-patient-done');
 console.log('ERRORS:', errors.length ? errors : 'none');
 await browser.close();

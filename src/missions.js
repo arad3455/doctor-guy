@@ -8,9 +8,9 @@ import { toon, part } from './toon.js';
 
 // Where carried kids are handed over
 export const DROPS = {
-  hospital: { pos: WORLD.hospitalDoor, action: 'Hand %s to the nurses', toast: '🏥 Take %s to the hospital!', step: 'Carry to the hospital drop-off.', walkTo: new THREE.Vector3(0, 0, -46.5) },
-  tower: { pos: WORLD.lifeguardDrop, action: 'Bring %s to the first-aid station', toast: '⛑️ Take %s to the lifeguard first-aid station!', step: 'Carry to the lifeguard tower (first aid).', walkTo: new THREE.Vector3(WORLD.lifeguardDrop.x + 2.2, 0, WORLD.lifeguardDrop.z + 1.6) },
-  mom: { action: 'Reunite %s with Mom', toast: '💛 Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.' },
+  hospital: { pos: WORLD.hospitalDoor, action: 'Hand %s to the nurses', toast: '🏥 Take %s to the hospital! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the hospital drop-off.', drive: '🚑 Drive to the hospital drop-off.', walkTo: new THREE.Vector3(0, 0, -46.5) },
+  tower: { pos: WORLD.lifeguardDrop, action: 'Bring %s to the first-aid station', toast: '⛑️ Take %s to the lifeguard first-aid station! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the lifeguard tower (first aid).', drive: '🚑 Drive to the lifeguard tower.', walkTo: new THREE.Vector3(WORLD.lifeguardDrop.x + 2.2, 0, WORLD.lifeguardDrop.z + 1.6) },
+  mom: { action: 'Reunite %s with Mom', toast: '💛 Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.', drive: '🚑 Drive to Mom at the lollipop stand.' },
 };
 const fill = (text, name) => text.replace('%s', name);
 const sleep = (s) => new Promise((r) => setTimeout(r, s * 1000));
@@ -448,8 +448,16 @@ export class MissionSystem {
   handleInteraction(input) {
     if (this.busy) { this.ui.prompt(null); return; }
     if (this.ui.isDriving?.()) {
-      // in the ambulance, E only means "get out"
-      const a = this.ui.vehicleAction();
+      // in the ambulance: hand the patient over when parked by their drop-off, otherwise "get out"
+      const carried = this.missions.find((m) => m.state === 'carried');
+      let a = null;
+      if (carried) {
+        const at = this.dropPos(carried.def), car = this.ui.vehicle();
+        if (Math.hypot(car.pos.x - at.x, car.pos.z - at.z) < 9 && Math.abs(car.speed) < 3.5) {
+          a = { label: `🚑 ${fill(DROPS[carried.def.deliver].action, carried.def.name)}`, run: () => { carried.byAmbulance = true; this.ui.exitVehicle(true); this.deliver(carried); } };
+        }
+      }
+      a = a ?? this.ui.vehicleAction();
       this.ui.prompt(a?.label ?? null);
       if (a && input.hit('KeyE')) a.run();
       return;
@@ -546,15 +554,20 @@ export class MissionSystem {
     this.busy = false;
     m.state = 'carried';
     this.player.carrying = m.kid;
-    this.player.rig.body.add(m.kid.root);
-    m.kid.root.position.copy(this.player.rig.carryOffset ?? new THREE.Vector3(0, 1.62, -0.3));
-    if (m.kid.seatHeight) m.kid.root.position.y += 0.52 - m.kid.seatHeight; // sit on the shoulders, not in the head
-    m.kid.root.rotation.set(0, 0, 0);
+    if (!this.player.rig.mountRider?.(m.kid.root, m.kid.seat)) {
+      // procedural Doctor Guy: fixed spot above the shoulders
+      this.player.rig.body.add(m.kid.root);
+      m.kid.root.position.copy(this.player.rig.carryOffset ?? new THREE.Vector3(0, 1.62, -0.3));
+      if (m.kid.seatHeight) m.kid.root.position.y += 0.52 - m.kid.seatHeight;
+      m.kid.root.rotation.set(0, 0, 0);
+    }
     sfx.carry();
   }
 
   deliver(m) {
-    this.player.rig.body.remove(m.kid.root);
+    m.kid.root.removeFromParent();
+    m.kid.root.scale.set(1, 1, 1);
+    m.kid.root.quaternion.identity();
     this.group.add(m.kid.root);
     this.player.carrying = null;
     if (m.kid.legL) m.kid.legL.rotation.z = m.kid.legR.rotation.z = 0;
@@ -592,6 +605,7 @@ export class MissionSystem {
     const bonuses = [];
     if (elapsed < m.def.bonusTime) { reward += 2; bonuses.push('⚡ speedy'); }
     if (!m.misses) { reward += 1; bonuses.push('🎯 perfect'); }
+    if (m.byAmbulance) { reward += 1; bonuses.push('🚑 ambulance'); }
     this.lollipops += reward;
     const thanks = makeBubble('Thanks Dr. Guy!', { w: 380, bg: '#fffbe0' });
     thanks.scale.multiplyScalar(1.3);

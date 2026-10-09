@@ -69,10 +69,18 @@ function enterAmbulance() {
   sfx.door();
   engine.start();
   setButtons(true);
-  hud.toast(isTouch ? '🚑 Joystick to drive · 🚨 siren · 🚪 get out' : '🚑 W/S drive · A/D steer · SPACE siren · E get out', 2600);
+  const patient = missions?.missions.find((m) => m.state === 'carried');
+  if (patient) {
+    // emergency run: siren on, head for the drop-off
+    ambulance.siren = true;
+    siren.on();
+    hud.toast(`🚑 ${patient.def.name} is in the ambulance — siren on!<br><small>${isTouch ? 'Joystick to drive' : 'W/S drive · A/D steer'} · park at the drop-off to hand over</small>`, 3000);
+  } else {
+    hud.toast(isTouch ? '🚑 Joystick to drive · 🚨 siren · 🚪 get out' : '🚑 W/S drive · A/D steer · SPACE siren · E get out', 2600);
+  }
 }
-function exitAmbulance() {
-  if (Math.abs(ambulance.speed) > 2.5) { hud.toast('Stop first! 🛑', 1000); return; }
+function exitAmbulance(force = false) {
+  if (!force && Math.abs(ambulance.speed) > 2.5) { hud.toast('Stop first! 🛑', 1000); return; }
   ambulance.driving = false;
   ambulance.speed = 0;
   if (ambulance.siren) { ambulance.siren = false; siren.off(); }
@@ -104,6 +112,8 @@ function resetAmbulance() {
 
 const ui = {
   isDriving: () => ambulance.driving,
+  vehicle: () => ambulance,
+  exitVehicle: (force) => exitAmbulance(force),
   vehicleAction,
   swingSeats,
   minigame,
