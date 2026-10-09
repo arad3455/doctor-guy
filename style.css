@@ -93,7 +93,9 @@ kbd {
   border: 3px solid var(--ink); border-radius: 8px;
   background: #fff; overflow: hidden;
 }
-#stamina-fill { height: 100%; width: 100%; background: var(--yellow); transition: width 0.1s; }
+#stamina-fill { height: 100%; width: 100%; background: var(--yellow); transition: width 0.1s, background 0.2s; }
+#stamina.tired #stamina-fill { background: var(--red); }
+#stamina.tired { animation: shake 0.4s; }
 
 #prompt {
   position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%);
@@ -206,12 +208,12 @@ button:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 
 /* ---------- Touch devices ---------- */
 .touch-hint { display: none; }
-body.touch .touch-hint { display: block; }
-body.touch ul.touch-hint { display: grid; }
-body.touch .key-hint { display: none; }
+html.touch .touch-hint { display: block; }
+html.touch ul.touch-hint { display: grid; }
+html.touch .key-hint { display: none; }
 
 #touch-ui { display: none; }
-body.touch #touch-ui { display: block; }
+html.touch #touch-ui { display: block; }
 
 #stick {
   position: absolute;
@@ -253,12 +255,12 @@ body.touch #touch-ui { display: block; }
   bottom: calc(28px + env(safe-area-inset-bottom));
   background: var(--scrubs);
 }
-body.touch #stamina { bottom: calc(10px + env(safe-area-inset-bottom)); width: 140px; }
-body.touch #prompt { bottom: calc(150px + env(safe-area-inset-bottom)); font-size: 16px; white-space: normal; text-align: center; max-width: 70vw; }
-body.touch #stats { top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); }
-body.touch #minimap { top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
-body.touch .mg-card { padding: 16px; }
-body.touch #mg-bar { height: 44px; }
+html.touch #stamina { bottom: calc(10px + env(safe-area-inset-bottom)); width: 140px; }
+html.touch #prompt { bottom: calc(150px + env(safe-area-inset-bottom)); font-size: 16px; white-space: normal; text-align: center; max-width: 70vw; }
+html.touch #stats { top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); }
+html.touch #minimap { top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
+html.touch .mg-card { padding: 16px; }
+html.touch #mg-bar { height: 44px; }
 
 /* small screens: compact HUD so the play area stays visible */
 @media (max-height: 500px), (max-width: 640px) {
@@ -276,3 +278,20 @@ body.touch #mg-bar { height: 44px; }
   .controls { font-size: 13px; margin-bottom: 12px; }
   #stick { width: 112px; height: 112px; }
 }
+
+/* ---------- Loading ---------- */
+/* Until the 3D park has drawn its first frame, the title sits on an opaque painted backdrop */
+#title::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background:
+    radial-gradient(ellipse 60% 18% at 30% 22%, #ffffffcc 40%, transparent 41%),
+    radial-gradient(ellipse 45% 14% at 78% 14%, #ffffffb3 40%, transparent 41%),
+    linear-gradient(180deg, #3d8fe0 0%, #9fd6ff 55%, #6cc24a 55.2%, #4fa83a 100%);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+html.loading #title::before { opacity: 1; }
+#title { isolation: isolate; }
+button:disabled { opacity: 0.75; cursor: progress; box-shadow: 0 5px 0 var(--ink); transform: none; }

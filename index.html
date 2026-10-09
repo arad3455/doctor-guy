@@ -7,6 +7,24 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#2f7fc1" />
   <title>Doctor Guy</title>
+  <script>
+    // Decide phone vs computer before anything is drawn, so the right controls show from the first frame
+    (function () {
+      var touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || /[?&]touch/.test(location.search);
+      document.documentElement.className = (touch ? 'touch ' : '') + 'loading';
+    })();
+  </script>
+  <style>
+    /* critical: only the right controls ever show, even before style.css arrives */
+    .touch-hint { display: none; }
+    html.touch .touch-hint { display: block; }
+    html.touch ul.touch-hint { display: grid; }
+    html.touch .key-hint { display: none; }
+  </style>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" crossorigin />
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/GLTFLoader.js" crossorigin />
+  <link rel="modulepreload" href="src/main.js" />
+  <link rel="preload" href="assets/doctor-guy/doctor-guy.glb" as="fetch" crossorigin="anonymous" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -69,7 +87,7 @@
         <li><kbd>E</kbd> help / pick up / drop</li>
         <li><kbd>Mouse drag</kbd> look around · <kbd>wheel</kbd> zoom</li>
       </ul>
-      <button id="start">Start shift</button>
+      <button id="start" disabled>Loading…</button>
     </div>
   </div>
 

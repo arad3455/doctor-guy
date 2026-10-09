@@ -9,8 +9,7 @@ import { initAudio, sfx } from './audio.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
-const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || new URLSearchParams(location.search).has('touch');
-if (isTouch) document.body.classList.add('touch');
+const isTouch = document.documentElement.classList.contains('touch'); // decided by the inline script in index.html
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -44,7 +43,7 @@ const input = new Input(canvas);
 if (isTouch) input.distance = 9.5; // a bit further out on small screens
 const player = new Player(scene);
 // Use the generated, rigged Doctor Guy when assets/doctor-guy/ has one; otherwise keep the procedural model.
-loadDoctorModel()
+const doctorReady = loadDoctorModel()
   .then((rig) => { if (rig) { player.setRig(rig); console.info('[doctor] generated model loaded, clips:', rig.clips.join(', ')); } })
   .catch((e) => console.warn('[doctor] generated model failed to load, using procedural model', e));
 const follow = new FollowCamera(camera);
@@ -67,8 +66,7 @@ const ui = {
     started = false;
   },
 };
-await preloadKids(); // generated 3D kids (falls back to procedural kids per look)
-const missions = new MissionSystem(scene, player, ui);
+let missions = null; // created once the kids have loaded (see bottom)
 
 function start() {
   initAudio();
@@ -78,7 +76,7 @@ function start() {
   started = true;
   hud.toast('Your shift begins!<br><small>The beach is through the park’s south gate 🏖️</small>', 3000);
 }
-document.getElementById('start').addEventListener('click', start);
+document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
 document.getElementById('restart').addEventListener('click', () => {
   player.reset();
   missions.reset();
@@ -94,6 +92,7 @@ addEventListener('resize', () => {
 // Debug hook for automated checks
 window.__game = { player, missions, input, scene, minigame, follow, renderer };
 
+const TITLE_VIEW = { pos: new THREE.Vector3(0, 0, 4) }; // fountain area
 const clock = new THREE.Clock();
 let t = 0;
 function frame() {
@@ -114,7 +113,10 @@ function frame() {
     input.yaw += dt * 0.08;
     player.update(dt, t, { down: () => false, hit: () => false, yaw: input.yaw });
   }
-  follow.update(dt, player, started ? input : { yaw: input.yaw, pitch: 0.45, distance: 22 });
+  // Title screen: orbit high above the middle of the park (orbiting Doctor Guy at the hospital door put
+  // the camera inside the hospital for the first seconds — the old "black background" on start-up)
+  if (started) follow.update(dt, player, input);
+  else follow.update(dt, TITLE_VIEW, { yaw: input.yaw, pitch: 0.42, distance: 30 });
 
   // Streaming: only draw a zone's props when you're near it (the sea/sand horizon always stays)
   park.visible = player.pos.z < 105;
@@ -128,4 +130,20 @@ function frame() {
   input.endFrame();
   requestAnimationFrame(frame);
 }
+// Start drawing the park straight away (behind the title) while the characters finish loading
 frame();
+
+// Characters load in parallel; the Start button unlocks when they're in
+await Promise.all([doctorReady, preloadKids()]); // kids fall back to procedural ones per look
+missions = new MissionSystem(scene, player, ui);
+window.__game.missions = missions;
+// Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades
+// once the park can actually be shown — no empty/black screen behind the title.
+await renderer.compileAsync(scene, camera).catch(() => {});
+await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); // two real frames drawn
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('loading'); // fade the painted backdrop to the live 3D park
+  const btn = document.getElementById('start');
+  btn.disabled = false;
+  btn.textContent = 'Start shift';
+});

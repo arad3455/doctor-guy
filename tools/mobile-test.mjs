@@ -18,10 +18,10 @@ for (const [label, device] of [['landscape', KnownDevices['iPhone 13 landscape']
   page.on('console', (m) => m.type() === 'error' && !/favicon/.test(m.text()) && errors.push(`${label}: ${m.text()}`));
   await page.emulate(device);
   await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
-  await wait(1500);
+  await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 60000 });
   const shot = (n) => page.screenshot({ path: `${OUT}mobile-${label}-${n}.png` });
   await shot('1-title');
-  results[label] = { touchClass: await page.evaluate(() => document.body.classList.contains('touch')) };
+  results[label] = { touchClass: await page.evaluate(() => document.documentElement.classList.contains('touch')) };
 
   // tap Start
   const start = await page.$('#start');

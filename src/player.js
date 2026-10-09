@@ -132,6 +132,7 @@ export class Player {
     this.vel.set(0, 0, 0);
     this.facing = 0;
     this.stamina = 1;
+    this.tired = false;
     this.carrying = null;
     this.frozen = false;
   }
@@ -153,11 +154,14 @@ export class Player {
     if (moving) move.normalize();
 
     const wet = inWater(this.pos.x, this.pos.z) && this.pos.y < 0.3;
-    const wantsRun = (input.down('ShiftLeft', 'ShiftRight') || stickMag > 0.9) && moving && this.stamina > 0.02;
+    // Out of breath: no running until stamina has refilled a bit (stops run/walk flickering at 0)
+    if (this.stamina <= 0) this.tired = true;
+    else if (this.stamina >= 0.35) this.tired = false;
+    const wantsRun = (input.down('ShiftLeft', 'ShiftRight') || stickMag > 0.9) && moving && !this.tired;
     let speed = wantsRun ? RUN : WALK;
     if (this.carrying) speed *= 0.85;
     if (wet) speed *= 0.55;
-    this.stamina = THREE.MathUtils.clamp(this.stamina + (wantsRun ? -0.22 : 0.18) * dt, 0, 1);
+    this.stamina = THREE.MathUtils.clamp(this.stamina + (wantsRun ? -0.15 : 0.2) * dt, 0, 1);
 
     const k = Math.min(1, dt * (this.onGround ? 12 : 4));
     this.vel.x += (move.x * speed - this.vel.x) * k;
@@ -192,7 +196,8 @@ export class Player {
     const hspeed = Math.hypot(this.vel.x, this.vel.z);
     let anim = 'idle';
     if (!this.onGround) anim = 'air';
-    else if (hspeed > 6) anim = 'run';
+    // separate thresholds into/out of running so speed hovering near one value can't flicker the animation
+    else if (hspeed > (this.anim === 'run' ? 5.5 : 6.5)) anim = 'run';
     else if (hspeed > 0.5) anim = 'walk';
     if (this.carrying) anim = anim === 'idle' ? 'carrying' : anim === 'air' ? 'carrying' : 'carrying-walk';
     this.anim = anim;
@@ -243,7 +248,7 @@ export class Player {
 export class FollowCamera {
   constructor(camera) {
     this.camera = camera;
-    this.target = new THREE.Vector3();
+    this.target = new THREE.Vector3(0, 1.8, 4);
     this.shake = 0;
   }
   update(dt, player, input) {

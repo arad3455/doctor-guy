@@ -2,9 +2,10 @@
 // animator that maps game states ("walk", "cry", "carried"…) onto skeletal clips with cross-fades.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { toon, outlineMaterial } from './toon.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { toon, outlineMaterial, softGradientMap } from './toon.js';
 
-export const gltfLoader = new GLTFLoader();
+export const gltfLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder); // assets are meshopt-compressed
 
 /** Scales a model to `height` and stands its feet on y=0. */
 export function normalizeHeight(model, height) {
@@ -14,16 +15,52 @@ export function normalizeHeight(model, height) {
   model.position.y = -box.min.y * scale;
 }
 
+const outlineGeoCache = new WeakMap();
+
+/**
+ * Generated meshes split vertices along texture seams, so pushing them out along their own normals
+ * tears the outline into ragged strokes. The outline gets a copy of the geometry whose normals are
+ * averaged across every vertex at the same position (positions/skinning are shared, not copied).
+ */
+function smoothOutlineGeometry(geo) {
+  if (outlineGeoCache.has(geo)) return outlineGeoCache.get(geo);
+  const out = new THREE.BufferGeometry();
+  for (const name of ['position', 'skinIndex', 'skinWeight']) if (geo.attributes[name]) out.setAttribute(name, geo.attributes[name]);
+  if (geo.index) out.setIndex(geo.index);
+  const flat = geo.attributes.normal ? geo : (() => { const g = geo.clone(); g.computeVertexNormals(); return g; })();
+  const pos = geo.attributes.position, nrm = flat.attributes.normal;
+  const key = (i) => `${Math.round(pos.getX(i) * 1e4)},${Math.round(pos.getY(i) * 1e4)},${Math.round(pos.getZ(i) * 1e4)}`;
+  const sums = new Map();
+  for (let i = 0; i < pos.count; i++) {
+    const k = key(i);
+    const v = sums.get(k) ?? [0, 0, 0];
+    v[0] += nrm.getX(i); v[1] += nrm.getY(i); v[2] += nrm.getZ(i);
+    sums.set(k, v);
+  }
+  const smooth = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const [x, y, z] = sums.get(key(i));
+    const l = Math.hypot(x, y, z) || 1;
+    smooth.set([x / l, y / l, z / l], i * 3);
+  }
+  out.setAttribute('normal', new THREE.BufferAttribute(smooth, 3));
+  out.boundingSphere = geo.boundingSphere;
+  outlineGeoCache.set(geo, out);
+  return out;
+}
+
 /** Cartoon look: toon shading + a black outline that follows the skeleton. */
-export function toonify(model, outline) {
+export function toonify(model, outline, maxAnisotropy = 8) {
   const meshes = [];
   model.traverse((o) => { if (o.isMesh) meshes.push(o); });
   for (const mesh of meshes) {
     const src = mesh.material;
-    mesh.material = toon(0xffffff, { map: src.map ?? null, color: src.color ?? new THREE.Color(0xffffff) });
+    if (src.map) src.map.anisotropy = maxAnisotropy; // crisp texture at grazing angles
+    mesh.material = toon(0xffffff, { map: src.map ?? null, color: src.color ?? new THREE.Color(0xffffff), gradientMap: softGradientMap });
     mesh.castShadow = true;
     mesh.frustumCulled = false; // skinned bounds don't follow animation
-    const ol = mesh.isSkinnedMesh ? new THREE.SkinnedMesh(mesh.geometry, outlineMaterial(outline)) : new THREE.Mesh(mesh.geometry, outlineMaterial(outline));
+    const olGeo = smoothOutlineGeometry(mesh.geometry);
+    const ol = mesh.isSkinnedMesh ? new THREE.SkinnedMesh(olGeo, outlineMaterial(outline)) : new THREE.Mesh(olGeo, outlineMaterial(outline));
     if (mesh.isSkinnedMesh) ol.bind(mesh.skeleton, mesh.bindMatrix);
     ol.frustumCulled = false;
     mesh.add(ol);

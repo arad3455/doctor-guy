@@ -1,9 +1,10 @@
 {
-  "rig": "01a12116-00b9-7771-9066-e26ee10a372c",
-  "anim_idle": "01a12116-643e-75f2-8d8d-32e19ed057b1",
-  "anim_jump": "01a12116-81b9-74cd-9c61-6b3330b35d20",
-  "anim_kneel": "01a12116-9e6a-7009-976a-d2328ded5400",
-  "anim_pickup": "01a12116-bb5f-7792-89c1-82f91410aa0c",
-  "anim_cheer": "01a12116-ee39-76ee-b9a0-8d2915bd4e35",
-  "anim_wave": "01a12117-2039-7498-917d-f6f97b61ce63"
+  "rig": "01a121b8-4899-73a4-a8a7-48c3b34bc0f8",
+  "anim_idle": "01a121b8-af72-712b-a644-3ef8c08df1a6",
+  "anim_jump": "01a121b8-ccae-743b-a393-4ce76c6ba8a6",
+  "anim_kneel": "01a121b8-e9fc-7051-b918-bc6bc38181ca",
+  "anim_pickup": "01a121b9-0701-756e-82b1-d06351ddb9ca",
+  "anim_cheer": "01a121b9-3a1b-750d-b636-c32606d3e38f",
+  "anim_wave": "01a121b9-6cdb-730c-85c7-73b3c49329b3",
+  "model": "01a121b6-813e-745b-8002-b0de9ce8e3b7"
 }

@@ -20,7 +20,7 @@ export class HUD {
     const el = $('prompt');
     $('btn-action')?.classList.toggle('ready', !!label);
     if (!label) { el.classList.add('hidden'); return; }
-    el.innerHTML = document.body.classList.contains('touch') ? `✋ ${label}` : `<kbd>E</kbd> ${label}`;
+    el.innerHTML = document.documentElement.classList.contains('touch') ? `✋ ${label}` : `<kbd>E</kbd> ${label}`;
     el.classList.remove('hidden');
   }
 
@@ -40,6 +40,7 @@ export class HUD {
     $('rescued').textContent = ms.rescued;
     $('total').textContent = ms.total;
     $('stamina-fill').style.width = `${player.stamina * 100}%`;
+    $('stamina').classList.toggle('tired', !!player.tired);
 
     // open emergencies first (carried kid on top), then just-finished ones; at most 5 rows
     const rank = (m) => (m.state === 'carried' ? 0 : m.state === 'done' ? 2 : 1);

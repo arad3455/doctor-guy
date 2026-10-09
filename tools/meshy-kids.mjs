@@ -92,7 +92,10 @@ function dataUri(path) {
   execFileSync('rm', [tmp]);
   return uri;
 }
-const glbTool = (...a) => execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), ...a], { stdio: 'inherit' });
+const glbTool = (mode, input, output, ...rest) => {
+  execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), mode, input, output, ...rest], { stdio: 'inherit' });
+  execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), 'compress', output, output], { stdio: 'inherit' }); // smaller downloads
+};
 
 function manifest(update) {
   const file = join(OUT, 'manifest.json');

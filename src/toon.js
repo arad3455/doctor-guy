@@ -11,6 +11,17 @@ const gradientMap = (() => {
   return tex;
 })();
 
+// Softer 3-step ramp for textured characters: keeps more of the painted detail in the shadows
+export const softGradientMap = (() => {
+  const data = new Uint8Array([165, 165, 165, 255, 220, 220, 220, 255, 255, 255, 255, 255]);
+  const tex = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  return tex;
+})();
+
 const matCache = new Map();
 
 export function toon(color, opts = {}) {

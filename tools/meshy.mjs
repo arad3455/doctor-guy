@@ -134,6 +134,7 @@ async function downloadClip(url, name) {
   await download(url, `source/${name}.glb`);
   mkdirSync(join(OUT, 'anims'), { recursive: true });
   execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), 'anim', join(OUT, `source/${name}.glb`), join(OUT, `anims/${name}.glb`)], { stdio: 'inherit' });
+  execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), 'compress', join(OUT, `anims/${name}.glb`), join(OUT, `anims/${name}.glb`)], { stdio: 'inherit' });
   return `anims/${name}.glb`;
 }
 
@@ -149,6 +150,7 @@ async function rig() {
   const r = t.result;
   await download(r.rigged_character_glb_url, 'source/rigged.glb');
   execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), 'model', join(OUT, 'source/rigged.glb'), join(OUT, 'doctor-guy.glb')], { stdio: 'inherit' });
+  execFileSync('node', [join(ROOT, 'tools/glb-tools.mjs'), 'compress', join(OUT, 'doctor-guy.glb'), join(OUT, 'doctor-guy.glb')], { stdio: 'inherit' });
   const clips = {};
   if (r.basic_animations?.walking_glb_url) clips.walk = await downloadClip(r.basic_animations.walking_glb_url, 'walk');
   if (r.basic_animations?.running_glb_url) clips.run = await downloadClip(r.basic_animations.running_glb_url, 'run');
