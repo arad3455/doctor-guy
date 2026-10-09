@@ -160,7 +160,12 @@ export class MissionSystem {
     const seats = this.ui.swingSeats;
     [['ponytail', 0], ['bandageBoy', 2]].forEach(([look, i]) => {
       const kid = buildKid(look);
-      kid.root.position.set(0, kid.seatHeight ? -(3.4 - 0.7) + 0.04 - kid.seatHeight : -(3.4 - 0.7) - 0.05, 0);
+      // sit ON the seat (top at -(3.4 - 0.7) + 0.04 below the pivot), centred front-to-back
+      const seatTop = -(3.4 - 0.7) + 0.04;
+      // facing north, towards the fountain and the paths (turned 180°, so the front-back offset flips)
+      kid.root.rotation.y = Math.PI;
+      if (kid.seat) kid.root.position.set(0, seatTop - kid.seat.bottom + 0.01, kid.seat.z);
+      else kid.root.position.set(0, seatTop - 0.09, 0);
       seats[i].pivot.add(kid.root);
       this.ambient.push({ kid, mode: 'swing' });
     });

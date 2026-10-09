@@ -90,7 +90,7 @@ addEventListener('resize', () => {
 });
 
 // Debug hook for automated checks
-window.__game = { player, missions, input, scene, minigame, follow, renderer };
+window.__game = { player, missions, input, scene, minigame, follow, renderer, ui };
 
 const TITLE_VIEW = { pos: new THREE.Vector3(0, 0, 4) }; // fountain area
 const clock = new THREE.Clock();

@@ -27,7 +27,7 @@ const STATE_CLIPS = {
   cheer: ['cheer', 'idle'],
 };
 
-const templates = {}; // look → { model, height, seatHeight }
+const templates = {}; // look → { model, height, seat }
 let clips = {};
 
 /** Loads every generated kid once at start-up. Safe to call when no kids have been generated. */
@@ -54,7 +54,7 @@ export async function preloadKids() {
         clips.idle = standingPoseFrom(clips.walk, model);
         clips.idle.userData = { synthetic: true };
       }
-      templates[look] = { model, height, seatHeight: measureSeatHeight(model) };
+      templates[look] = { model, height, seat: measureSeat(model, height) };
     } catch (e) {
       console.warn(`[kids] could not load ${look}`, e);
     }
@@ -64,18 +64,39 @@ export async function preloadKids() {
 
 export const hasKidModel = (look) => !!templates[look];
 
-/** Height of the hips above the feet in the sitting clip (where a seat or shoulders should be). */
-function measureSeatHeight(template) {
-  if (!clips.sit) return 0.52;
+/**
+ * Sitting pose measurements (relative to the feet): `hips` = hip joint height (used for riding on
+ * shoulders), `bottom` = lowest point of the bottom/thighs and `z` = where that contact patch is
+ * centred front-to-back — so a kid can be placed sitting ON a swing seat instead of through it.
+ */
+function measureSeat(template, height) {
+  const fallback = { hips: 0.52, bottom: 0.4, z: 0 };
+  if (!clips.sit) return fallback;
   const model = cloneSkinned(template);
   const mixer = new THREE.AnimationMixer(model);
   mixer.clipAction(clips.sit).play();
   mixer.update(0.5);
   model.updateMatrixWorld(true);
-  const hips = findBone(model, /hips?$/i);
-  const y = hips ? hips.getWorldPosition(new THREE.Vector3()).y : 0.52;
+  const hipsBone = findBone(model, /hips?$/i);
+  if (!hipsBone) return fallback;
+  const hp = hipsBone.getWorldPosition(new THREE.Vector3());
+  let bottom = Infinity, zSum = 0, n = 0;
+  const v = new THREE.Vector3();
+  model.traverse((o) => {
+    if (!o.isSkinnedMesh) return;
+    o.skeleton.update();
+    const count = o.geometry.attributes.position.count;
+    for (let i = 0; i < count; i += 3) {
+      o.getVertexPosition(i, v); // skinned (posed) position
+      o.localToWorld(v);
+      // the patch under the bottom and thighs: near the hips sideways, from behind the hips to mid-thigh
+      if (Math.abs(v.x - hp.x) > height * 0.16 || v.z < hp.z - height * 0.1 || v.z > hp.z + height * 0.18 || v.y > hp.y) continue;
+      if (v.y < bottom) bottom = v.y;
+      zSum += v.z; n++;
+    }
+  });
   mixer.stopAllAction();
-  return y;
+  return n ? { hips: hp.y, bottom, z: zSum / n } : { ...fallback, hips: hp.y };
 }
 
 export function buildKid3D(look) {
@@ -129,7 +150,8 @@ export function buildKid3D(look) {
     height: H,
     look,
     generated: true,
-    seatHeight: tpl.seatHeight,
+    seatHeight: tpl.seat.hips, // hip height while sitting (riding on shoulders)
+    seat: tpl.seat,
     playOnce: anim.playOnce,
     animate(state, dt, speed = 0) {
       t += dt;
