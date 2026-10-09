@@ -33,6 +33,7 @@ export const KIDS = {
   redShirt: { height: 1.2, desc: 'A cartoon boy with curly dark-brown hair, a red t-shirt, knee-length blue shorts, blue sneakers.' },
   gownKid: { height: 1.2, desc: 'A boy about 8 years old with short dark hair wearing a light-blue hospital gown with small dark-blue dots, blue slippers.' },
   mom: { height: 1.7, desc: 'A friendly mother in her thirties with long brown hair, a teal dress, white sneakers.' },
+  nurse: { height: 1.7, desc: 'A friendly hospital nurse in her thirties with dark hair tied in a bun, light-blue nurse scrubs (short-sleeved top and trousers), a small name badge with a red cross, white clogs.' },
 };
 const TEMPLATE = 'bandageBoy';
 // Shared kid clips (Meshy animation library ids; search with tools/meshy-probe.mjs)

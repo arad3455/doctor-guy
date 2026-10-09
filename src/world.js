@@ -42,13 +42,14 @@ export function inWater(x, z) {
 }
 
 /** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
-export const zoneAt = (z) => (z > 62 ? 'beach' : 'park');
+export const zoneAt = (z) => (z < -300 ? 'hospital' : z > 62 ? 'beach' : 'park');
 
 // Walkable areas: the park, the boardwalk through the south gate, and the beach up to wading depth
 const WALKABLE = [
   { minX: -55.5, maxX: 55.5, minZ: -55.5, maxZ: 55.5 },
   { minX: -2.1, maxX: 2.1, minZ: 50, maxZ: 82 },
   { minX: -57, maxX: 57, minZ: 79, maxZ: 127 },
+  { minX: -17.6, maxX: 17.6, minZ: -413.6, maxZ: -386.6 }, // inside the hospital (see hospital.js)
 ];
 
 /** Keeps a position inside the walkable areas (moves it to the nearest one if it left them all). */

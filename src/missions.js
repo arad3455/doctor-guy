@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { buildKid, animateRig, makeBubble, makeAlertIcon } from './characters.js';
 import { WORLD, getColliders, zoneAt } from './world.js';
+import { perch } from './hospital.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
 import { toon, part } from './toon.js';
@@ -101,6 +102,43 @@ export const MISSIONS = [
     blurb: 'Yael feels dizzy from the heat. Cool her down, then carry her into the shade at the lifeguard tower.',
     treatment: { title: 'Heat first aid', speed: 1.2, zone: 0.17, steps: [{ icon: '💧', label: 'Small sips of water' }, { icon: '🧊', label: 'Cool, wet towel' }] },
     deliver: 'tower', reward: 6, bonusTime: 55,
+  },
+
+  // ---------- Inside the hospital (spot = where the patient stands/sits, see hospital.js) ----------
+  {
+    id: 'checkup', zone: 'hospital', name: 'Dana', title: 'Check-up Time', look: 'gownKid',
+    spot: 'scale', pose: 'idle', bubble: 'Hi Doc!', range: 2.6,
+    blurb: 'Dana is here for her check-up. Measure her in the Exam Room.',
+    treatment: { title: 'Dana’s check-up', speed: 0.95, zone: 0.22, steps: [{ icon: '📏', label: 'Measure height' }, { icon: '⚖️', label: 'Read the scale' }, { icon: '📝', label: 'Write it in the chart' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'eyes', zone: 'hospital', name: 'Omer', title: 'Eye Test', look: 'glassesKid',
+    spot: 'eye', pose: 'idle', bubble: 'I can’t read it…', range: 2.6,
+    blurb: 'Omer squints at the board in class. Test his eyes in the Exam Room.',
+    treatment: { title: 'Omer’s eye test', speed: 1.1, zone: 0.18, steps: [{ icon: '🙈', label: 'Cover the left eye' }, { icon: '🔤', label: 'Read the letters' }, { icon: '🙉', label: 'Now the right eye' }, { icon: '👓', label: 'New glasses prescription' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'blood', zone: 'hospital', name: 'Itai', title: 'Blood Test', look: 'capKid',
+    spot: 'chair', pose: 'sit', bubble: 'Will it hurt?', range: 2.6,
+    blurb: 'Itai needs a blood test in the Lab. Be gentle!',
+    treatment: { title: 'Itai’s blood test', speed: 1.0, zone: 0.2, steps: [{ icon: '🧴', label: 'Clean the arm' }, { icon: '💉', label: 'Draw blood — hold steady', mode: 'hold' }, { icon: '🩹', label: 'Cotton and a plaster' }, { icon: '🧪', label: 'Label the tube' }] },
+    deliver: null, reward: 5, bonusTime: 55,
+  },
+  {
+    id: 'fever', zone: 'hospital', name: 'Mika', title: 'Fever Check', look: 'ponytail',
+    spot: 'bed1', pose: 'sit', bubble: 'I feel hot…', range: 2.6, tint: 0xffc2b0,
+    blurb: 'Mika has a fever. Check on her in the Ward.',
+    treatment: { title: 'Mika’s fever', speed: 1.0, zone: 0.2, steps: [{ icon: '🌡️', label: 'Take her temperature — hold', mode: 'hold' }, { icon: '💊', label: 'Fever medicine' }, { icon: '💧', label: 'A glass of water' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'pressure', zone: 'hospital', name: 'Avi', title: 'Blood Pressure', look: 'bandageBoy',
+    spot: 'bed2', pose: 'sit', bubble: 'Ready!', range: 2.6,
+    blurb: 'Avi is recovering in the Ward. Check his blood pressure.',
+    treatment: { title: 'Avi’s blood pressure', speed: 1.05, zone: 0.2, steps: [{ icon: '🩺', label: 'Wrap the cuff' }, { icon: '💪', label: 'Pump the cuff — tap fast!', mode: 'mash' }, { icon: '📟', label: 'Read the monitor' }] },
+    deliver: null, reward: 4, bonusTime: 50,
   },
 ];
 
@@ -254,10 +292,16 @@ export class MissionSystem {
 
   spawnMission(def) {
     const kid = buildKid(def.look);
+    const spot = def.spot ? this.ui.hospital?.spots[def.spot] : null;
+    if (spot) {
+      def.at = [spot.pos.x, spot.pos.z];
+      perch(kid, spot);
+    } else {
+      kid.root.position.set(def.at[0], def.y ?? 0, def.at[1]);
+      kid.root.rotation.y = Math.atan2(this.player.pos.x - def.at[0], this.player.pos.z - def.at[1]);
+    }
     const [x, z] = def.at;
-    kid.root.position.set(x, def.y ?? 0, z);
-    kid.root.rotation.y = Math.atan2(this.player.pos.x - x, this.player.pos.z - z);
-    this.group.add(kid.root);
+    (spot ? this.ui.hospital.group : this.group).add(kid.root);
     const bubble = makeBubble(def.bubble);
     bubble.position.y = kid.height + 0.9;
     kid.root.add(bubble);
@@ -266,6 +310,7 @@ export class MissionSystem {
     kid.root.add(icon);
     const bc = beacon(BEACON_MAT);
     bc.position.set(x, 20, z);
+    if (spot) bc.scale.y = 0.08; // indoors: a short beacon (no ceiling to stop it)
     bc.visible = !def.hidden;
     this.group.add(bc);
     if (def.hidden) { bubble.visible = false; icon.visible = false; }
@@ -308,17 +353,24 @@ export class MissionSystem {
     const zone = zoneAt(p.z);
     if (!this.zonesSeen.has(zone)) {
       this.zonesSeen.add(zone);
-      this.ui.toast(zone === 'beach' ? '🏖️ Zone 2 — The Beach<br><small>Kids are splashing around… keep an eye on them!</small>' : '🌳 The Park', 3000);
-      this.nextSpawn = Math.min(this.nextSpawn, this.time + 4);
+      this.ui.toast({
+        beach: '🏖️ Zone 2 — The Beach<br><small>Kids are splashing around… keep an eye on them!</small>',
+        hospital: '🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>',
+      }[zone] ?? '🌳 The Park', 3000);
+      this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
     }
 
     // Spawn schedule: next emergency after a delay, sooner if the player is idle.
     // Emergencies in the zone you're in come first.
-    const open = this.missions.filter((m) => m.state !== 'done').length;
-    if (this.queue.length && (this.time > this.nextSpawn || open === 0)) {
-      if (open < 3) {
-        const i = this.queue.findIndex((d) => d.zone === zone);
-        this.spawnMission(this.queue.splice(i >= 0 ? i : 0, 1)[0]);
+    // Indoor emergencies only appear while you're inside the hospital.
+    const openList = this.missions.filter((m) => m.state !== 'done');
+    const openHere = openList.filter((m) => m.def.zone === zone).length;
+    if (this.queue.length && (this.time > this.nextSpawn || openHere === 0) && openHere < 3 && openList.length < 5) {
+      let i = this.queue.findIndex((d) => d.zone === zone);
+      if (i < 0 && zone !== 'hospital') i = this.queue.findIndex((d) => d.zone !== 'hospital');
+      if (i < 0 && zone === 'hospital') i = this.queue.findIndex((d) => d.zone !== 'hospital');
+      if (i >= 0) {
+        this.spawnMission(this.queue.splice(i, 1)[0]);
         this.nextSpawn = this.time + 28;
       }
     }
@@ -365,7 +417,7 @@ export class MissionSystem {
     for (const m of this.missions) {
       const kp = m.kid.root.position;
       if (m.state === 'active') {
-        animateRig(m.kid, m.kid.generated && m.def.pose === 'sit' ? 'cry' : m.def.pose, t, dt);
+        animateRig(m.kid, m.kid.generated && m.def.pose === 'sit' && !m.def.spot ? 'cry' : m.def.pose, t, dt);
         m.kid.tears.visible = m.def.pose === 'cry';
         m.icon.position.y = m.kid.height + 1.9 + Math.sin(t * 4) * 0.12;
         if (m.def.id === 'pond') kp.y = -0.55 + Math.sin(t * 3) * 0.08;
@@ -376,16 +428,16 @@ export class MissionSystem {
         }
         if (m.def.prop === 'jelly' && m.prop) m.prop.position.y = 0.05 + Math.sin(t * 2) * 0.05;
         if (m.def.prop === 'crab' && m.prop) m.prop.userData.legs.forEach((l, j) => { l.rotation.z = Math.sin(t * 18 + j) * 0.3; });
-        // face the player
+        // face the player (patients on beds/chairs/scales keep still)
         const target = Math.atan2(p.x - kp.x, p.z - kp.z);
-        m.kid.root.rotation.y += (Math.atan2(Math.sin(target - m.kid.root.rotation.y), Math.cos(target - m.kid.root.rotation.y))) * Math.min(1, dt * 3);
+        if (!m.def.spot) m.kid.root.rotation.y += (Math.atan2(Math.sin(target - m.kid.root.rotation.y), Math.cos(target - m.kid.root.rotation.y))) * Math.min(1, dt * 3);
         if (!m.found && Math.hypot(kp.x - p.x, kp.z - p.z) < 14) {
           m.found = true;
           m.bubble.visible = m.icon.visible = m.beacon.visible = true;
           this.ui.toast('👂 You hear crying nearby…', 1800);
         }
       } else if (m.state === 'treated' || m.state === 'lifting') {
-        animateRig(m.kid, 'idle', t, dt);
+        animateRig(m.kid, m.def.pose === 'sit' && m.def.spot ? 'sit' : 'idle', t, dt);
       } else if (m.state === 'carried') {
         animateRig(m.kid, 'carried', t, dt);
         if (m.kid.legL) {
@@ -400,7 +452,8 @@ export class MissionSystem {
         animateRig(m.kid, 'air', t, dt);
         if (k >= 1) this.complete(m);
       } else if (m.state === 'done') {
-        animateRig(m.kid, m.celebrate > 0 ? 'cheer' : 'idle', t, dt);
+        const seated = m.def.spot && this.ui.hospital?.spots[m.def.spot]?.sit;
+        animateRig(m.kid, seated ? 'sit' : m.celebrate > 0 ? 'cheer' : 'idle', t, dt);
         m.celebrate -= dt;
       }
     }
@@ -457,8 +510,9 @@ export class MissionSystem {
           a = { label: `🚑 ${fill(DROPS[carried.def.deliver].action, carried.def.name)}`, run: () => { carried.byAmbulance = true; this.ui.exitVehicle(true); this.deliver(carried); } };
         }
       }
-      a = a ?? this.ui.vehicleAction();
+      // only show a card for the hand-over; "get out" stays on the 🚪 button / E without covering the van
       this.ui.prompt(a?.label ?? null);
+      a = a ?? this.ui.vehicleAction();
       if (a && input.hit('KeyE')) a.run();
       return;
     }
@@ -487,7 +541,7 @@ export class MissionSystem {
       }
     }
 
-    if (!action) action = this.ui.vehicleAction?.() ?? null; // kids come first, then the ambulance
+    if (!action) action = this.ui.extraAction?.() ?? null; // kids come first, then doors and the ambulance
     this.ui.prompt(action ? action.label : null);
     if (action && input.hit('KeyE')) action.run();
   }
@@ -499,7 +553,7 @@ export class MissionSystem {
     const kp = m.kid.root.position;
     this.player.facing = Math.atan2(kp.x - this.player.pos.x, kp.z - this.player.pos.z);
     const rig = this.player.rig;
-    const kneels = m.def.special !== 'catch'; // catching from the tower happens standing up
+    const kneels = m.def.special !== 'catch' && m.def.zone !== 'hospital'; // stand for catches and indoor check-ups
     if (kneels) await sleep(rig.kneel?.() ?? 0);
     const res = await this.ui.minigame.start(m.def.treatment);
     if (kneels) await sleep((rig.standUp?.() ?? 0) * 0.8);
@@ -576,6 +630,7 @@ export class MissionSystem {
     if (m.def.deliver !== 'mom') {
       const d = DROPS[m.def.deliver];
       this.leaving.push({ kid: m.kid, to: d.walkTo, vanish: m.def.deliver === 'hospital' });
+      if (m.def.deliver === 'hospital') this.ui.hospital?.admit(m.def.look); // they'll be resting in the Ward
     } else {
       m.kid.root.position.copy(this.mom.root.position).add(new THREE.Vector3(0.8, 0, 0.5));
       m.kid.root.rotation.y = this.mom.root.rotation.y;
@@ -589,7 +644,7 @@ export class MissionSystem {
     m.celebrate = 4;
     m.beacon.visible = false;
     m.kid.tears.visible = false;
-    if (m.def.id === 'tower' || m.def.id === 'pond' || m.def.water) m.kid.root.position.y = 0;
+    if ((m.def.id === 'tower' || m.def.id === 'pond' || m.def.water) && !m.def.spot) m.kid.root.position.y = 0;
     m.untint?.();
     if (m.prop && m.def.prop !== 'ring') {
       const prop = m.prop;

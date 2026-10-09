@@ -18,6 +18,31 @@ const KEY = process.env.MESHY_API_KEY ?? dotenv.match(/^MESHY_API_KEY=(.+)$/m)?.
 if (!KEY) { console.error('Set MESHY_API_KEY in .env'); process.exit(1); }
 
 export const PROPS = {
+  bed: {
+    polycount: 8000,
+    prompt: 'A modern hospital bed for children: white metal frame with side rails, a light-blue mattress and white pillow, a folded light-blue blanket at the foot, small wheels, a headboard. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',
+    texture: 'White hospital bed, light-blue mattress and blanket, white pillow, grey wheels.',
+  },
+  monitor: {
+    polycount: 6000,
+    prompt: 'A medical vital-signs monitor on a rolling stand: a screen showing a green heartbeat line and numbers, a blood-pressure cuff hanging from a hook, grey pole with a five-wheel base. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',
+    texture: 'Grey and white medical monitor on a pole, dark screen with green heartbeat line, blue blood-pressure cuff.',
+  },
+  desk: {
+    polycount: 8000,
+    prompt: 'A hospital reception desk: curved counter, white front panel with a red cross symbol, light wood top, a computer monitor and a small plant on top. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',
+    texture: 'White reception counter with a red cross, light wood top, black computer monitor, green plant.',
+  },
+  scale: {
+    polycount: 6000,
+    prompt: "A doctor's office medical scale with a tall height-measuring rod: white and silver weighing platform, an upright column with a sliding height arm, a balance beam with weights. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.",
+    texture: 'White and silver medical scale with a tall measuring rod.',
+  },
+  chair: {
+    polycount: 6000,
+    prompt: 'A blood-draw chair for a hospital lab: padded light-blue seat and backrest, one wide padded armrest that sticks out to the side for resting the arm, chrome frame. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',
+    texture: 'Light-blue padded phlebotomy chair, chrome frame.',
+  },
   ambulance: {
     polycount: 16000,
     prompt:

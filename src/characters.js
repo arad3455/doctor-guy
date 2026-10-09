@@ -73,6 +73,7 @@ export const KID_LOOKS = {
   redShirt: { hair: 'curly', hairColor: 0x3a2312, shirt: 0xe0453a, pants: 0x2f62b8 },
   gownKid: { hair: 'short', hairColor: 0x3a2312, shirt: 0x8fc0ef, pants: 0x8fc0ef, dress: true },
   mom: { hair: 'long', hairColor: 0x4a2a14, shirt: 0x3fae9a, pants: 0x3fae9a, dress: true, scale: 1.45 },
+  nurse: { hair: 'ponytail', hairColor: 0x2a1a0e, shirt: 0x8fc8ee, pants: 0x8fc8ee, scale: 1.45 },
 };
 
 export function buildKid(lookName = 'redShirt') {

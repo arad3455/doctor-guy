@@ -298,3 +298,11 @@ button:disabled { opacity: 0.75; cursor: progress; box-shadow: 0 5px 0 var(--ink
 
 /* driving: no stamina bar */
 html.driving #stamina { display: none; }
+
+/* gauge steps (hold / mash): a fill that rises towards the green zone */
+#mg-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(47, 127, 193, 0.45); }
+#mg-bar.gauge #mg-zone { opacity: 0.85; }
+
+/* fade to black when entering/leaving a building */
+#fade { position: fixed; inset: 0; background: #0d1622; opacity: 0; pointer-events: none; transition: opacity 0.35s ease; z-index: 50; }
+#fade.on { opacity: 1; }

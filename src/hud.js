@@ -124,6 +124,16 @@ export class HUD {
     ctx.fillStyle = '#9a6234';
     rect(WORLD.stand.x - 0.7, WORLD.stand.z - 1.5, WORLD.stand.x + 0.7, WORLD.stand.z + 1.5);
 
+    // Inside the hospital: rooms and walls
+    if (this.plan && player.pos.z < -300) {
+      ctx.fillStyle = '#3b4a5e';
+      ctx.fillRect(0, 0, S, S);
+      for (const r of this.plan.rooms) { ctx.fillStyle = r.color; rect(r.x0, r.z0, r.x1, r.z1); }
+      ctx.strokeStyle = '#1b1b1b';
+      ctx.lineWidth = 2;
+      for (const [x1, z1, x2, z2] of this.plan.walls) { ctx.beginPath(); ctx.moveTo(tx(x1), tz(z1)); ctx.lineTo(tx(x2), tz(z2)); ctx.stroke(); }
+    }
+
     // The ambulance (when you're not in it)
     const amb = this.ambulance;
     if (amb && !amb.driving) {

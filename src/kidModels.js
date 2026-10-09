@@ -9,7 +9,7 @@ import { toon } from './toon.js';
 const BASE = new URL('../assets/kids/', import.meta.url);
 const OUTLINE = 0.008;
 const DEFAULT_HEIGHT = 1.4; // same as the procedural kids, so bubbles/colliders/carrying line up
-const HEIGHTS = { teddyToddler: 1.1, mom: 2.05 };
+const HEIGHTS = { teddyToddler: 1.1, mom: 2.05, nurse: 2.05 };
 const BIND_POSE = new URLSearchParams(location.search).has('bind');
 
 // Game state → shared kid clips (see ACTIONS in tools/meshy-kids.mjs)

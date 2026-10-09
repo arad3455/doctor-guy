@@ -7,6 +7,7 @@ import { MiniGame } from './minigame.js';
 import { HUD } from './hud.js';
 import { initAudio, sfx, engine, siren } from './audio.js';
 import { Ambulance, PARKING } from './vehicle.js';
+import { buildHospital, INTERIOR, isInside } from './hospital.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -21,7 +22,8 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xc4ecff, 90, 220);
+const outdoorFog = new THREE.Fog(0xc4ecff, 90, 220);
+scene.fog = outdoorFog;
 
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 900);
 
@@ -37,7 +39,9 @@ sun.shadow.bias = -0.0005;
 scene.add(sun);
 scene.add(sun.target);
 
-const { world: park, animated, swingSeats } = buildWorld(scene);
+const { world: park, base, animated, swingSeats } = buildWorld(scene);
+const OUTDOOR_BG = null, INDOOR_BG = new THREE.Color(0x2c3a4c);
+let hospital = null; // the interior, built once the kids (and the nurse) have loaded
 const beach = buildBeach(scene);
 animated.push(...beach.animated);
 const input = new Input(canvas);
@@ -102,6 +106,52 @@ function vehicleAction() {
   const beside = Math.abs(along) < 4.2 && Math.abs(across) < ambulance.width / 2 + 1.6;
   return nearDoor || beside ? { label: 'Drive the ambulance 🚑', run: enterAmbulance } : null;
 }
+/* ---- Going in and out of the hospital (fade, then teleport between the outside and the interior) ---- */
+let transitioning = false;
+function fadeTo(fn) {
+  if (transitioning) return;
+  transitioning = true;
+  const fade = document.getElementById('fade');
+  fade.classList.add('on');
+  setTimeout(() => {
+    fn();
+    follow.target.copy(player.pos).y += 1.8;
+    follow.dist = null;
+    setTimeout(() => { fade.classList.remove('on'); transitioning = false; }, 120);
+  }, 360);
+}
+function enterHospital() {
+  fadeTo(() => {
+    player.pos.copy(INTERIOR.entry);
+    player.vel.set(0, 0, 0);
+    player.facing = Math.PI; // facing into the lobby
+    input.yaw = 0; // camera behind him (south)
+    sfx.door();
+    hospital.greet();
+  });
+}
+function leaveHospital() {
+  fadeTo(() => {
+    player.pos.copy(INTERIOR.exitTo);
+    player.vel.set(0, 0, 0);
+    player.facing = 0; // facing the park
+    input.yaw = Math.PI;
+    sfx.door();
+  });
+}
+/** What E / ✋ does when there's no kid to help: doors, then the ambulance. */
+function extraAction() {
+  if (ambulance.driving) return vehicleAction();
+  const p = player.pos;
+  if (isInside(p)) {
+    return Math.hypot(p.x - INTERIOR.exitDoor.x, p.z - INTERIOR.exitDoor.z) < 2.4 ? { label: 'Leave the hospital 🚪', run: leaveHospital } : null;
+  }
+  if (hospital && Math.hypot(p.x - INTERIOR.frontDoor.x, p.z - INTERIOR.frontDoor.z) < 2.6) {
+    return { label: 'Enter the hospital 🏥', run: enterHospital };
+  }
+  return vehicleAction();
+}
+
 function resetAmbulance() {
   if (ambulance.driving) exitAmbulance();
   ambulance.speed = 0;
@@ -115,6 +165,8 @@ const ui = {
   vehicle: () => ambulance,
   exitVehicle: (force) => exitAmbulance(force),
   vehicleAction,
+  extraAction,
+  get hospital() { return hospital; },
   swingSeats,
   minigame,
   toast: (h, ms) => hud.toast(h, ms),
@@ -143,6 +195,7 @@ function start() {
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
 document.getElementById('restart').addEventListener('click', () => {
   resetAmbulance();
+  if (isInside(player.pos)) player.pos.copy(INTERIOR.exitTo);
   player.reset();
   missions.reset();
   start();
@@ -204,12 +257,22 @@ function frame() {
       input.yaw += Math.atan2(Math.sin(want - input.yaw), Math.cos(want - input.yaw)) * Math.min(1, dt * 2.5);
     }
     follow.update(dt, ambulance, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.32), distance: Math.max(input.distance, 12) });
+  } else if (started && isInside(player.pos)) {
+    // indoors: look down into the rooms over the (roofless) walls
+    follow.update(dt, player, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.78), distance: THREE.MathUtils.clamp(input.distance, 6, 11) });
   } else if (started) follow.update(dt, player, input);
   else follow.update(dt, TITLE_VIEW, { yaw: input.yaw, pitch: 0.42, distance: 30 });
 
   // Streaming: only draw a zone's props when you're near it (the sea/sand horizon always stays)
-  park.visible = player.pos.z < 105;
-  beach.group.visible = player.pos.z > 25;
+  const inside = isInside(player.pos);
+  park.visible = !inside && player.pos.z < 105;
+  beach.group.visible = !inside && player.pos.z > 25;
+  beach.sea.visible = !inside;
+  base.visible = !inside;
+  ambulance.root.visible = !inside;
+  if (hospital) hospital.group.visible = inside;
+  scene.background = inside ? INDOOR_BG : OUTDOOR_BG;
+  scene.fog = inside ? null : outdoorFog;
 
   // Keep shadows centred on the player
   sun.position.set(player.pos.x + 30, 50, player.pos.z + 20);
@@ -224,8 +287,14 @@ frame();
 
 // Characters load in parallel; the Start button unlocks when they're in
 await Promise.all([doctorReady, preloadKids(), ambulanceReady]); // kids fall back to procedural ones per look
+hospital = await buildHospital(scene);
+animated.push(...hospital.animated);
+hud.plan = hospital.plan;
 missions = new MissionSystem(scene, player, ui);
 window.__game.missions = missions;
+window.__game.hospital = hospital;
+window.__game.enterHospital = enterHospital;
+window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades
 // once the park can actually be shown — no empty/black screen behind the title.
 await renderer.compileAsync(scene, camera).catch(() => {});
