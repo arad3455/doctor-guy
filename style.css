@@ -498,3 +498,14 @@ html.touch #waypoint-info { top: calc(112px + env(safe-area-inset-top)); right: 
 .st-note { grid-column: 1 / -1; font-size: 13px; opacity: 0.75; }
 .rp-quote { opacity: 0.8; font-style: italic; margin: 14px 0; }
 @media (max-width: 520px) { #end-stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* side notifications (GTA-style feed) */
+#feed { position: absolute; left: 16px; bottom: 90px; display: flex; flex-direction: column; gap: 6px; width: min(300px, 70vw); }
+.feed-item { background: rgba(20, 12, 40, 0.88); color: #fff; border-left: 5px solid #4cc35a; border-radius: 10px; padding: 7px 12px; display: grid; gap: 1px; animation: feedIn 0.35s ease-out both; transition: opacity 0.45s, transform 0.45s; }
+.feed-item b { font-size: 14px; }
+.feed-item span { font-size: 13px; opacity: 0.9; }
+.feed-item em { font-style: normal; font-size: 12px; color: #ffd23f; }
+.feed-item.out { opacity: 0; transform: translateX(-20px); }
+@keyframes feedIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
+html.touch #feed { bottom: auto; top: 140px; left: calc(10px + env(safe-area-inset-left)); width: min(240px, 40vw); }
+html.touch .feed-item b { font-size: 12px; } html.touch .feed-item span { font-size: 11px; }

@@ -98,3 +98,5 @@ sfx.missionPassed = () => {
   tone(131, 0.9, { type: 'sawtooth', vol: 0.04, delay: 0.45 });
 };
 sfx.tick = () => tone(1568, 0.05, { type: 'square', vol: 0.03 });
+
+sfx.heartbeat = () => { for (let i = 0; i < 3; i++) { tone(62, 0.12, { type: 'sine', vol: 0.35, delay: i * 0.5 }); tone(55, 0.14, { type: 'sine', vol: 0.28, delay: i * 0.5 + 0.18 }); } };

@@ -161,6 +161,24 @@ export class Career {
     if (animate) { chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
   }
 
+  /** A stethoscope check-up on a kid out playing: a small reward and a side notification. */
+  checkup(name, result) {
+    this.stats.checkups = (this.stats.checkups ?? 0) + 1;
+    this.stats.lollipops += 1;
+    const before = this.rankIndex;
+    this.xp += 8;
+    this.onLollipop(1);
+    const el = document.createElement('div');
+    el.className = 'feed-item';
+    el.innerHTML = `<b>🩺 Check-up · ${name}</b><span>${result}</span><em>+1 🍭 · +8 XP</em>`;
+    $('feed').prepend(el);
+    setTimeout(() => el.classList.add('out'), 3200);
+    setTimeout(() => el.remove(), 3700);
+    sfx.pickup();
+    this.renderRank(true);
+    if (this.rankIndex > before) { this.queue.push({ kind: 'rank', rank: RANKS[this.rankIndex] }); this.pump(); }
+  }
+
   /* ---------------- 11. stats screen ---------------- */
   renderStats(totalMissions, shiftSeconds) {
     const s = this.stats;
@@ -176,6 +194,7 @@ export class Career {
       ['🚶', 'Distance on foot', `${Math.round(s.walked)} m`],
       ['🚑', 'Distance driven', `${Math.round(s.driven)} m`],
       ['🏥', 'Ambulance deliveries', s.byAmbulance],
+      ['🩺', 'Stethoscope check-ups', s.checkups ?? 0],
     ];
     $('end-rank').innerHTML = `<span class="er-icon">${r.icon}</span><span><small>Final rank</small><b>${r.name}</b><em>${this.xp} XP</em></span>`;
     $('end-stats').innerHTML = cells.map(([i, l, v]) => `<div class="st"><span class="st-i">${i}</span><span class="st-l">${l}</span><b class="st-v">${v}</b></div>`).join('')

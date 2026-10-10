@@ -15,6 +15,13 @@ export const DROPS = {
   mom: { action: 'Reunite %s with Mom', toast: '💛 Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.', drive: '🚑 Drive to Mom at the lollipop stand.' },
 };
 const fill = (text, name) => text.replace('%s', name);
+const KID_NAMES = ['Noam', 'Shira', 'Itamar', 'Yuval', 'Ella', 'Ori', 'Romi', 'Ben', 'Alma', 'Eyal', 'Tamar', 'Lior', 'Maya', 'Gili', 'Yoav'];
+// What the stethoscope finds (funny, never scary)
+const CHECKUP_RESULTS = [
+  ['💓', 'Strong heart!'], ['🫁', 'Lungs: crystal clear'], ['🍕', 'Tummy says: pizza!'], ['🦁', 'Heartbeat of a lion!'],
+  ['🥁', 'Thumping like a drum'], ['🎵', 'Heart has a nice rhythm'], ['💪', 'Healthy as a horse'], ['🐝', 'Busy little heart'],
+  ['🍦', 'Needs ice cream, stat!'], ['😂', 'Too ticklish to check!'], ['⭐', 'Perfect health — sticker!'], ['🐸', 'Hiccups! Hold your breath'],
+];
 const sleep = (s) => new Promise((r) => setTimeout(r, s * 1000));
 
 export const MISSIONS = [
@@ -449,6 +456,15 @@ export class MissionSystem {
 
     // Ambient kids
     for (const a of this.ambient) {
+      if (a.checking) {
+        // standing still for the stethoscope (swing/float kids stay put, the rest face Doctor Guy)
+        if (a.mode !== 'swing' && a.mode !== 'float') {
+          const kp = a.kid.root.position;
+          a.kid.root.rotation.y = Math.atan2(p.x - kp.x, p.z - kp.z);
+          animateRig(a.kid, 'idle', t, dt);
+        } else animateRig(a.kid, a.mode === 'swing' ? 'sit' : 'idle', t, dt);
+        continue;
+      }
       if (a.mode === 'swing') animateRig(a.kid, 'sit', t, dt);
       else if (a.mode === 'wave') animateRig(a.kid, Math.sin(t * 0.7) > 0.3 ? 'wave' : 'idle', t, dt);
       else if (a.mode === 'stroll') {
@@ -587,6 +603,59 @@ export class MissionSystem {
     }
   }
 
+  /** Nearest kid out playing (not an emergency) you can listen to with your stethoscope. */
+  checkupAction() {
+    const p = this.player.pos;
+    const w = new THREE.Vector3();
+    let best = null, bestD = 2.6;
+    for (const a of this.ambient) {
+      if (!a.kid.root.visible || a.checking) continue;
+      a.kid.root.getWorldPosition(w);
+      const d = Math.hypot(w.x - p.x, w.z - p.z);
+      if (d < bestD && Math.abs(w.y - p.y) < 2.5) { best = a; bestD = d; }
+    }
+    if (!best) return null;
+    best.name ??= KID_NAMES[this.ambient.indexOf(best) % KID_NAMES.length];
+    const again = (best.checkedAt ?? -999) > this.time - 60;
+    return { label: again ? `🩺 Check ${best.name} again` : `🩺 Check-up: ${best.name}`, run: () => this.checkup(best, again) };
+  }
+
+  /** A quick stethoscope check-up: listen, a funny result, a small reward (once a minute per kid). */
+  async checkup(a, again) {
+    this.busy = true;
+    a.checking = true;
+    const player = this.player;
+    player.frozen = true;
+    player.vel.set(0, 0, 0);
+    const w = a.kid.root.getWorldPosition(new THREE.Vector3());
+    player.facing = Math.atan2(w.x - player.pos.x, w.z - player.pos.z);
+    const rig = player.rig;
+    const tall = a.mode !== 'swing' && a.mode !== 'float';
+    if (tall) await sleep(Math.min(0.8, rig.kneel?.() ?? 0)); // down to kid height
+    const listen = makeBubble('🩺 ♥ ♥ ♥', { w: 300, bg: '#ffe3ec' });
+    listen.position.y = a.kid.height + 0.9;
+    a.kid.root.add(listen);
+    sfx.heartbeat();
+    await sleep(1.5);
+    a.kid.root.remove(listen);
+    const [icon, text] = CHECKUP_RESULTS[Math.floor(Math.random() * CHECKUP_RESULTS.length)];
+    const result = makeBubble(`${icon} ${text}`, { w: 460, bg: '#e8fff0' });
+    result.scale.multiplyScalar(1.15);
+    result.position.y = a.kid.height + 0.9;
+    a.kid.root.add(result);
+    setTimeout(() => a.kid.root.remove(result), 3000);
+    if (tall) await sleep((rig.standUp?.() ?? 0) * 0.7);
+    player.frozen = false;
+    this.busy = false;
+    animateRig(a.kid, 'cheer', 0, 0);
+    setTimeout(() => { a.checking = false; }, 1200);
+    if (!again) {
+      a.checkedAt = this.time;
+      this.checkups = (this.checkups ?? 0) + 1;
+      this.ui.career?.checkup(a.name, `${icon} ${text}`);
+    } else this.ui.toast(`${a.name}: “You already checked me, Doc!” 😄`, 1800);
+  }
+
   dropPos(def) { return def.deliver === 'mom' ? this.mom.root.position : DROPS[def.deliver].pos; }
 
   /** Find what E would do right now, show prompt, act on E. */
@@ -633,6 +702,7 @@ export class MissionSystem {
       }
     }
 
+    if (!action) action = this.checkupAction(); // the stethoscope: any kid who isn't an emergency
     if (!action) action = this.ui.extraAction?.() ?? null; // kids come first, then doors and the ambulance
     this.ui.prompt(action ? action.label : null);
     if (action && input.hit('KeyE')) action.run();
