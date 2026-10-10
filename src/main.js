@@ -302,18 +302,44 @@ const ui = {
     frenzy.abort();
     hud.show(false);
     started = false;
+    updateRotate();
     resetAmbulance();
   },
 };
 let frenzy = null;
 let missions = null; // created once the kids have loaded (see bottom)
 
+// Landscape on phones: Android can go fullscreen and lock it; iPhone can't, so a "turn sideways" card pauses the game
+const rotateEl = document.getElementById('rotate');
+let portraitOk = false;
+try { portraitOk = sessionStorage.getItem('doctorguy.portrait') === '1'; } catch { /* ignore */ }
+const portraitQuery = matchMedia('(orientation: portrait)');
+function updateRotate() { rotateEl.classList.toggle('hidden', !(isTouch && started && !portraitOk && portraitQuery.matches)); }
+portraitQuery.addEventListener?.('change', updateRotate);
+addEventListener('resize', updateRotate);
+document.getElementById('rotate-skip').addEventListener('click', () => {
+  portraitOk = true;
+  try { sessionStorage.setItem('doctorguy.portrait', '1'); } catch { /* ignore */ }
+  updateRotate();
+});
+if (/iPhone|iPad|iPod/.test(navigator.userAgent)) rotateEl.classList.add('ios');
+async function goLandscape() {
+  if (!isTouch || portraitOk) return;
+  try {
+    const el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+    await screen.orientation?.lock?.('landscape');
+  } catch { /* not supported (iPhone) or refused: the rotate card handles it */ }
+}
+
 function start() {
   initAudio();
+  goLandscape(); // must run inside the Start tap
   document.getElementById('title').classList.add('hidden');
   document.getElementById('end').classList.add('hidden');
   hud.show(true);
   started = true;
+  updateRotate();
   hud.toast(`Your shift begins!<br><small>${isTouch ? 'Tap the radar for the map 🗺️' : 'Press H for controls · M for the map'}</small>`, 3200);
 }
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
@@ -388,7 +414,7 @@ const clock = new THREE.Clock();
 let t = 0;
 function frame() {
   const rawDt = Math.min(clock.getDelta(), 1 / 20);
-  const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden');
+  const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden') || !rotateEl.classList.contains('hidden');
   if (bigMap.open || (menuOpen && started)) { // paused: keep the map fresh, don't advance the world
     if (bigMap.open) bigMap.draw();
     else renderer.render(scene, camera);

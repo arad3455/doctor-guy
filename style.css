@@ -566,3 +566,16 @@ html.touch .trophy-btn { right: 18px; }
 @keyframes fzPulse { to { transform: scale(1.15); } }
 html.touch #frenzy-hud { top: calc(56px + env(safe-area-inset-top)); padding: 5px 12px; }
 html.touch #frenzy-hud .fz-time { font-size: 24px; }
+
+/* "Turn your phone sideways" card (phones in portrait, after Start shift) */
+#rotate { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff;
+  background: radial-gradient(circle at 50% 30%, #ff5f8f 0%, #5b2d8c 55%, #1b1650 100%); }
+#rotate.hidden { display: none; }
+#rotate .rot-card { max-width: 340px; }
+#rotate .rot-phone { font-size: 84px; display: inline-block; animation: rotPhone 2.2s ease-in-out infinite; }
+#rotate h2 { font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 1px; font-size: 30px; margin: 18px 0 8px; text-shadow: 0 3px 0 rgba(0,0,0,0.3); }
+#rotate p { margin: 6px 0; font-size: 15px; opacity: 0.92; line-height: 1.4; }
+#rotate .rot-ios { display: none; font-size: 13px; opacity: 0.75; }
+#rotate.ios .rot-ios { display: block; }
+#rotate button { margin-top: 22px; background: none; border: 1.5px solid rgba(255,255,255,0.6); color: #fff; border-radius: 999px; padding: 9px 18px; font: inherit; font-size: 13px; }
+@keyframes rotPhone { 0%, 20% { transform: rotate(0deg); } 50%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }

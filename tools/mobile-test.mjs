@@ -28,6 +28,12 @@ for (const [label, device] of [['landscape', KnownDevices['iPhone 13 landscape']
   const sb = await start.boundingBox();
   await page.touchscreen.tap(sb.x + sb.width / 2, sb.y + sb.height / 2);
   await wait(1200);
+  // portrait: the "turn sideways" card shows first; keep testing the portrait layout
+  if (await page.evaluate(() => !document.getElementById('rotate').classList.contains('hidden'))) {
+    results[label].rotateCard = true;
+    await page.tap('#rotate-skip');
+    await wait(400);
+  }
   await shot('2-hud');
 
   // push the joystick up (forward) for 1.5s
