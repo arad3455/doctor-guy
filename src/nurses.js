@@ -22,7 +22,7 @@ export class DoorNurses {
       bubble.position.y = rig.height + 0.9;
       bubble.visible = false;
       rig.root.add(bubble);
-      const collider = { type: 'circle', x: 0, z: 0, r: 0 };
+      const collider = { type: 'circle', x: 0, z: 0, r: 0, dynamic: true }; // moves with the nurse
       getColliders().push(collider);
       return { rig, side, state: 'in', bubble, collider, wave: Math.random() * 3 };
     });

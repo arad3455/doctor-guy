@@ -10,7 +10,7 @@ for (const [name, setup] of [
   const page = await browser.newPage();
   page.on('pageerror', (e) => errors.push(`${name}: ${e}`));
   await setup(page);
-  await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
+  await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
   await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
   await new Promise((r) => setTimeout(r, 2500));
   await page.screenshot({ path: `.shots/title-${name}.png` });

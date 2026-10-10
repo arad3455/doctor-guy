@@ -1,0 +1,48 @@
+// Pinewood Camp: drive Zoo Road → Pine Road → the camp, the lake blocks the van but you can wade, zone names, views.
+import puppeteer from 'puppeteer-core';
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'], defaultViewport: { width: 1280, height: 720 }, protocolTimeout: 240000 });
+const page = await browser.newPage();
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 120000 });
+await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
+await page.click('#start');
+const g = (fn, a) => page.evaluate(fn, a);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const drive = (throttle, steer, seconds) => g(([throttle, steer, seconds]) => {
+  const { ambulance } = __game;
+  for (let i = 0; i < seconds * 60; i++) ambulance.update(1 / 60, i / 60, { throttle, steer });
+  return { pos: ambulance.pos.toArray().map((v) => +v.toFixed(1)), heading: +ambulance.heading.toFixed(2), speed: +ambulance.speed.toFixed(1) };
+}, [throttle, steer, seconds]);
+const r = {};
+await g(() => { const a = __game.ambulance; a.pos.set(63.5, 0, -37); a.heading = Math.PI; a.update(1 / 60, 0, {}); a.syncTransform(); __game.player.pos.copy(a.doorPoint); });
+await wait(800);
+await page.keyboard.press('KeyE');
+await page.waitForFunction(() => __game.ambulance.driving, { timeout: 15000 }).catch(() => {});
+r.driving = await g(() => __game.ambulance.driving);
+r.pineRoad = await drive(1, 0, 3);
+r.name1 = await g(() => __game.world.locationName(__game.ambulance.pos));
+r.toCamp = await drive(1, 0, 4);
+r.name2 = await g(() => __game.world.locationName(__game.ambulance.pos));
+// into the lake: the van stops at the shore
+await g(() => { const a = __game.ambulance; a.pos.set(104, 0, -132); a.heading = Math.PI; a.speed = 0; a.air = null; a.y = 0; a.update(1 / 60, 0, {}); a.syncTransform(); });
+r.lake = await drive(1, 0, 5);
+await drive(-1, 0, 1); await drive(0, 0, 2);
+await page.keyboard.press('KeyE');
+await wait(1500);
+r.wade = await g(() => __game.world.inWater(104, -160));
+await g(() => { __game.player.pos.set(46, 0, -146); __game.input.yaw = -2.4; __game.input.distance = 9; __game.input.pitch = 0.3; });
+await wait(2500);
+r.name3 = await g(() => document.getElementById('location').textContent);
+await page.screenshot({ path: '.shots/camp-1-site.png' });
+await g(() => { __game.player.pos.set(96, 0, -174); __game.input.yaw = Math.PI * 0.95; __game.input.distance = 11; __game.input.pitch = 0.2; });
+await wait(2500);
+r.name4 = await g(() => document.getElementById('location').textContent);
+await page.screenshot({ path: '.shots/camp-2-falls.png' });
+await g(() => { __game.bigMap.toggle(true); });
+await wait(800);
+await page.screenshot({ path: '.shots/camp-3-bigmap.png' });
+console.log(JSON.stringify(r, null, 1));
+console.log('ERRORS:', errors.length ? errors : 'none');
+await browser.close();

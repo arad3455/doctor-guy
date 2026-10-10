@@ -7,6 +7,8 @@ import { ZOO } from './zoo.js';
 import { DT_SPOTS, DOWNTOWN } from './downtown.js';
 import { MH, MH_SPOTS, MH_MAP } from './suburbs.js';
 import { FAIR, PIER_SPOTS } from './pier.js';
+import { CAMP, CAMP_SPOTS } from './camp.js';
+import { kit } from './kit.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
 import { toon, part } from './toon.js';
@@ -15,6 +17,7 @@ import { toon, part } from './toon.js';
 export const DROPS = {
   hospital: { pos: WORLD.hospitalDoor, action: 'Hand %s to the nurses', toast: '🏥 Take %s to the hospital! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the hospital drop-off.', drive: '🚑 Drive to the hospital drop-off.', walkTo: new THREE.Vector3(0, 0, -46.5) },
   tower: { pos: WORLD.lifeguardDrop, action: 'Bring %s to the first-aid station', toast: '⛑️ Take %s to the lifeguard first-aid station! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the lifeguard tower (first aid).', drive: '🚑 Drive to the lifeguard tower.', walkTo: new THREE.Vector3(WORLD.lifeguardDrop.x + 2.2, 0, WORLD.lifeguardDrop.z + 1.6) },
+  ranger: { pos: CAMP.dropAt, action: 'Bring %s to the ranger station', toast: '🌲 Take %s to the ranger station! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the ranger station.', drive: '🚑 Drive to the ranger station.', walkTo: new THREE.Vector3(CAMP.ranger.x + 3.5, 0, CAMP.ranger.z) },
   mom: { action: 'Reunite %s with Mom', toast: '💛 Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.', drive: '🚑 Drive to Mom at the lollipop stand.' },
 };
 const fill = (text, name) => text.replace('%s', name);
@@ -345,7 +348,106 @@ export const MISSIONS = [
     treatment: { title: 'Patch up Liat', speed: 1.0, zone: 0.2, steps: [{ icon: '🧼', label: 'Clean her palms' }, { icon: '🩹', label: 'Two little bandages' }, { icon: '🌭', label: 'A new hot dog (eat it fast!)' }] },
     deliver: null, reward: 3, bonusTime: 45,
   },
+
+  // ---------------- Zone 7: Pinewood Camp (north, up Pine Road) ----------------
+  {
+    id: 'marshmallow', zone: 'camp', name: 'Tomer', title: 'Marshmallow Burn', look: 'redShirt',
+    at: [CAMP.site.x + 2.4, CAMP.site.z], pose: 'cry', bubble: 'Hot marshmallow!', range: 2.4,
+    blurb: 'Tomer grabbed a flaming marshmallow straight off the stick.',
+    treatment: { title: 'Cool the burn', speed: 1.0, zone: 0.2, steps: [{ icon: '🚰', label: 'Cool water — hold', mode: 'hold' }, { icon: '🩹', label: 'Loose dressing' }, { icon: '🍡', label: 'Blow on it first next time!' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'ivy', zone: 'camp', name: 'Noya', title: 'Itchy Poison Ivy', look: 'ponytail',
+    at: [CAMP.lake.x - CAMP.lake.r - 5, CAMP.lake.z + 9], pose: 'cry', bubble: 'So itchy!!', range: 2.4, tint: 0xffd0c8,
+    blurb: 'Noya went off the trail and brushed through poison ivy. Her arms are itching like crazy!',
+    treatment: { title: 'Soothe the rash', speed: 1.0, zone: 0.2, steps: [{ icon: '🧼', label: 'Wash with soap' }, { icon: '🧴', label: 'Calamine lotion' }, { icon: '🙅', label: 'No scratching!' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'canoe', zone: 'camp', name: 'Erez', title: 'Tipped Out of the Canoe!', look: 'capKid',
+    get at() { return [CAMP.dock.x1 + 2.5, CAMP.dock.z + 1.5]; }, y: -0.5, pose: 'flail', bubble: 'HELP!', range: 2.8, water: true,
+    blurb: 'Erez’s canoe tipped over by the dock. Wade in, pull him out, then take him to the ranger station to warm up.',
+    treatment: { title: 'Lake rescue', speed: 1.2, zone: 0.17, steps: [{ icon: '🛟', label: 'Pull him out' }, { icon: '🫁', label: 'Check breathing' }, { icon: '🧣', label: 'Wrap him in a blanket' }] },
+    deliver: 'ranger', reward: 7, bonusTime: 60,
+  },
+  {
+    id: 'mosquito', zone: 'camp', name: 'Alon', title: 'Mosquito Feast', look: 'glassesKid',
+    get at() { const [x, z] = CAMP.tents[2] ?? [CAMP.site.x - 6, CAMP.site.z]; return [x + (CAMP.site.x - x) * 0.3, z + (CAMP.site.z - z) * 0.3]; }, pose: 'cry', bubble: 'Bzzz… so many bites!', range: 2.4,
+    blurb: 'Alon left his tent open all night — the mosquitoes had a party.',
+    treatment: { title: 'Bite relief', speed: 0.95, zone: 0.22, steps: [{ icon: '🧊', label: 'Cool cloth' }, { icon: '🧴', label: 'Anti-itch cream' }, { icon: '⛺', label: 'Zip the tent!' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'lostcamp', zone: 'camp', name: 'Shaked', title: 'Lost in the Woods', look: 'pinkHat',
+    at: [CAMP.x1 - 14, CAMP.z0 + 16], pose: 'cry', bubble: 'Where is everyone?', range: 2.4, hidden: true,
+    blurb: 'Shaked wandered away from the campsite. Search the far north-east of the forest, then bring her to the ranger station.',
+    treatment: { title: 'Comfort Shaked', speed: 0.85, zone: 0.24, steps: [{ icon: '🤗', label: 'Big hug' }, { icon: '🔦', label: 'Torch on — let’s go!' }] },
+    deliver: 'ranger', reward: 7, bonusTime: 90,
+  },
+  {
+    id: 'falls', zone: 'camp', name: 'Gefen', title: 'Slipped at the Falls', look: 'bandageBoy',
+    at: [CAMP.falls.x - 9, CAMP.falls.z + 6], pose: 'sit', bubble: 'My ankle!!', range: 2.4,
+    blurb: 'Gefen slipped on the wet rocks by Pinewood Falls. Splint the ankle and get him to the hospital — Pine Road is the fastest way back!',
+    treatment: { title: 'Ankle splint', speed: 1.15, zone: 0.18, steps: [{ icon: '🧊', label: 'Ice pack' }, { icon: '🪵', label: 'Splint it' }, { icon: '🩹', label: 'Wrap it tight' }] },
+    deliver: 'hospital', reward: 10, bonusTime: 120,
+  },
 ];
+
+/** Something a grown-up carries: a shopping bag or a briefcase (held at the right hand). */
+function makeCarry(kind) {
+  const g = new THREE.Group();
+  if (kind === 'bag') {
+    const bag = part(new THREE.BoxGeometry(0.42, 0.5, 0.2), [0xff8ac0, 0xffd23f, 0x4cc35a][Math.floor(Math.random() * 3)], { outline: 0.01 });
+    g.add(bag);
+    const handle = part(new THREE.TorusGeometry(0.12, 0.02, 4, 10, Math.PI), 0x2b2f38, { outline: 0 });
+    handle.position.y = 0.25;
+    g.add(handle);
+  } else {
+    const c = part(new THREE.BoxGeometry(0.5, 0.36, 0.12), 0x5a3418, { outline: 0.01 });
+    g.add(c);
+  }
+  g.position.set(-0.42, 0.72, 0.02);
+  return g;
+}
+
+/** A little dog on a walk (it trots along beside its owner). */
+function makeDog(i) {
+  const g = new THREE.Group();
+  const col = [0xc98f5a, 0xf2e6d0, 0x2b2f38][i % 3];
+  const body = part(new THREE.CapsuleGeometry(0.17, 0.42, 4, 8), col, { outline: 0.012 });
+  body.rotation.x = Math.PI / 2;
+  body.position.y = 0.38;
+  g.add(body);
+  const head = part(new THREE.SphereGeometry(0.17, 10, 8), col, { outline: 0.012 });
+  head.position.set(0, 0.55, 0.36);
+  g.add(head);
+  const snout = part(new THREE.SphereGeometry(0.08, 8, 6), 0x2b1a0e, { outline: 0 });
+  snout.position.set(0, 0.52, 0.52);
+  g.add(snout);
+  for (const sx of [-1, 1]) {
+    const ear = part(new THREE.SphereGeometry(0.07, 6, 4), 0x5a3418, { outline: 0 });
+    ear.scale.set(0.6, 1.4, 0.6);
+    ear.position.set(sx * 0.13, 0.66, 0.33);
+    g.add(ear);
+  }
+  const tail = new THREE.Group();
+  tail.position.set(0, 0.45, -0.33);
+  const tt = part(new THREE.CylinderGeometry(0.025, 0.04, 0.25, 5), col, { outline: 0 });
+  tt.rotation.x = -0.9; tt.position.set(0, 0.08, -0.08);
+  tail.add(tt);
+  g.add(tail);
+  const legs = [];
+  for (const [lx, lz] of [[-0.1, 0.18], [0.1, 0.18], [-0.1, -0.18], [0.1, -0.18]]) {
+    const leg = part(new THREE.CylinderGeometry(0.04, 0.04, 0.26, 5), col, { outline: 0 });
+    leg.geometry.translate(0, -0.13, 0);
+    leg.position.set(lx, 0.27, lz);
+    g.add(leg);
+    legs.push(leg);
+  }
+  g.userData = { tail, legs };
+  return g;
+}
 
 /** A kid's bicycle (lying on its side, or upright to ride). */
 function makeBike(upright = false) {
@@ -572,7 +674,7 @@ export class MissionSystem {
       seller.root.position.set(PIER_SPOTS.balloons.x + 1.1, 0, PIER_SPOTS.balloons.z + 0.9);
       seller.root.rotation.y = 0.6;
       this.group.add(seller.root);
-      this.ambient.push({ kid: seller, mode: 'wave' });
+      this.ambient.push({ kid: seller, mode: 'wave', adult: true });
     }
     ['gownKid', 'glassesKid', 'bandageBoy'].forEach((look, i) => {
       const kid = buildKid(look);
@@ -588,6 +690,51 @@ export class MissionSystem {
     fisher.root.add(rod);
     this.group.add(fisher.root);
     this.ambient.push({ kid: fisher, mode: 'wave' });
+
+    // ---- grown-ups out and about: pavements in Downtown and Maple Heights, a stroll on the pier
+    const W = (x0, z0, x1, z1) => [[x0, z0], [x1, z1]];
+    const walks = [
+      [W(-150, -33.85, -73, -33.85), 'mom', 'bag'], [W(-73, -40.15, -150, -40.15), 'nurse', 'case'],
+      [W(-108.35, -75, -108.35, 40), 'mom', 'dog'], [W(-72.65, 40, -72.65, -75), 'nurse', 'bag'],
+      [W(-190, 8.15, -73, 8.15), 'mom', 'case'], [W(-150.35, -75, -150.35, 40), 'nurse', null],
+      [W(MH.westX, MH.oakZ - 4.3, MH.loopX + 2, MH.oakZ - 4.3), 'mom', 'dog'], [W(MH.loopX + 2, MH.birchZ - 4.3, MH.westX, MH.birchZ - 4.3), 'nurse', 'bag'],
+      [W(FAIR.pier.x0 + 2.4, FAIR.pier.z0 + 6, FAIR.pier.x0 + 2.4, FAIR.pier.z1 - 14), 'mom', null],
+    ];
+    walks.forEach(([[from, to], look, extra], i) => {
+      const kid = buildKid(look);
+      this.group.add(kid.root);
+      const a = { kid, mode: 'patrol', from, to, speed: 1.35 + (i % 3) * 0.15, phase: (i * 0.37) % 1, walk: true, adult: true };
+      if (extra === 'bag' || extra === 'case') kid.root.add(makeCarry(extra));
+      if (extra === 'dog') { a.dog = makeDog(i); this.group.add(a.dog); }
+      this.ambient.push(a);
+    });
+
+    // ---- Pinewood Camp: campers sitting round the fire, a canoe out on the lake, a kid fishing off the dock
+    (CAMP.logs ?? []).slice(0, 2).forEach((l, i) => {
+      const kid = buildKid(i ? 'pinkHat' : 'gownKid');
+      kid.root.position.set(l.x, 0.25, l.z);
+      kid.root.rotation.y = Math.atan2(CAMP.site.x - l.x, CAMP.site.z - l.z);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'camper' });
+    });
+    if (CAMP.canoeLoop) {
+      const paddler = buildKid('redShirt');
+      const canoe = kit('canoe', { scale: 2.4, outline: 0.015 });
+      if (canoe) { canoe.position.set(0, -0.38, 0); canoe.rotation.y = Math.PI / 2; paddler.root.add(canoe); }
+      this.group.add(paddler.root);
+      this.ambient.push({ kid: paddler, mode: 'canoe', ...CAMP.canoeLoop, a: 0 });
+    }
+    if (CAMP.dock) {
+      const fisher2 = buildKid('glassesKid');
+      fisher2.root.position.set(CAMP.dock.x1 - 0.6, 0.37, CAMP.dock.z - 0.6);
+      fisher2.root.rotation.y = Math.PI / 2;
+      const rod2 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 2.6, 5), toon(0x7a4a26));
+      rod2.position.set(0.25, 1.4, 1.0);
+      rod2.rotation.x = 0.9;
+      fisher2.root.add(rod2);
+      this.group.add(fisher2.root);
+      this.ambient.push({ kid: fisher2, mode: 'camper' });
+    }
 
     const builder = buildKid('gownKid');
     builder.root.position.set(BEACH.castles.x - 2.4, 0, BEACH.castles.z - 1.2);
@@ -633,7 +780,9 @@ export class MissionSystem {
       [-132.5, -28.5], [-124, -8], [-176, 5], [-90, 5], [-69.5, 25], [-111.5, 30], [-153.5, -55], [-90, -79],
       // Maple Heights and Sunset Pier
       [84.5, -20], [84.5, 10], [84.5, 25], [100, -2], [112, 33], [70, 33], [119.5, 15], [72, -2],
-      [100, 72], [124, 84], [146, 90], [140, 104], [123, 130], [123, 148], [123, 164], [94, 98]];
+      [100, 72], [124, 84], [146, 90], [140, 104], [123, 130], [123, 148], [123, 164], [94, 98],
+      // Pine Road and Pinewood Camp
+      [63.5, -55], [63.5, -75], [63.5, -95], [52, -126], [46, -140], [70, -158], [80, -136], [104, -134], [130, -160], [90, -176], [80, -184], [128, -140]];
     spots.forEach(([x, z], i) => {
       const g = new THREE.Group();
       const candy = part(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 20), colors[i % colors.length], { outline: 0.03 });
@@ -733,6 +882,7 @@ export class MissionSystem {
         downtown: '🏙️ Zone 4 — Downtown Wolfson<br><small>Skaters, hoops and ice cream in the big city!</small>',
         suburbs: '🏡 Zone 5 — Maple Heights<br><small>Trampolines, treehouses and the school — what could go wrong?</small>',
         pier: '🎡 Zone 6 — Sunset Pier<br><small>Rides, cotton candy and a pier out over the sea!</small>',
+        camp: '🌲 Zone 7 — Pinewood Camp<br><small>Campfires, canoes and a waterfall deep in the woods</small>',
         hospital: '🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>',
       }[zone] ?? '🌳 The Park', 3000);
       this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
@@ -772,6 +922,13 @@ export class MissionSystem {
         a.kid.root.position.set(x, 0, z);
         a.kid.root.rotation.y = Math.atan2(-Math.sin(a.a) * a.speed, Math.cos(a.a) * a.speed);
         animateRig(a.kid, 'walk', t + a.r, dt);
+      } else if (a.mode === 'camper') {
+        animateRig(a.kid, 'sit', t, dt);
+      } else if (a.mode === 'canoe') {
+        a.a += dt * 0.05;
+        a.kid.root.position.set(a.x + Math.cos(a.a) * a.r, 0.3 + Math.sin(t * 1.5) * 0.04, a.z + Math.sin(a.a) * a.r);
+        a.kid.root.rotation.y = Math.atan2(-Math.sin(a.a), Math.cos(a.a));
+        animateRig(a.kid, 'sit', t, dt);
       } else if (a.mode === 'ride') {
         animateRig(a.kid, a.wave && Math.sin(t * 0.8) > 0.4 ? 'wave' : 'sit', t, dt);
       } else if (a.mode === 'bounce') {
@@ -786,7 +943,16 @@ export class MissionSystem {
         const x = a.from[0] + (a.to[0] - a.from[0]) * k, z = a.from[1] + (a.to[1] - a.from[1]) * k;
         a.kid.root.position.set(x, 0, z);
         a.kid.root.rotation.y = Math.atan2((a.to[0] - a.from[0]) * dir, (a.to[1] - a.from[1]) * dir);
-        animateRig(a.kid, a.ride ? 'sit' : 'run', t, dt, a.speed);
+        animateRig(a.kid, a.ride ? 'sit' : a.walk ? 'walk' : 'run', t, dt, a.speed);
+        if (a.dog) {
+          // the dog trots a little ahead, tail wagging, legs paddling
+          const f = a.kid.root.rotation.y;
+          a.dog.position.set(x + Math.sin(f) * 1.5 + Math.cos(f) * 0.5, 0, z + Math.cos(f) * 1.5 - Math.sin(f) * 0.5);
+          a.dog.rotation.y = f;
+          a.dog.userData.tail.rotation.y = Math.sin(t * 14) * 0.6;
+          a.dog.userData.legs.forEach((l, j) => { l.rotation.x = Math.sin(t * 12 + j * Math.PI) * 0.5; });
+          a.dog.visible = a.kid.root.visible;
+        }
         if (a.ride) a.kid.root.position.y = 0.35;
         if (a.ball) {
           const f = a.kid.root.rotation.y;
@@ -935,7 +1101,7 @@ export class MissionSystem {
     const w = new THREE.Vector3();
     let best = null, bestD = 2.6;
     for (const a of this.ambient) {
-      if (!a.kid.root.visible || a.checking || a.mode === 'ride') continue; // (no check-ups on a moving ride)
+      if (!a.kid.root.visible || a.checking || a.mode === 'ride' || a.mode === 'canoe' || a.adult) continue; // (no check-ups on rides or grown-ups)
       a.kid.root.getWorldPosition(w);
       const d = Math.hypot(w.x - p.x, w.z - p.z);
       if (d < bestD && Math.abs(w.y - p.y) < 2.5) { best = a; bestD = d; }

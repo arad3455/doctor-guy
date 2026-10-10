@@ -5,7 +5,7 @@ const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
 await page.click('#start');
 const g = (fn, a) => page.evaluate(fn, a);

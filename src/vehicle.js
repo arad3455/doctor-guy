@@ -3,8 +3,9 @@
 import * as THREE from 'three';
 import { gltfLoader, toonify } from './skinned.js';
 import { part, toon } from './toon.js';
-import { getColliders, clampWalkable, inPond, WORLD } from './world.js';
+import { getColliders, collidersNear, clampWalkable, inPond, WORLD } from './world.js';
 import { onPier } from './pier.js';
+import { inLake } from './camp.js';
 import { rampAt } from './stunts.js';
 
 const GRAVITY = 22;
@@ -190,7 +191,7 @@ export class Ambulance {
       this.bumped = 0.35;
     }
     // no driving into the sea or the pond
-    if ((this.pos.z > WORLD.shoreline - 1 && !onPier(this.pos.x, this.pos.z)) || inPond(this.pos.x, this.pos.z)) {
+    if ((this.pos.z > WORLD.shoreline - 1 && !onPier(this.pos.x, this.pos.z)) || inPond(this.pos.x, this.pos.z) || inLake(this.pos.x, this.pos.z)) {
       this.pos.copy(prev);
       this.speed *= -0.2;
     }
@@ -267,7 +268,7 @@ export class Ambulance {
         const cz = this.pos.z + Math.cos(this.heading) * cc.k * REACH;
         const r = this.width / 2;
         let px = 0, pz = 0;
-        for (const c of getColliders()) {
+        for (const c of collidersNear(cx, cz, 3)) {
           if (c.owner === 'car') continue;
           if (c.type === 'circle') {
             const dx = cx - c.x, dz = cz - c.z, d = Math.hypot(dx, dz), min = c.r + r;

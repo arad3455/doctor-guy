@@ -18,7 +18,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const shot = (name) => page.screenshot({ path: `${OUT}${name}.png` });
 const g = (fn, ...a) => page.evaluate(fn, ...a);
 
-await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 60000 });
 await shot('01-title');
 // KIDLOOK=<look> makes every emergency kid use that look (handy for checking a newly generated kid)

@@ -13,7 +13,7 @@ A browser 3D open-world rescue game (Three.js, no build step). Play it at https:
 | 🏡 Maple Heights | south of Zoo Road, down Maple Lane | houses with gardens (trampolines, pools, a treehouse), Maple Heights Elementary |
 | 🎡 Sunset Pier | the bottom of Maple Lane, east of the beach | Ferris wheel, carousel, drop tower, bumper cars, stalls, a pier with a lighthouse |
 
-Stunt ramps, the Check-up Frenzy token, a day/night cycle and 24 achievements are scattered around it all.
+Stunt ramps, the Check-up Frenzy token, a day/night cycle and 25 achievements are scattered around it all.
 
 ## Run
 ```

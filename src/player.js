@@ -1,7 +1,7 @@
 // Third-person controller: WASD relative to camera, run with stamina, jump, collisions.
 import * as THREE from 'three';
 import { buildDoctor, animateRig } from './characters.js';
-import { getColliders, groundHeight, inWater, clampWalkable } from './world.js';
+import { getColliders, collidersNear, groundHeight, inWater, clampWalkable } from './world.js';
 
 const WALK = 4.2;
 const RUN = 8.5;
@@ -210,7 +210,7 @@ export class Player {
 
   collide() {
     const p = this.pos;
-    for (const c of getColliders()) {
+    for (const c of collidersNear(p.x, p.z, 2)) {
       if (c.type === 'circle') {
         const dx = p.x - c.x, dz = p.z - c.z;
         const d = Math.hypot(dx, dz);

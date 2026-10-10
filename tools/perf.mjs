@@ -2,7 +2,7 @@
 import puppeteer from 'puppeteer-core';
 const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'], defaultViewport: { width: 960, height: 540 }, protocolTimeout: 240000 });
 const p = await b.newPage();
-await p.goto((process.env.BASE ?? 'http://localhost:8765/'), { waitUntil: 'networkidle0' });
+await p.goto((process.env.BASE ?? 'http://localhost:8765/'), { waitUntil: 'networkidle0', timeout: 180000 });
 await p.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
 await p.click('#start');
 const spots = JSON.parse(process.argv[2] ?? '[[0,0,0],[0,-20,3.14],[-100,-37,-1.57],[-132,-16,0],[100,-37,1.57],[0,100,0]]');

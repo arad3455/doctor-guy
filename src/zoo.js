@@ -24,7 +24,7 @@ export const ZOO = {
 };
 export const inZoo = (p) => p.x > ZOO.min.x - 1;
 export const PARKING_LOT = { x: 124, z: -47.5 }; // zoo car park, north of Zoo Road
-export const JUNCTIONS = [84.5]; // Maple Lane meets Zoo Road here (see suburbs.js)
+export const JUNCTIONS = [84.5, 63.5]; // Maple Lane (suburbs.js) and Pine Road (camp.js) meet Zoo Road here
 const ROAD_YAW = Number(new URLSearchParams(location.search).get('roadYaw') ?? 0); // Kenney road tiles run along x (checked top-down)
 /** Things the map draws that live in this file (trees etc.). */
 export const MAP_DECOR = { trees: [], benches: [] };
@@ -68,12 +68,13 @@ export function buildRoad(scene) {
   for (let x = -16, i = 0; x < x1 - 4; x += 13, i++) {
     if (x > -4 && x < 4) continue;
     const side = i % 2 ? 1 : -1;
+    if (JUNCTIONS.some((j) => Math.abs(x - j) < 6)) continue; // leave the side-street mouths clear
     lights.push({ x, z: z + side * (width / 2 + 0.6), rot: side > 0 ? Math.PI : 0, scale: 7 });
     addCircle(x, z + side * (width / 2 + 0.6), 0.25);
   }
   group.add(scatter('light-curved', lights, { outline: 0.012 }));
   const poles = [];
-  for (let x = 64; x < x1 - 2; x += 16) poles.push({ x, z: z - width / 2 - 4.2, rot: 0, scale: 8 });
+  for (let x = 72; x < x1 - 2; x += 16) poles.push({ x, z: z - width / 2 - 4.2, rot: 0, scale: 8 });
   group.add(scatter('electricity-pole', poles, { outline: 0.012 }));
   for (const p of poles) addCircle(p.x, p.z, 0.3);
   const wireMat = new THREE.LineBasicMaterial({ color: 0x2b2f38 });

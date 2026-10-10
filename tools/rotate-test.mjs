@@ -6,7 +6,7 @@ const errors = [];
 const page = await browser.newPage();
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.emulate(KnownDevices['iPhone 13']);
-await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
 const vis = () => page.evaluate(() => !document.getElementById('rotate').classList.contains('hidden'));
 const r = { beforeStart: await vis() };

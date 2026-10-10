@@ -54,11 +54,23 @@ export async function preloadKids() {
         clips.idle = standingPoseFrom(clips.walk, model);
         clips.idle.userData = { synthetic: true };
       }
-      templates[look] = { model, height, seat: measureSeat(model, height) };
+      templates[look] = { model, height, seat: measureSeat(model, height), lift: 0 };
     } catch (e) {
       console.warn(`[kids] could not load ${look}`, e);
     }
   }));
+  // The shared clips were made on bigger kids: on small bodies (Noa) the idle pose lifts the feet off the
+  // ground. Measure every kid standing in its idle pose once and drop it back onto the ground.
+  for (const tpl of Object.values(templates)) {
+    try {
+      const probe = cloneSkinned(tpl.model);
+      const anim = createAnimator(probe, clips, STATE_CLIPS);
+      for (let i = 0; i < 12; i++) anim.update('idle', 1 / 30, 0);
+      probe.updateMatrixWorld(true);
+      const minY = new THREE.Box3().setFromObject(probe, true).min.y;
+      tpl.lift = minY > 0.06 ? minY : 0;
+    } catch { tpl.lift = 0; }
+  }
   console.info('[kids] generated models:', Object.keys(templates).join(', ') || 'none');
 }
 
@@ -103,6 +115,7 @@ export function buildKid3D(look) {
   const tpl = templates[look];
   const H = tpl.height;
   const model = cloneSkinned(tpl.model);
+  model.position.y -= tpl.lift; // feet on the ground in the idle pose (see preloadKids)
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
@@ -141,6 +154,14 @@ export function buildKid3D(look) {
   }
   cast.visible = false;
 
+  // Noa never lets go of her teddy (Meshy left it out of the model): it hangs from her right hand
+  if (look === 'teddyToddler' && hand) {
+    const teddy = makeTeddy(H * 0.3);
+    const at = hand.getWorldPosition(new THREE.Vector3());
+    teddy.position.copy(at).add(new THREE.Vector3(0, -H * 0.17, H * 0.04));
+    attachToBone(root, hand, teddy, teddy.position.clone());
+  }
+
   return {
     root,
     body,
@@ -160,4 +181,23 @@ export function buildKid3D(look) {
       body.position.y = anim.current === anim.actions.idle ? Math.sin(t * 2.6 + phase) * 0.01 : 0; // breathing
     },
   };
+}
+
+/** A little brown teddy bear, size = its height. */
+function makeTeddy(size) {
+  const g = new THREE.Group();
+  const brown = toon(0x9a6440), light = toon(0xe8c39a);
+  const ball = (r, x, y, z, mat = brown) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+  ball(size * 0.26, 0, size * 0.3, 0).scale.y = 1.15; // body
+  ball(size * 0.22, 0, size * 0.72, 0); // head
+  ball(size * 0.09, 0, size * 0.66, size * 0.19, light); // muzzle
+  for (const sx of [-1, 1]) {
+    ball(size * 0.08, sx * size * 0.17, size * 0.9, 0); // ears
+    ball(size * 0.09, sx * size * 0.24, size * 0.38, size * 0.04); // arms
+    ball(size * 0.1, sx * size * 0.14, size * 0.07, size * 0.06); // feet
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(size * 0.025, 6, 4), toon(0x1b1b1b));
+    eye.position.set(sx * size * 0.08, size * 0.77, size * 0.19);
+    g.add(eye);
+  }
+  return g;
 }

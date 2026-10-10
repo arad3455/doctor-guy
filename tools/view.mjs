@@ -6,7 +6,7 @@ const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.
 const p = await b.newPage();
 const errs = [];
 p.on('pageerror', (e) => errs.push(e.message));
-await p.goto((process.env.BASE ?? 'http://localhost:8765/') + (process.env.Q ?? ''), { waitUntil: 'networkidle0' });
+await p.goto((process.env.BASE ?? 'http://localhost:8765/') + (process.env.Q ?? ''), { waitUntil: 'networkidle0', timeout: 180000 });
 await p.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
 await p.click('#start');
 await p.evaluate(([px, pz, cam, tgt, hour, hud]) => {

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { part, toon, instanced, signTexture, canvasTexture, FONT } from './toon.js';
 import { rampAt } from './stunts.js';
 import { onPier } from './pier.js';
+import { inLake } from './camp.js';
 
 export const WORLD = {
   half: 56, // park half-size (fence at half + 1)
@@ -26,6 +27,41 @@ const platforms = []; // { minX, maxX, minZ, maxZ, y }
 
 export function getColliders() { return colliders; }
 
+// Spatial grid over the static colliders (the city has ~1500): the player and the ambulance only test the ones
+// near them. Moving colliders (the ambulance's own circles, the door nurses) are flagged and always tested.
+const CELL = 8;
+let grid = null, gridCount = -1, dynamic = [], stamp = 0;
+function buildGrid() {
+  grid = new Map();
+  dynamic = [];
+  for (const c of colliders) {
+    if (c.owner === 'car' || c.dynamic) { dynamic.push(c); continue; }
+    const [x0, x1, z0, z1] = c.type === 'circle' ? [c.x - c.r, c.x + c.r, c.z - c.r, c.z + c.r] : [c.minX, c.maxX, c.minZ, c.maxZ];
+    for (let ix = Math.floor(x0 / CELL); ix <= Math.floor(x1 / CELL); ix++) {
+      for (let iz = Math.floor(z0 / CELL); iz <= Math.floor(z1 / CELL); iz++) {
+        const k = ix * 100000 + iz;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k).push(c);
+      }
+    }
+  }
+  gridCount = colliders.length;
+}
+/** Colliders that could touch a circle of radius r at (x, z). */
+export function collidersNear(x, z, r = 2) {
+  if (gridCount !== colliders.length) buildGrid();
+  stamp++;
+  const out = [...dynamic];
+  for (let ix = Math.floor((x - r) / CELL); ix <= Math.floor((x + r) / CELL); ix++) {
+    for (let iz = Math.floor((z - r) / CELL); iz <= Math.floor((z + r) / CELL); iz++) {
+      const cell = grid.get(ix * 100000 + iz);
+      if (!cell) continue;
+      for (const c of cell) if (c._q !== stamp) { c._q = stamp; out.push(c); }
+    }
+  }
+  return out;
+}
+
 export function groundHeight(x, z) {
   let h = rampAt(x, z)?.h ?? 0; // you can walk up the stunt ramps too
   for (const p of platforms) {
@@ -41,15 +77,17 @@ export function inPond(x, z) {
 
 /** True where Doctor Guy is wading (pond or the shallow sea) — slower, and he sinks to the knees. */
 export function inWater(x, z) {
-  return inPond(x, z) || (z > WORLD.shoreline + 1 && !onPier(x, z));
+  return inPond(x, z) || inLake(x, z) || (z > WORLD.shoreline + 1 && !onPier(x, z));
 }
 
 /** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
-export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
+export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : z < -95 && x > 0 ? 'camp' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
 
 /** GTA-style location name for the corner label. */
 export function locationName(p) {
   if (p.z < -300) return p.z < -413.5 ? 'X-Ray · Wolfson Medical Center' : 'Wolfson Medical Center';
+  if (p.z < -95 && p.x > 0) return campName(p);
+  if (p.x > 58 && p.x < 70 && p.z < -42) return 'Pine Road';
   if (p.x < -60) return downtownName(p);
   if (p.x > 117 && p.z > 113) return p.z > 165 ? 'Sunset Pier · Lighthouse' : 'Sunset Pier';
   if (p.x > 92 && p.z > 63) return 'Sunset Pier Funfair';
@@ -70,6 +108,13 @@ function downtownName(p) {
   if (p.x > -112 && p.z > -37 && p.z < 5) return 'Market Row';
   if (p.z < -37) return 'Downtown · Tower District';
   return 'Downtown Wolfson';
+}
+
+function campName(p) {
+  if (Math.hypot(p.x - 104, p.z + 160) < 27) return p.z < -178 ? 'Pinewood Falls' : 'Pinewood Lake';
+  if (Math.hypot(p.x - 40, p.z + 152) < 15) return 'Pinewood Campsite';
+  if (Math.hypot(p.x - 50, p.z + 113) < 12) return 'Ranger Station';
+  return 'Pinewood Forest';
 }
 
 function suburbName(p) {
@@ -94,6 +139,8 @@ const WALKABLE = [
   { minX: 57, maxX: 150, minZ: 62, maxZ: 114 }, // the sand east of the beach, the car park and Sunset Pier's funfair (pier.js)
   { minX: 57, maxX: 117, minZ: 62, maxZ: 127 }, // …down to the water's edge
   { minX: 118.6, maxX: 127.4, minZ: 110, maxZ: 177.5 }, // the pier itself, out over the sea
+  { minX: 60, maxX: 67, minZ: -100, maxZ: -40 }, // Pine Road, north off Zoo Road
+  { minX: 9, maxX: 151, minZ: -217, maxZ: -98.5 }, // Pinewood Camp (camp.js)
   { minX: 115.5, maxX: 132.5, minZ: -52.6, maxZ: -40 }, // the zoo car park
   { minX: 137.5, maxX: 232.5, minZ: -45.5, maxZ: 45.5 }, // the zoo
 ];

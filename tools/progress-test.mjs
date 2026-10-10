@@ -8,7 +8,7 @@ const BASE = process.env.BASE ?? 'http://localhost:8765/';
 const g = (fn, a) => page.evaluate(fn, a);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const boot = async () => {
-  await page.goto(BASE, { waitUntil: 'networkidle0' });
+  await page.goto(BASE, { waitUntil: 'networkidle0', timeout: 180000 });
   await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
 };
 await boot();

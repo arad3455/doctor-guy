@@ -9,6 +9,7 @@ import { FRENZY_TOKEN } from './frenzy.js';
 import { DOWNTOWN, DT_MAP } from './downtown.js';
 import { MH, MH_MAP } from './suburbs.js';
 import { FAIR } from './pier.js';
+import { CAMP } from './camp.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -21,6 +22,7 @@ const ZONE_BLIPS = [
   { x: DOWNTOWN.plaza.cx, z: DOWNTOWN.plaza.cz, icon: '🏙️', name: 'Downtown Wolfson' },
   { x: MH.mapleX, z: MH.oakZ, icon: '🏡', name: 'Maple Heights' },
   { x: FAIR.gate.x + 4, z: FAIR.gate.z, icon: '🎡', name: 'Sunset Pier' },
+  { x: CAMP.site.x, z: CAMP.site.z, icon: '🏕️', name: 'Pinewood Camp' },
 ];
 export const ZONE_LABELS = [
   { x: 0, z: 12, text: 'WOLFSON PARK' },
@@ -32,6 +34,7 @@ export const ZONE_LABELS = [
   { x: -86, z: -37, text: 'MAIN ST' },
   { x: 104, z: 16, text: 'MAPLE HEIGHTS' },
   { x: 121, z: 60.5, text: 'SUNSET PIER' },
+  { x: 80, z: -208, text: 'PINEWOOD CAMP' },
 ];
 const isInterior = (z) => z < -300;
 /** A wall tint → a slightly darker roof colour for the map. */
@@ -193,6 +196,27 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   for (const st of F.stalls) rect(st.x - 2.1, st.z - 1.5, st.x + 2.1, st.z + 1.5, '#ff8ac0', '#7a1a4a', 0.8);
   line(F.wheel.x - 9.5, F.wheel.z + 9.5, F.wheel.x + 9.5, F.wheel.z - 9.5, '#ffffff', Math.max(2, 1.4 * s));
   if (s > 0.8) { text(F.wheel.x, F.wheel.z, '🎡', Math.max(12, 5 * s)); text(F.carousel.x, F.carousel.z, '🎠', Math.max(10, 3.5 * s)); text(F.lighthouse.x, F.lighthouse.z - 5, '🗼', Math.max(9, 3 * s)); }
+
+  // ---- Pinewood Camp: forest floor, Pine Road, trails, the lake and falls, campsite, ranger station, pines
+  const Cp = CAMP;
+  rect(Cp.x0, Cp.z0, Cp.x1, Cp.z1, '#4f9e3c', '#7a4a26', Math.max(1, 0.3 * s));
+  rect(Cp.roadX - 3.55, -100, Cp.roadX + 3.55, -40.5, '#4a5058');
+  if (detail) line(Cp.roadX, -100, Cp.roadX, -41, '#ffffff', Math.max(1, 0.2 * s), [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)]);
+  rect(Cp.roadX - 9, -112, Cp.roadX + 9, -102.5, '#b9a98a');
+  circle(Cp.lake.x, Cp.lake.z, Cp.lake.r + 5.2, null, '#c9a46a', Math.max(1.5, 2.5 * s));
+  for (const [ax, az, bx, bz] of Cp.paths ?? []) line(ax, az, bx, bz, '#c9a46a', Math.max(1.5, 2.6 * s));
+  circle(Cp.lake.x, Cp.lake.z, Cp.lake.r + 2.2, '#e2c98f');
+  circle(Cp.lake.x, Cp.lake.z, Cp.lake.r, '#3aa6d8');
+  circle(Cp.lake.x, Cp.lake.z, Cp.lake.r * 0.6, '#2a86c0');
+  if (Cp.dock) rect(Cp.dock.x0, Cp.dock.z - 1.3, Cp.dock.x1, Cp.dock.z + 1.3, '#b07a45', '#7a4a26', 0.8);
+  rect(Cp.falls.x - 16, Cp.falls.z - 9, Cp.falls.x + 16, Cp.falls.z - 2, '#8f98a2', '#5b6573', 1);
+  rect(Cp.falls.x - 2.5, Cp.falls.z - 4, Cp.falls.x + 2.5, Cp.falls.z + 0.5, '#9ddcff');
+  circle(Cp.site.x, Cp.site.z, 12, '#b99a6a');
+  circle(Cp.site.x, Cp.site.z, 1.3, '#ff7a1a');
+  for (const [x, z] of Cp.tents) circle(x, z, 1.6, '#e0453a', '#7a1a1a', 0.8);
+  rect(Cp.ranger.x - 3.3, Cp.ranger.z - 4.5, Cp.ranger.x + 3.3, Cp.ranger.z + 4.5, '#2f6b3a', '#1b3a20', Math.max(1, 0.3 * s));
+  for (const [x, z, r] of Cp.trees) if (near(x, z, 6)) circle(x, z, r, '#2a7a30');
+  if (s > 0.8) { text(Cp.site.x, Cp.site.z - 14, '⛺', Math.max(10, 3.5 * s)); text(Cp.falls.x, Cp.falls.z - 12, '💦', Math.max(10, 3 * s)); }
 
   // ---- the hospital (with a soft shadow)
   shadow((c) => rect(-17, -57, 17, -47, c));
@@ -425,7 +449,7 @@ export class Radar {
 /* ------------------------------------------------------------------ */
 /* Full-screen map                                                      */
 /* ------------------------------------------------------------------ */
-const BOUNDS = { x0: -210, x1: 245, z0: -100, z1: 182 };
+const BOUNDS = { x0: -210, x1: 245, z0: -224, z1: 182 };
 
 export class BigMap {
   constructor(radar, getState) {
