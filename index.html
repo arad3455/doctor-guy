@@ -7,6 +7,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#2f7fc1" />
   <title>Doctor Guy</title>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+  </script>
   <script>
     // Decide phone vs computer before anything is drawn, so the right controls show from the first frame
     (function () {
@@ -31,9 +34,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:," />
-  <script type="importmap">
-    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
-  </script>
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -97,6 +97,33 @@
     <div class="rb-name"></div>
   </div>
 
+  <!-- Achievement pop-up -->
+  <div id="achievement"></div>
+
+  <!-- Doctor Shop (at the lollipop stand) -->
+  <div id="shop" class="hidden">
+    <div class="shop-card">
+      <div class="shop-head">
+        <span class="shop-title">🛍️ Doctor Shop</span>
+        <span class="shop-wallet">🍭 <b id="shop-wallet">0</b></span>
+        <button id="shop-close" aria-label="Close shop">✕</button>
+      </div>
+      <div id="shop-tabs"></div>
+      <div id="shop-items"></div>
+    </div>
+  </div>
+
+  <!-- Trophy room -->
+  <div id="trophies" class="hidden">
+    <div class="shop-card">
+      <div class="shop-head">
+        <span class="shop-title">🏆 Achievements <small id="trophy-count"></small></span>
+        <button id="trophies-close" aria-label="Close">✕</button>
+      </div>
+      <div id="trophy-list"></div>
+    </div>
+  </div>
+
   <!-- Fade for entering / leaving buildings -->
   <div id="fade"></div>
 
@@ -126,6 +153,7 @@
       <p class="title-zones">The Park · The Beach · The Hospital · The Zoo</p>
     </div>
     <button id="help-open" class="help-btn key-hint" aria-label="Controls">?</button>
+    <button id="trophies-open" class="help-btn trophy-btn" aria-label="Achievements">🏆</button>
   </div>
 
   <!-- Controls (computer) -->
@@ -136,6 +164,7 @@
         <li><kbd>W A S D</kbd> move · <kbd>SHIFT</kbd> run · <kbd>SPACE</kbd> jump</li>
         <li><kbd>E</kbd> help a kid · pick up · hand over · enter buildings · drive the ambulance</li>
         <li><kbd>E</kbd> near any kid out playing: 🩺 stethoscope check-up</li>
+        <li><kbd>E</kbd> at the lollipop stand: 🛍️ Doctor Shop · progress saves automatically</li>
         <li>In the ambulance: <kbd>W S</kbd> drive · <kbd>A D</kbd> steer · <kbd>SPACE</kbd> siren</li>
         <li><kbd>M</kbd> map &amp; waypoints · <kbd>Mouse drag</kbd> look · <kbd>wheel</kbd> zoom</li>
         <li><kbd>H</kbd> or <kbd>?</kbd> this help</li>
@@ -152,6 +181,7 @@
       <div id="end-rank"></div>
       <div id="end-stats"></div>
       <p class="rp-quote">“Smiles make healing easier.”</p>
+      <div id="end-trophies"></div>
       <button id="restart">Start a new shift</button>
     </div>
   </div>

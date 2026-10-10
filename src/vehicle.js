@@ -77,6 +77,17 @@ export class Ambulance {
     return true;
   }
 
+  /** Doctor Shop paint job: multiplies the van's colours (null = original white). */
+  setPaint(tint) {
+    const target = this.model; // (the fallback van uses shared materials: leave it white)
+    target?.traverse((o) => {
+      if (!o.isMesh || o.material?.type === 'ShaderMaterial') return;
+      o.userData.baseColor ??= o.material.color.clone();
+      o.material.color.copy(o.userData.baseColor);
+      if (tint) o.material.color.multiply(new THREE.Color(tint));
+    });
+  }
+
   /** The original blocky van, kept as a fallback. Nose points +z. */
   useProcedural() {
     const g = new THREE.Group();

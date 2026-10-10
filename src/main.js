@@ -12,7 +12,9 @@ import { DoorNurses } from './nurses.js';
 import { buildRoad, buildZoo, inZoo, ZOO } from './zoo.js';
 import { loadKits } from './kit.js';
 import { BigMap } from './map.js';
-import { Career } from './career.js';
+import { Career, achievementToast } from './career.js';
+import { Progress, SHOP, SHOP_CATS, ACHIEVEMENTS } from './progress.js';
+import { WORLD } from './world.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -62,7 +64,7 @@ if (isTouch) input.distance = 9.5; // a bit further out on small screens
 const player = new Player(scene);
 // Use the generated, rigged Doctor Guy when assets/doctor-guy/ has one; otherwise keep the procedural model.
 const doctorReady = loadDoctorModel()
-  .then((rig) => { if (rig) { player.setRig(rig); console.info('[doctor] generated model loaded, clips:', rig.clips.join(', ')); } })
+  .then((rig) => { if (rig) { player.setRig(rig); applyCosmetics(); console.info('[doctor] generated model loaded, clips:', rig.clips.join(', ')); } })
   .catch((e) => console.warn('[doctor] generated model failed to load, using procedural model', e));
 const ambulance = new Ambulance(scene);
 const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
@@ -73,7 +75,70 @@ const minigame = new MiniGame();
 
 let started = false;
 let timeScale = 1; // slow motion for the PATIENT SAVED moment
-const career = new Career({ setSlowmo: (v) => { timeScale = v; }, onLollipop: (n) => { if (missions) missions.lollipops += n; } });
+const progress = new Progress(); // saved in this browser: XP, wallet, lifetime stats, shop, achievements
+const career = new Career({ progress, setSlowmo: (v) => { timeScale = v; }, onLollipop: (n) => { if (missions) missions.lollipops += n; } });
+
+/* ---- Doctor Shop + cosmetics ---- */
+function applyCosmetics() {
+  const rig = player.rig;
+  rig.setHat?.(progress.item('hat')?.id ?? null);
+  rig.setCape?.(!!progress.item('cape'));
+  const st = progress.item('steth');
+  rig.setStethoscope?.(st ? (st.rainbow ? 'rainbow' : st.color) : null);
+  ambulance.setPaint(progress.item('paint')?.tint ?? null);
+  siren.tone = progress.item('siren')?.tone ?? 'classic';
+}
+let shopTab = 'hat';
+const shopEl = document.getElementById('shop');
+function renderShop() {
+  document.getElementById('shop-wallet').textContent = missions?.lollipops ?? progress.wallet;
+  document.getElementById('shop-tabs').innerHTML = SHOP_CATS.map(([c, label]) => `<button data-tab="${c}" class="${c === shopTab ? 'on' : ''}">${label}</button>`).join('');
+  document.getElementById('shop-items').innerHTML = SHOP.filter((i) => i.cat === shopTab).map((i) => {
+    const owned = progress.owned.includes(i.id), on = progress.equipped[i.cat] === i.id;
+    const wallet = missions?.lollipops ?? progress.wallet;
+    const btn = !owned ? `<button data-buy="${i.id}" ${wallet < i.price ? 'disabled' : ''}>🍭 ${i.price}</button>`
+      : `<button data-equip="${i.id}" class="${on ? 'equipped' : 'equip'}">${on ? '✓ Wearing' : 'Use'}</button>`;
+    return `<div class="item"><span class="ic">${i.icon}</span><b>${i.name}</b><small>${i.note ?? (owned ? 'Owned' : '')}</small>${btn}</div>`;
+  }).join('');
+}
+shopEl.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.tab) { shopTab = t.dataset.tab; renderShop(); }
+  if (t.dataset.buy) {
+    const item = SHOP.find((i) => i.id === t.dataset.buy);
+    progress.wallet = missions.lollipops;
+    if (progress.buy(item)) {
+      missions.lollipops = progress.wallet;
+      progress.equip(item); // wear it right away
+      applyCosmetics();
+      sfx.buy();
+      hud.toast(`🛍️ ${item.icon} ${item.name} — enjoy!`, 1600);
+      progress.save(true);
+    }
+    renderShop();
+  }
+  if (t.dataset.equip) {
+    progress.equip(SHOP.find((i) => i.id === t.dataset.equip));
+    applyCosmetics();
+    progress.save(true);
+    renderShop();
+  }
+});
+const openShop = (v) => { shopEl.classList.toggle('hidden', !v); if (v) renderShop(); };
+document.getElementById('shop-close').addEventListener('click', () => openShop(false));
+
+/* ---- Trophy room ---- */
+const trophiesEl = document.getElementById('trophies');
+function renderTrophies() {
+  const got = ACHIEVEMENTS.filter((a) => progress.has(a.id)).length;
+  document.getElementById('trophy-count').textContent = `${got}/${ACHIEVEMENTS.length}`;
+  document.getElementById('trophy-list').innerHTML = ACHIEVEMENTS.map((a) => `<div class="item ${progress.has(a.id) ? '' : 'locked'}"><span class="ic">${a.icon}</span><b>${a.name}</b><small>${a.desc}</small></div>`).join('');
+}
+const openTrophies = (v) => { trophiesEl.classList.toggle('hidden', !v); if (v) renderTrophies(); };
+document.getElementById('trophies-open').addEventListener('click', () => openTrophies(true));
+document.getElementById('trophies-close').addEventListener('click', () => openTrophies(false));
+addEventListener('keydown', (e) => { if (e.code === 'Escape') { openShop(false); openTrophies(false); } });
 
 /* ---- Getting in and out of the ambulance ---- */
 const setButtons = (driving) => {
@@ -161,6 +226,9 @@ function extraAction() {
   if (isInside(p)) {
     return Math.hypot(p.x - INTERIOR.exitDoor.x, p.z - INTERIOR.exitDoor.z) < 2.4 ? { label: 'Leave the hospital 🚪', run: leaveHospital } : null;
   }
+  if (Math.hypot(p.x - WORLD.stand.x, p.z - WORLD.stand.z) < 3.4) {
+    return { label: '🛍️ Doctor Shop', run: () => openShop(true) };
+  }
   if (hospital && Math.hypot(p.x - INTERIOR.frontDoor.x, p.z - INTERIOR.frontDoor.z) < 2.6) {
     return { label: 'Enter the hospital 🏥', run: enterHospital };
   }
@@ -177,6 +245,7 @@ function resetAmbulance() {
 
 const ui = {
   career,
+  progress,
   isDriving: () => ambulance.driving,
   vehicle: () => ambulance,
   exitVehicle: (force) => exitAmbulance(force),
@@ -194,6 +263,10 @@ const ui = {
     if (career.showing || career.queue.length) { setTimeout(ui.onFinished, 600); return; }
     sfx.fanfare();
     career.renderStats(missions.total, missions.time);
+    progress.add('shifts', 1);
+    progress.save(true);
+    const got = ACHIEVEMENTS.filter((a) => progress.has(a.id));
+    document.getElementById('end-trophies').innerHTML = `🏆 ${got.length}/${ACHIEVEMENTS.length} achievements · ${got.map((a) => `<span title="${a.name}">${a.icon}</span>`).join(' ')}`;
     document.getElementById('end').classList.remove('hidden');
     hud.show(false);
     started = false;
@@ -272,12 +345,18 @@ function stickDrive(stick, mag) {
   return { throttle: 0.42 + 0.58 * Math.min(1, push), steer: curve(x) };
 }
 
+let achT = 0.5, saveT = 3;
+addEventListener('pagehide', () => progress.save(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) progress.save(true); });
+
 const clock = new THREE.Clock();
 let t = 0;
 function frame() {
   const rawDt = Math.min(clock.getDelta(), 1 / 20);
-  if (bigMap.open) { // paused: keep the map fresh, don't advance the world
-    bigMap.draw();
+  const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden');
+  if (bigMap.open || (menuOpen && started)) { // paused: keep the map fresh, don't advance the world
+    if (bigMap.open) bigMap.draw();
+    else renderer.render(scene, camera);
     input.endFrame();
     requestAnimationFrame(frame);
     return;
@@ -297,7 +376,7 @@ function frame() {
     if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
     const before = ambulance.pos.clone();
     ambulance.update(dt, t, { throttle, steer });
-    career.travel(Math.hypot(ambulance.pos.x - before.x, ambulance.pos.z - before.z), true);
+    career.travel(Math.hypot(ambulance.pos.x - before.x, ambulance.pos.z - before.z), true, ambulance.siren);
     engine.set(ambulance.speed);
     // Doctor Guy rides inside: zones, spawning, lollipops and the minimap follow the van
     player.pos.copy(ambulance.pos);
@@ -370,6 +449,18 @@ function frame() {
     wpRing.scale.setScalar(1 + Math.sin(t * 4) * 0.08);
   }
 
+  // saved progress: wallet, achievements (twice a second), autosave (every 3 s)
+  if (missions && started) {
+    const delta = missions.lollipops - progress.wallet;
+    if (delta > 0) progress.add('earned', delta);
+    progress.wallet = missions.lollipops;
+    if ((achT -= rawDt) <= 0) {
+      achT = 0.5;
+      for (const a of progress.checkAchievements({ career, ambulance, missions })) achievementToast(a);
+    }
+    if ((saveT -= rawDt) <= 0) { saveT = 3; progress.save(); }
+  }
+
   // Keep shadows centred on the player
   sun.position.set(player.pos.x + 30, 50, player.pos.z + 20);
   sun.target.position.set(player.pos.x, 0, player.pos.z);
@@ -389,6 +480,8 @@ zoo = await buildZoo(scene);
 animated.push(...zoo.animated);
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
+applyCosmetics(); // saved hats, paint, siren…
+career.renderRank(false);
 nurses = new DoorNurses(scene, ambulance, {
   onCallout: () => hud.toast('🏥 The nurses heard the siren — they’re coming out to meet you!', 2600),
 });
@@ -400,6 +493,8 @@ window.__game.zoo = zoo;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;
 window.__game.career = career;
+window.__game.progress = progress;
+window.__game.openShop = openShop;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades

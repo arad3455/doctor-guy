@@ -63,18 +63,32 @@ export const engine = {
 };
 
 let sirenTimer = null, sirenNodes = null;
+// Siren tones from the Doctor Shop: [wave, low Hz, high Hz, ms per note, glide]
+const SIREN_TONES = {
+  classic: ['triangle', 720, 960, 450, false],
+  weewoo: ['square', 850, 1250, 260, false],
+  duck: ['sawtooth', 380, 520, 220, true],
+  kazoo: ['sawtooth', 300, 450, 330, true],
+};
 export const siren = {
+  tone: 'classic',
   on() {
     if (!ctx || sirenNodes) return;
+    const [type, lo, hi_, ms, glide] = SIREN_TONES[this.tone] ?? SIREN_TONES.classic;
     const osc = ctx.createOscillator(), gain = ctx.createGain();
-    osc.type = 'triangle';
-    gain.gain.value = 0.045;
+    osc.type = type;
+    gain.gain.value = type === 'sawtooth' ? 0.03 : 0.045;
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     let hi = false;
-    const flip = () => { hi = !hi; osc.frequency.setValueAtTime(hi ? 960 : 720, ctx.currentTime); };
+    const flip = () => {
+      hi = !hi;
+      const f = hi ? hi_ : lo;
+      if (glide) osc.frequency.exponentialRampToValueAtTime(f, ctx.currentTime + ms / 1000 * 0.8);
+      else osc.frequency.setValueAtTime(f, ctx.currentTime);
+    };
     flip();
-    sirenTimer = setInterval(flip, 450);
+    sirenTimer = setInterval(flip, ms);
     sirenNodes = { osc, gain };
   },
   off() {
@@ -100,3 +114,6 @@ sfx.missionPassed = () => {
 sfx.tick = () => tone(1568, 0.05, { type: 'square', vol: 0.03 });
 
 sfx.heartbeat = () => { for (let i = 0; i < 3; i++) { tone(62, 0.12, { type: 'sine', vol: 0.35, delay: i * 0.5 }); tone(55, 0.14, { type: 'sine', vol: 0.28, delay: i * 0.5 + 0.18 }); } };
+
+sfx.achievement = () => { [659, 880, 1175].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.09, delay: i * 0.08 })); tone(1568, 0.5, { type: 'sine', vol: 0.06, delay: 0.26 }); };
+sfx.buy = () => { tone(988, 0.08, { type: 'square', vol: 0.06 }); tone(1319, 0.2, { type: 'square', vol: 0.06, delay: 0.08 }); };

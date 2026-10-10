@@ -17,16 +17,20 @@ const UNITS_PER_M = 1.36;
 
 export class Career {
   /** setSlowmo(scale) slows the world down; onLollipop(n) adds lollipops to the wallet as the counter ticks. */
-  constructor({ setSlowmo, onLollipop }) {
+  constructor({ setSlowmo, onLollipop, progress }) {
     this.setSlowmo = setSlowmo;
     this.onLollipop = onLollipop;
+    this.progress = progress; // saved XP and lifetime stats (src/progress.js)
     this.queue = [];
     this.showing = false;
     this.reset();
   }
 
+  // XP is saved between visits; per-shift stats are not
+  get xp() { return this.progress.xp; }
+  set xp(v) { this.progress.xp = v; }
+
   reset() {
-    this.xp = 0;
     this.stats = { saved: 0, walked: 0, driven: 0, fastest: null, fastestName: '', bestStreak: 0, streak: 0, perfect: 0, byAmbulance: 0, lollipops: 0, startedAt: performance.now() };
     this.queue.length = 0;
     this.pendingCard = null;
@@ -36,9 +40,10 @@ export class Career {
   get rankIndex() { let i = 0; RANKS.forEach((r, k) => { if (this.xp >= r.xp) i = k; }); return i; }
 
   /** Distance travelled this frame (units), on foot or by ambulance. */
-  travel(units, driving) {
-    if (driving) this.stats.driven += units / UNITS_PER_M;
-    else this.stats.walked += units / UNITS_PER_M;
+  travel(units, driving, siren = false) {
+    const m = units / UNITS_PER_M;
+    if (driving) { this.stats.driven += m; this.progress.add('driven', m); if (siren) this.progress.add('sirenDriven', m); }
+    else { this.stats.walked += m; this.progress.add('walked', m); }
   }
 
   /* ---------------- 4. mission start card ---------------- */
@@ -59,7 +64,10 @@ export class Career {
 
   /* ---------------- 1 + 2 + 3. patient saved ---------------- */
   /** lines: [{ label, amount }]; returns the total lollipops */
-  patientSaved({ name, condition, hospital, lines, elapsed, perfect, ambulance }) {
+  patientSaved({ id, zone, name, condition, hospital, lines, elapsed, perfect, ambulance }) {
+    this.progress.add('saved', 1);
+    if (ambulance) this.progress.add('byAmbulance', 1);
+    if (id) this.progress.missionDone(id, zone);
     const total = lines.reduce((s, l) => s + l.amount, 0);
     const s = this.stats;
     s.saved++;
@@ -164,6 +172,7 @@ export class Career {
   /** A stethoscope check-up on a kid out playing: a small reward and a side notification. */
   checkup(name, result) {
     this.stats.checkups = (this.stats.checkups ?? 0) + 1;
+    this.progress.add('checkups', 1);
     this.stats.lollipops += 1;
     const before = this.rankIndex;
     this.xp += 8;
@@ -207,4 +216,23 @@ function bumpCounter() {
   el.parentElement.classList.remove('bump');
   void el.offsetWidth;
   el.parentElement.classList.add('bump');
+}
+
+/** GTA-style "achievement unlocked" pop-up at the top of the screen (queued). */
+const achQueue = [];
+let achBusy = false;
+export function achievementToast(a) {
+  achQueue.push(a);
+  if (achBusy) return;
+  const next = () => {
+    const item = achQueue.shift();
+    if (!item) { achBusy = false; return; }
+    achBusy = true;
+    const el = $('achievement');
+    el.innerHTML = `<span class="ach-icon">${item.icon}</span><span><small>🏆 ACHIEVEMENT UNLOCKED</small><b>${item.name}</b><em>${item.desc}</em></span>`;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    sfx.achievement();
+    setTimeout(() => { el.classList.remove('show'); setTimeout(next, 500); }, 3200);
+  };
+  next();
 }

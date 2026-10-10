@@ -509,3 +509,42 @@ html.touch #waypoint-info { top: calc(112px + env(safe-area-inset-top)); right: 
 @keyframes feedIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
 html.touch #feed { bottom: auto; top: 140px; left: calc(10px + env(safe-area-inset-left)); width: min(240px, 40vw); }
 html.touch .feed-item b { font-size: 12px; } html.touch .feed-item span { font-size: 11px; }
+
+/* ---------- Achievements, shop, trophy room ---------- */
+#achievement {
+  position: fixed; top: 14px; left: 50%; transform: translate(-50%, -140%); z-index: 45; pointer-events: none;
+  display: flex; align-items: center; gap: 12px; padding: 8px 18px 8px 10px;
+  background: linear-gradient(90deg, #1b0b2e, #3a1660); color: #fff; border: 3px solid #ffd23f; border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4); transition: transform 0.45s cubic-bezier(.2,1.4,.4,1);
+}
+#achievement.show { transform: translate(-50%, 0); }
+.ach-icon { font-size: 34px; }
+#achievement small { display: block; color: #ffd23f; font-weight: 700; font-size: 11px; letter-spacing: 2px; }
+#achievement b { display: block; font-size: 18px; }
+#achievement em { font-style: normal; font-size: 13px; opacity: 0.8; }
+.trophy-btn { right: 76px; }
+html.touch .trophy-btn { right: 18px; }
+
+#shop, #trophies { position: fixed; inset: 0; z-index: 55; display: grid; place-items: center; background: rgba(15,5,30,0.72); padding: 12px; }
+.shop-card { width: min(720px, 100%); max-height: calc(100vh - 24px); display: flex; flex-direction: column;
+  background: #fff8ea; border: 4px solid var(--ink); border-radius: 20px; box-shadow: 0 8px 0 var(--ink); overflow: hidden; }
+.shop-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: linear-gradient(90deg, #ff3c8e, #ff8a3d); color: #fff; }
+.shop-title { font: 400 28px 'Anton', 'Impact', sans-serif; letter-spacing: 1px; flex: 1; }
+.shop-title small { font: 600 14px 'Fredoka', sans-serif; opacity: 0.9; }
+.shop-wallet { background: rgba(0,0,0,0.25); padding: 4px 12px; border-radius: 999px; font-size: 18px; }
+.shop-head button { font-size: 18px; padding: 4px 12px; border-radius: 10px; background: #fff; color: var(--ink); box-shadow: none; }
+#shop-tabs { display: flex; gap: 6px; padding: 10px 12px 0; flex-wrap: wrap; }
+#shop-tabs button { font-size: 14px; padding: 6px 12px; border-radius: 999px; background: #fff; color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
+#shop-tabs button.on { background: var(--ink); color: #fff; }
+#shop-items, #trophy-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; overflow: auto; }
+.item { background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.item .ic { font-size: 36px; }
+.item b { font-size: 14px; }
+.item small { font-size: 11px; opacity: 0.7; min-height: 14px; }
+.item button { margin-top: 4px; font-size: 14px; padding: 5px 14px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
+.item button.equip { background: var(--scrubs); }
+.item button.equipped { background: #4cc35a; }
+.item button:disabled { background: #b8b0a8; cursor: not-allowed; }
+.item.locked { opacity: 0.45; filter: grayscale(1); }
+#end-trophies { margin: 10px 0; font-size: 15px; }
+#end-trophies span { font-size: 22px; }

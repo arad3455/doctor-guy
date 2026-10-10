@@ -47,6 +47,8 @@ if (ch.startsWith('animal:')) {
 } else rig = ch === 'generated' ? await loadDoctorModel() : ch === 'doctor' ? buildDoctor() : buildKid(ch);
 if (ch !== 'ambulance') scene.add(rig.root);
 if (ch.startsWith('animal:')) { const a = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0.2, 0), 3, 0xff0000); scene.add(a); }
+if (q.get('hat') && rig.setHat) rig.setHat(q.get('hat'));
+if (q.has('cape') && rig.setCape) rig.setCape(true);
 if (q.has('tears') && rig.tears) rig.tears.visible = true;
 if (q.has('cast') && rig.cast) rig.cast.visible = true;
 if (q.has('nohair')) rig.root.traverse((o) => { if (o.geometry?.type === 'ConeGeometry') o.visible = false; });

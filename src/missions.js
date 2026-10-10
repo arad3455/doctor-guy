@@ -234,7 +234,7 @@ export class MissionSystem {
   reset() {
     this.group.clear();
     this.time = 0;
-    this.lollipops = 0;
+    this.lollipops = this.ui.progress?.wallet ?? 0; // the 🍭 wallet is saved between visits
     this.nextSpawn = 2;
     this.queue = [...MISSIONS];
     this.missions = [];
@@ -861,7 +861,7 @@ export class MissionSystem {
     // GTA-style "PATIENT SAVED" banner; lollipops tick into the wallet as its counter runs
     const condition = m.def.done ? `${m.def.title} — ${m.def.done}` : m.def.title;
     if (this.ui.career) {
-      this.ui.career.patientSaved({ name: m.def.name, condition, hospital: m.def.zone === 'hospital', lines, elapsed, perfect: !m.misses, ambulance: !!m.byAmbulance });
+      this.ui.career.patientSaved({ id: m.def.id, zone: m.def.zone, name: m.def.name, condition, hospital: m.def.zone === 'hospital', lines, elapsed, perfect: !m.misses, ambulance: !!m.byAmbulance });
     } else {
       this.lollipops += lines.reduce((t, l) => t + l.amount, 0);
       sfx.success();

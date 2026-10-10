@@ -92,6 +92,105 @@ export async function loadDoctorModel() {
   }
   // where the hand is (relative to Doctor Guy's feet) at the listening moment of the clip
   const waits = []; // pending untilClip() promises
+
+  // ---- Doctor Shop cosmetics: a hat on the head bone, a cape on the upper back
+  const headBone = findBone(model, /^head$/i) ?? findBone(model, /head/i);
+  const backBone = findBone(model, /spine0?2$/i) ?? findBone(model, /spine/i);
+  let hat = null, cape = null, rainbow = false;
+  // the top of the head in the standing pose (root space)
+  anim.update('idle', 0);
+  root.updateMatrixWorld(true);
+  const headTop = (() => {
+    const hp = headBone.getWorldPosition(new THREE.Vector3()); root.worldToLocal(hp);
+    return new THREE.Vector3(hp.x, GAME_HEIGHT - 0.05, hp.z + 0.02);
+  })();
+  const HEAD_R = 0.3; // roughly the hair/skull radius at the hat line
+  // attach points measured once, now, in the neutral standing pose (bone-local), so cosmetics can be
+  // added later even in the middle of an animation
+  const mount = (bone, point) => {
+    const probe = new THREE.Object3D();
+    attachToBone(root, bone, probe, point);
+    probe.removeFromParent();
+    return { position: probe.position.clone(), quaternion: probe.quaternion.clone(), scale: probe.scale.clone() };
+  };
+  const hatMount = mount(headBone, headTop);
+  const capeMount = backBone ? mount(backBone, (() => {
+    const bp = backBone.getWorldPosition(new THREE.Vector3()); root.worldToLocal(bp);
+    return new THREE.Vector3(bp.x, GAME_HEIGHT * 0.71, bp.z - 0.24);
+  })()) : null;
+  const place = (bone, m, obj) => { bone.add(obj); obj.position.copy(m.position); obj.quaternion.copy(m.quaternion); obj.scale.copy(m.scale); };
+  function makeHat(id) {
+    const g = new THREE.Group();
+    const toonC = (c) => new THREE.MeshToonMaterial({ color: c });
+    if (id === 'hat-party') {
+      const stripes = document.createElement('canvas'); stripes.width = 64; stripes.height = 64;
+      const c2 = stripes.getContext('2d');
+      for (let i = 0; i < 8; i++) { c2.fillStyle = ['#ff3c8e', '#ffd23f', '#3fa9ff', '#4cc35a'][i % 4]; c2.fillRect(0, i * 8, 64, 8); }
+      const tex = new THREE.CanvasTexture(stripes); tex.colorSpace = THREE.SRGBColorSpace;
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.42, 20), new THREE.MeshToonMaterial({ map: tex }));
+      cone.position.y = 0.2;
+      const pom = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), toonC(0xffffff));
+      pom.position.y = 0.43;
+      g.add(cone, pom);
+      g.rotation.z = -0.25;
+    } else if (id === 'hat-cap') {
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(HEAD_R, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), toonC(0x2f62b8));
+      dome.scale.y = 0.7;
+      const visor = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.03, 24, 1, false, -Math.PI / 2, Math.PI), toonC(0x1d4f9a));
+      visor.position.set(0, 0.0, 0.18);
+      const button = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), toonC(0xffffff));
+      button.position.y = HEAD_R * 0.7;
+      g.add(dome, visor, button);
+      g.position.y = -0.08;
+    } else if (id === 'hat-crown') {
+      const gold = toonC(0xffc83d);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.12, 24, 1, true), new THREE.MeshToonMaterial({ color: 0xffc83d, side: THREE.DoubleSide }));
+      band.position.y = 0.06;
+      g.add(band);
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2;
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.14, 6), gold);
+        spike.position.set(Math.sin(a) * 0.22, 0.18, Math.cos(a) * 0.22);
+        g.add(spike);
+        const gem = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), toonC([0xe0323a, 0x3fa9ff, 0x4cc35a][i % 3]));
+        gem.position.set(Math.sin(a) * 0.235, 0.07, Math.cos(a) * 0.235);
+        g.add(gem);
+      }
+    } else if (id === 'hat-mirror') {
+      const band = new THREE.Mesh(new THREE.TorusGeometry(HEAD_R * 0.8, 0.022, 6, 32), toonC(0x2b2f38));
+      band.rotation.x = Math.PI / 2;
+      band.position.y = -0.2;
+      const mirror = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.02, 24), new THREE.MeshToonMaterial({ color: 0xe8f4ff, emissive: 0x334455 }));
+      mirror.rotation.x = Math.PI / 2 - 0.35;
+      mirror.position.set(0, -0.12, HEAD_R * 0.8 + 0.03);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.015, 6, 20), toonC(0x9aa3ad));
+      ring.rotation.copy(mirror.rotation); ring.rotation.x -= Math.PI / 2;
+      ring.position.copy(mirror.position);
+      g.add(band, mirror, ring);
+    }
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
+  function makeCape() {
+    const geo = new THREE.PlaneGeometry(0.85, 1.25, 6, 10);
+    geo.translate(0, -0.62, 0);
+    const p = geo.attributes.position; // taper: narrow at the shoulders, wide at the hem
+    for (let i = 0; i < p.count; i++) p.setX(i, p.getX(i) * (0.55 + 0.45 * (-p.getY(i) / 1.25)));
+    const mesh = new THREE.Mesh(geo, new THREE.MeshToonMaterial({ color: 0xd8203a, side: THREE.DoubleSide }));
+    mesh.castShadow = true;
+    mesh.userData.base = geo.attributes.position.array.slice();
+    return mesh;
+  }
+  function waveCape(t, speed) {
+    if (!cape) return;
+    const pos = cape.geometry.attributes.position, base = cape.userData.base;
+    for (let i = 0; i < pos.count; i++) {
+      const y = base[i * 3 + 1], x = base[i * 3];
+      const down = -y / 1.25; // 0 at the shoulders, 1 at the hem
+      pos.array[i * 3 + 2] = base[i * 3 + 2] - down * down * (0.15 + Math.min(speed, 9) * 0.06) + Math.sin(t * 6 + x * 4 + down * 5) * 0.035 * down;
+    }
+    pos.needsUpdate = true;
+  }
   let reach = 0.9;
   if (clips.stethoscope && handBone) {
     const tmp = new THREE.AnimationMixer(model);
@@ -151,6 +250,30 @@ export async function loadDoctorModel() {
       return anim.playOnce('stethoscope', { timeScale });
     },
     hideStethoscope() { steth.visible = false; },
+    /** Doctor Shop cosmetics: hat id or null, cape on/off, stethoscope colour (hex) or 'rainbow'. */
+    setHat(id) {
+      hat?.removeFromParent();
+      hat = id ? makeHat(id) : null;
+      if (hat) {
+        const holder = new THREE.Group(); holder.add(hat);
+        place(headBone, hatMount, holder);
+        hat = holder;
+      }
+    },
+    setCape(on) {
+      cape?.parent?.removeFromParent();
+      cape = null;
+      if (on && capeMount) {
+        const holder = new THREE.Group();
+        cape = makeCape();
+        holder.add(cape);
+        place(backBone, capeMount, holder);
+      }
+    },
+    setStethoscope(color) {
+      rainbow = color === 'rainbow';
+      tubeMat.color.setHex(rainbow ? 0xff3c8e : color ?? 0x1f1f24);
+    },
     /** Resolves when the playing one-shot clip reaches `fraction` (in game time, so it stays in sync at any frame rate). */
     untilClip(fraction) { return new Promise((resolve) => waits.push({ fraction, resolve })); },
     /** How far in front of Doctor Guy the chest piece ends up (so he can stand at the right distance). */
@@ -159,6 +282,8 @@ export async function loadDoctorModel() {
       t += dt;
       anim.update(state, dt, speed);
       updateSteth();
+      if (rainbow) tubeMat.color.setHSL((t * 0.25) % 1, 0.85, 0.55);
+      waveCape(t, speed);
       for (let i = waits.length - 1; i >= 0; i--) if (anim.progress >= waits[i].fraction) { waits[i].resolve(); waits.splice(i, 1); }
       // gentle breathing when the idle is a single synthesised pose
       body.position.y = syntheticIdle && anim.current === anim.actions.idle ? Math.sin(t * 2.2) * 0.012 : 0;
