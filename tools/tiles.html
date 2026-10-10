@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+<style>body{margin:0;background:#333}</style></head><body>
+<script type="module">
+// Top-down look at Kenney tiles/buildings: ?names=a,b,c&scale=1 (+x → right, +z → down, red dot = +z side)
+import * as THREE from 'three';
+import { loadKits, kit, scatter } from '../src/kit.js';
+const q = new URLSearchParams(location.search);
+const names = (q.get('names') ?? 'road-straight,road-bend,road-intersection,road-crossroad,road-end,road-square').split(',');
+const side = q.get('side') === '1';
+await loadKits(['roads', 'commercial', 'suburban', 'nature', 'town', 'cars']);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x333333);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x666666, 2.5));
+const d = new THREE.DirectionalLight(0xffffff, 1.5); d.position.set(3, 10, 6); scene.add(d);
+const gap = Number(q.get('gap') ?? 1.6);
+names.forEach((n, i) => {
+  const o = q.get('mode') === 'kit' ? kit(n) : scatter(n, [{ x: 0, z: 0 }]); o.position.x = i * gap; scene.add(o);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshBasicMaterial({ color: 0xff0000 })); dot.position.set(i * gap, 0.1, 0.75); scene.add(dot);
+});
+const W = innerWidth, H = innerHeight, span = names.length * gap;
+let cam;
+if (side) { const back = q.get('back') === '1' ? -1 : 1; cam = new THREE.PerspectiveCamera(35, W / H, 0.1, 100); cam.position.set(span / 2 - gap / 2, 2.5, back * (span * 1.2 + 3)); cam.lookAt(span / 2 - gap / 2, 0.6, 0); }
+else { cam = new THREE.OrthographicCamera(-span / 2, span / 2, span / 2 * H / W, -span / 2 * H / W, 0.1, 100); cam.position.set(span / 2 - gap / 2, 20, 0); cam.up.set(0, 0, -1); cam.lookAt(span / 2 - gap / 2, 0, 0); }
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(W, H); document.body.appendChild(r.domElement);
+r.render(scene, cam);
+window.done = true;
+</script></body></html>

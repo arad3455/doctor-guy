@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { gltfLoader, toonify } from './skinned.js';
 import { part, toon } from './toon.js';
 import { getColliders, clampWalkable, inPond, WORLD } from './world.js';
+import { onPier } from './pier.js';
 import { rampAt } from './stunts.js';
 
 const GRAVITY = 22;
@@ -189,7 +190,7 @@ export class Ambulance {
       this.bumped = 0.35;
     }
     // no driving into the sea or the pond
-    if (this.pos.z > WORLD.shoreline - 1 || inPond(this.pos.x, this.pos.z)) {
+    if ((this.pos.z > WORLD.shoreline - 1 && !onPier(this.pos.x, this.pos.z)) || inPond(this.pos.x, this.pos.z)) {
       this.pos.copy(prev);
       this.speed *= -0.2;
     }
@@ -242,7 +243,7 @@ export class Ambulance {
       this.collide();
       this.onLand?.({ ramp: a.ramp, airtime: a.t, distance: Math.hypot(this.pos.x - a.from.x, this.pos.z - a.from.z) });
     }
-    if (this.pos.z > WORLD.shoreline - 1) this.pos.z = WORLD.shoreline - 1;
+    if (this.pos.z > WORLD.shoreline - 1 && !onPier(this.pos.x, this.pos.z)) this.pos.z = WORLD.shoreline - 1;
     this.syncTransform();
     this.updateLights(t);
   }

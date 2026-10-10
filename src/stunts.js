@@ -7,6 +7,8 @@ export const RAMPS = [
   { id: 'zoo-road', name: 'Zoo Road Leap', x: 98, z: -35.4, heading: Math.PI / 2, len: 7, width: 3.4, height: 1.9 },
   { id: 'beach', name: 'Beach Bounce', x: -34, z: 103, heading: Math.PI / 2, len: 7, width: 4, height: 2.1 },
   { id: 'park', name: 'Park Flyer', x: -40, z: -18, heading: 0, len: 7, width: 4, height: 2.0 },
+  { id: 'downtown', name: 'Downtown Drop', x: -128, z: -79, heading: -Math.PI / 2, len: 7, width: 3.6, height: 2.2 },
+  { id: 'maple', name: 'Maple Leap', x: 84.5, z: 42, heading: 0, len: 7, width: 3.6, height: 2.0 },
 ];
 
 /** Ramp under a point: { ramp, u (along, -len/2..len/2), h (surface height) } or null. */

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildWorld, cameraBlockers } from './world.js';
+import * as worldApi from './world.js';
 import { buildBeach } from './beach.js';
 import { Player, Input, FollowCamera } from './player.js';
 import { MissionSystem } from './missions.js';
@@ -10,6 +11,9 @@ import { Ambulance, PARKING } from './vehicle.js';
 import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
 import { DoorNurses } from './nurses.js';
 import { buildRoad, buildZoo, inZoo, ZOO } from './zoo.js';
+import { buildDowntown } from './downtown.js';
+import { buildSuburbs } from './suburbs.js';
+import { buildPier, FAIR } from './pier.js';
 import { loadKits } from './kit.js';
 import { BigMap } from './map.js';
 import { Career, achievementToast } from './career.js';
@@ -60,6 +64,9 @@ entryGate.group.position.set(0, 0, -46.75);
 park.add(entryGate.group);
 animated.push(entryGate);
 const beach = buildBeach(scene);
+let downtown = null; // Zone 4, west of the park
+let suburbs = null; // Zone 5, Maple Heights (south of Zoo Road)
+let pier = null; // Zone 6, Sunset Pier
 let road = null; // Zoo Road, built from Kenney's road kit once the kits have loaded
 let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
@@ -490,12 +497,18 @@ function frame() {
   const inside = isInside(player.pos);
   if (started) nurses?.update(dt, t, { inside });
   // (the park and beach also drop out when you're far east at the zoo, and vice versa)
-  park.visible = !inside && player.pos.z < 105 && player.pos.x < 150;
+  park.visible = !inside && player.pos.z < 105 && player.pos.x < 150 && player.pos.x > -115;
   ramps.visible = !inside;
   beach.group.visible = !inside && player.pos.z > 25 && player.pos.x < 110;
   beach.sea.visible = !inside;
   if (road) road.group.visible = !inside;
   if (zoo) zoo.group.visible = !inside && player.pos.x > 70;
+  if (downtown) downtown.group.visible = !inside && player.pos.x < 60 && !window.__hide?.downtown;
+  if (suburbs) suburbs.group.visible = !inside && player.pos.x > -10 && player.pos.z > -80 && !window.__hide?.suburbs;
+  if (pier) {
+    pier.group.visible = !inside && player.pos.x > -40 && player.pos.z > -20 && !window.__hide?.pier;
+    FAIR.beam.material.opacity = Math.max(0, dayNight.night - 0.2) * 0.3; // the lighthouse sweeps at night
+  }
   base.visible = !inside;
   ambulance.root.visible = !inside;
   if (hospital) hospital.group.visible = inside;
@@ -506,7 +519,7 @@ function frame() {
   if (missions) {
     const cam = camera.position;
     for (const a of missions.ambient) {
-      if (a.mode === 'swing') continue; // parented to the swing seats
+      if (a.mode === 'swing' || a.mode === 'ride') continue; // parented to swing seats and rides (their zone hides them)
       const p = a.kid.root.position;
       a.kid.root.visible = Math.hypot(p.x - cam.x, p.z - cam.z) < 85;
     }
@@ -552,8 +565,14 @@ await Promise.all([doctorReady, preloadKids(), ambulanceReady, loadKits()]);
 road = buildRoad(scene);
 hospital = await buildHospital(scene);
 zoo = await buildZoo(scene);
+downtown = buildDowntown(scene);
+animated.push(...downtown.animated);
+suburbs = buildSuburbs(scene);
+animated.push(...suburbs.animated);
+pier = buildPier(scene);
+animated.push(...pier.animated);
 animated.push(...zoo.animated);
-dayNight.addLampHalos();
+dayNight.addLampHalos([...downtown.bulbs.map((b) => ({ ...b, parent: downtown.group })), ...suburbs.bulbs.map((b) => ({ ...b, parent: suburbs.group })), ...pier.bulbs.map((b) => ({ ...b, parent: pier.group }))]);
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
 applyCosmetics(); // saved hats, paint, siren…
@@ -568,6 +587,10 @@ window.__game.frenzy = frenzy;
 window.__game.hospital = hospital;
 window.__game.nurses = nurses;
 window.__game.zoo = zoo;
+window.__game.downtown = downtown;
+window.__game.suburbs = suburbs;
+window.__game.pier = pier;
+window.__game.world = worldApi;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;
 window.__game.career = career;

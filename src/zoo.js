@@ -24,7 +24,8 @@ export const ZOO = {
 };
 export const inZoo = (p) => p.x > ZOO.min.x - 1;
 export const PARKING_LOT = { x: 124, z: -47.5 }; // zoo car park, north of Zoo Road
-const ROAD_YAW = Number(new URLSearchParams(location.search).get('roadYaw') ?? Math.PI / 2); // Kenney road tiles run along z
+export const JUNCTIONS = [84.5]; // Maple Lane meets Zoo Road here (see suburbs.js)
+const ROAD_YAW = Number(new URLSearchParams(location.search).get('roadYaw') ?? 0); // Kenney road tiles run along x (checked top-down)
 /** Things the map draws that live in this file (trees etc.). */
 export const MAP_DECOR = { trees: [], benches: [] };
 
@@ -48,10 +49,13 @@ export function buildRoad(scene) {
   const { z, x0, x1, width } = ZOO.road;
   const T = width; // one road tile = the road's width
   const tiles = [], crossings = [];
-  for (let x = x0 + T / 2; x < x1; x += T) (Math.abs(x) < T / 2 || Math.abs(x - 131) < T / 2 ? crossings : tiles).push({ x, y: 0.005, z, rot: ROAD_YAW, sx: T, sy: 1, sz: T });
+  for (let x = x0 + T / 2; x < x1; x += T) {
+    if (JUNCTIONS.some((j) => Math.abs(x - j) < T / 2)) continue; // side streets build their own T-junction tile
+    (Math.abs(x) < T / 2 || Math.abs(x - 131) < T / 2 ? crossings : tiles).push({ x, y: 0.005, z, rot: ROAD_YAW, sx: T, sy: 1, sz: T });
+  }
   group.add(scatter('road-straight', tiles, { cast: false }));
   group.add(scatter('road-crossing', crossings, { cast: false })); // zebra crossings: hospital path + zoo gate
-  group.add(scatter('road-end-round', [{ x: x0 - T / 2 + 0.01, y: 0.004, z, rot: ROAD_YAW + Math.PI, sx: T, sy: 1, sz: T }], { cast: false }));
+  // (no dead end at the west: Main Street carries on to Downtown, see downtown.js)
   // grass verges outside the park
   const verge = new THREE.Mesh(new THREE.PlaneGeometry(x1 - 57, 16), toon(0x74c64e));
   verge.rotation.x = -Math.PI / 2;
@@ -89,6 +93,7 @@ export function buildRoad(scene) {
     for (const side of [-1, 1]) {
       const off = width / 2 + 5.5 + rand() * 3;
       if (side < 0 && Math.abs((x - 64) % 16) < 2.5) continue; // leave the power poles clear
+      if (side > 0 && x > 74 && x < 96) continue; // the top of Maple Lane and its sign
       if (rand() < 0.7) roadside.push({ x: x + rand() * 2, z: z + side * off, rot: rand() * 6, scale: 3.4 + rand() * 1.2, kind: ['tree_oak', 'tree_default', 'tree_detailed', 'tree_fat'][Math.floor(rand() * 4)] });
       else bushes.push({ x: x + rand() * 3, z: z + side * (width / 2 + 3 + rand() * 2), rot: rand() * 6, scale: 4 + rand() * 2 });
     }

@@ -4,6 +4,9 @@ import { buildKid, animateRig, makeBubble, makeAlertIcon } from './characters.js
 import { WORLD, getColliders, zoneAt } from './world.js';
 import { perch } from './hospital.js';
 import { ZOO } from './zoo.js';
+import { DT_SPOTS, DOWNTOWN } from './downtown.js';
+import { MH, MH_SPOTS, MH_MAP } from './suburbs.js';
+import { FAIR, PIER_SPOTS } from './pier.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
 import { toon, part } from './toon.js';
@@ -210,7 +213,204 @@ export const MISSIONS = [
     treatment: { title: 'Allergy emergency', speed: 1.15, zone: 0.18, steps: [{ icon: '💉', label: 'EpiPen — press and hold', mode: 'hold' }, { icon: '🫁', label: 'Check his breathing' }] },
     deliver: 'hospital', reward: 9, bonusTime: 90,
   },
+
+  // ---------------- Zone 4: Downtown Wolfson (west along Main Street) ----------------
+  {
+    id: 'skate', zone: 'downtown', name: 'Omer', title: 'Skateboard Wipeout', look: 'capKid',
+    at: [DOWNTOWN.plaza.x0 + 12, DOWNTOWN.plaza.z1 - 9.5], pose: 'sit', bubble: 'Ow, my wrist!', range: 2.4,
+    blurb: 'Omer bailed on the quarter pipe in City Plaza. Wrap his wrist, then get him to the hospital — Main Street runs straight there!',
+    treatment: { title: 'Omer’s wrist', speed: 1.1, zone: 0.18, steps: [{ icon: '🧊', label: 'Ice pack' }, { icon: '🩹', label: 'Wrap the wrist' }, { icon: '⛑️', label: 'Helmet next time!' }] },
+    deliver: 'hospital', reward: 9, bonusTime: 100,
+  },
+  {
+    id: 'brainfreeze', zone: 'downtown', name: 'Libby', title: 'Brain Freeze!', look: 'ponytail',
+    at: [DT_SPOTS.icecream.x, DT_SPOTS.icecream.z + 2.6], pose: 'cry', bubble: 'My head!! 🍦', range: 2.4,
+    blurb: 'Libby ate her ice cream way too fast at the ice-cream truck.',
+    treatment: { title: 'Beat the brain freeze', speed: 0.95, zone: 0.22, steps: [{ icon: '👅', label: 'Tongue on the roof of the mouth — hold', mode: 'hold' }, { icon: '☕', label: 'Sip of warm water' }, { icon: '🐢', label: 'Slow licks from now on!' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'hoops', zone: 'downtown', name: 'Daniel', title: 'Jammed Finger', look: 'glassesKid',
+    at: [DT_SPOTS.hoopEast.x - 1.5, DT_SPOTS.hoopEast.z - 5], pose: 'cry', bubble: 'My finger!', range: 2.4,
+    blurb: 'Daniel caught a pass with his fingertip on the Wolfson Hoops court.',
+    treatment: { title: 'Fix Daniel’s finger', speed: 1.05, zone: 0.2, steps: [{ icon: '🧊', label: 'Ice it' }, { icon: '🩹', label: 'Buddy-tape it to the next finger' }, { icon: '🏀', label: 'Sit out one game' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'asthma', zone: 'downtown', name: 'Rotem', title: 'Asthma Attack', look: 'redShirt',
+    at: [DOWNTOWN.plaza.x1 - 1.2, DT_SPOTS.busStop.z + 1], pose: 'sit', bubble: 'Can’t… breathe…', range: 2.4,
+    blurb: 'Rotem is wheezing at the bus stop on the plaza. Help with the inhaler, then drive him to the hospital.',
+    treatment: { title: 'Asthma first aid', speed: 1.15, zone: 0.18, steps: [{ icon: '🪑', label: 'Sit up straight' }, { icon: '💨', label: 'Inhaler — press and hold', mode: 'hold' }, { icon: '🫁', label: 'Slow, deep breaths' }] },
+    deliver: 'hospital', reward: 9, bonusTime: 100,
+  },
+  {
+    id: 'pigeons', zone: 'downtown', name: 'Shai', title: 'Pigeon Panic', look: 'pinkHat',
+    at: [DT_SPOTS.pigeons.x - 2.5, DT_SPOTS.pigeons.z + 3], pose: 'cry', bubble: 'I tripped!', range: 2.4,
+    blurb: 'Shai chased the pigeons around the fountain and scraped her elbow.',
+    treatment: { title: 'Patch up Shai', speed: 0.95, zone: 0.22, steps: [{ icon: '🧼', label: 'Clean the scrape' }, { icon: '🩹', label: 'Pigeon bandage!' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'cocoa', zone: 'downtown', name: 'Michal', title: 'Hot Cocoa Spill', look: 'bandageBoy',
+    at: [DT_SPOTS.cafe.x + 8, DOWNTOWN.shops.z1 - 1.2], pose: 'cry', bubble: 'Hot hot hot!', range: 2.4,
+    blurb: 'Michal knocked a hot cocoa onto his hand at the café on Market Row.',
+    treatment: { title: 'Cool the burn', speed: 1.0, zone: 0.2, steps: [{ icon: '🚰', label: 'Cool running water — hold', mode: 'hold' }, { icon: '🩹', label: 'Loose, clean dressing' }, { icon: '🍪', label: 'A cookie for being brave' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+
+  // ---------------- Zone 5: Maple Heights (south of Zoo Road) — spots come from the generated layout ----------------
+  {
+    id: 'tramp', zone: 'suburbs', name: 'Yali', title: 'Trampoline Tumble', look: 'ponytail',
+    get at() { const [x, z] = MH_MAP.tramps[0] ?? [100, 20]; return [x + 2.9, z]; }, pose: 'sit', bubble: 'My ankle!', range: 2.4,
+    blurb: 'Yali bounced right off the trampoline in her back garden. Wrap her ankle, then drive her to the hospital — Zoo Road is right there.',
+    treatment: { title: 'Yali’s ankle', speed: 1.1, zone: 0.18, steps: [{ icon: '🧊', label: 'Ice pack' }, { icon: '🦶', label: 'Wrap the ankle' }, { icon: '🛋️', label: 'Foot up on a cushion' }] },
+    deliver: 'hospital', reward: 8, bonusTime: 90,
+  },
+  {
+    id: 'treehouse', zone: 'suburbs', name: 'Nimrod', title: 'Stuck in the Treehouse', look: 'capKid',
+    get at() { const t = MH_SPOTS.treehouse; return [t.x, t.z]; }, get y() { return MH_SPOTS.treehouse.y; }, pose: 'cry', bubble: 'I can’t get down!', range: 3.4,
+    blurb: 'Nimrod’s rope ladder came loose. Stand under the treehouse and catch him!',
+    treatment: { title: 'Catch Nimrod!', speed: 1.45, zone: 0.15, steps: [{ icon: '🫶', label: '"Jump, I got you!"' }, { icon: '🙌', label: 'Catch!' }] },
+    deliver: null, reward: 5, bonusTime: 50, special: 'catch',
+  },
+  {
+    id: 'lemonade', zone: 'suburbs', name: 'Hadar', title: 'Wasp at the Lemonade Stand', look: 'pinkHat',
+    get at() { const l = MH_SPOTS.lemonade; return [l.x, l.z]; }, pose: 'cry', bubble: 'It stung me!', range: 2.4, prop: 'wasp',
+    blurb: 'A wasp wanted Hadar’s lemonade and stung her finger.',
+    treatment: { title: 'Wasp sting first aid', speed: 1.05, zone: 0.2, steps: [{ icon: '🐝', label: 'Shoo the wasp away' }, { icon: '🧊', label: 'Cold pack on the sting' }, { icon: '🍋', label: 'Free lemonade for the doctor!' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'bike', zone: 'suburbs', name: 'Ziv', title: 'Bike Crash', look: 'redShirt',
+    at: [MH.mapleX + 14, MH.birchZ - 3.5 - 0.9], pose: 'sit', bubble: 'I fell off!', range: 2.4, prop: 'bike',
+    blurb: 'Ziv hit the kerb on Birch Street and went flying off his bike.',
+    treatment: { title: 'Patch up Ziv', speed: 1.0, zone: 0.2, steps: [{ icon: '🧼', label: 'Clean the knee' }, { icon: '🩹', label: 'Big bandage' }, { icon: '⛑️', label: 'Helmet check — still good!' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'tooth', zone: 'suburbs', name: 'Ella', title: 'Wobbly Tooth!', look: 'gownKid',
+    get at() { const h = MH_SPOTS.hopscotch; return [h.x + 1.6, h.z + 2.5]; }, pose: 'cry', bubble: 'My tooth fell out!', range: 2.4,
+    blurb: 'Ella’s wobbly tooth came out during hopscotch at Maple Heights Elementary.',
+    treatment: { title: 'Lost tooth care', speed: 0.9, zone: 0.24, steps: [{ icon: '🦷', label: 'Save the tooth!' }, { icon: '🧻', label: 'Clean cloth to bite on' }, { icon: '🧚', label: 'Tooth fairy envelope' }] },
+    deliver: null, reward: 3, bonusTime: 40,
+  },
+  {
+    id: 'dome', zone: 'suburbs', name: 'Uri', title: 'Bonk on the Dome', look: 'glassesKid',
+    get at() { const d = MH_SPOTS.dome; return [d.x - 3.2, d.z + 1]; }, pose: 'sit', bubble: 'I bumped my head', range: 2.4,
+    blurb: 'Uri bumped his head on the climbing dome in the schoolyard.',
+    treatment: { title: 'Head bump check', speed: 1.0, zone: 0.2, steps: [{ icon: '🧊', label: 'Cold pack' }, { icon: '👆', label: 'Follow my finger' }, { icon: '🍭', label: 'Brave lollipop' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+
+  // ---------------- Zone 6: Sunset Pier (the funfair at the bottom of Maple Lane) ----------------
+  {
+    id: 'dizzy', zone: 'pier', name: 'Avigail', title: 'Carousel Dizzy', look: 'pinkHat',
+    at: [FAIR.carousel.x - 7.4, FAIR.carousel.z], pose: 'sit', bubble: 'The world is spinning…', range: 2.4, tint: 0xd8f5c8,
+    blurb: 'Avigail rode the carousel ten times in a row and now everything is spinning.',
+    treatment: { title: 'Stop the spinning', speed: 0.95, zone: 0.22, steps: [{ icon: '🪑', label: 'Sit still' }, { icon: '👀', label: 'Look at one spot — hold', mode: 'hold' }, { icon: '💧', label: 'Small sips of water' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'cottoncandy', zone: 'pier', name: 'Itai', title: 'Too Much Cotton Candy', look: 'bandageBoy',
+    at: [FAIR.stalls[0]?.x + 2.5 || 106.5, FAIR.z0 + 6.6], pose: 'cry', bubble: 'My tummy…', range: 2.4,
+    blurb: 'Itai ate three cotton candies and a hot dog. His tummy is NOT happy.',
+    treatment: { title: 'Tummy trouble', speed: 1.0, zone: 0.2, steps: [{ icon: '🤲', label: 'Gentle tummy rub' }, { icon: '🫖', label: 'Peppermint tea' }, { icon: '🍎', label: 'Fruit next time!' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'hook', zone: 'pier', name: 'Gaya', title: 'Hooked Thumb', look: 'capKid',
+    get at() { return [PIER_SPOTS.fishing.x, PIER_SPOTS.fishing.z]; }, pose: 'cry', bubble: 'The hook got me!', range: 2.4,
+    blurb: 'Gaya caught her own thumb instead of a fish at the end of the pier. Free the hook, then take her to the lifeguard first-aid station.',
+    treatment: { title: 'Free the fish hook', speed: 1.15, zone: 0.18, steps: [{ icon: '✂️', label: 'Snip the line' }, { icon: '🪝', label: 'Ease the hook out — hold', mode: 'hold' }, { icon: '🩹', label: 'Clean and bandage' }] },
+    deliver: 'tower', reward: 8, bonusTime: 90,
+  },
+  {
+    id: 'ferris', zone: 'pier', name: 'Matan', title: 'Scared of Heights', look: 'glassesKid',
+    get at() { return [FAIR.wheel.board.x, FAIR.wheel.board.z]; }, pose: 'cry', bubble: 'It’s too high!', range: 2.4,
+    blurb: 'Matan got off the Ferris wheel shaking. Help him feel brave again.',
+    treatment: { title: 'Brave breathing', speed: 0.9, zone: 0.24, steps: [{ icon: '🫁', label: 'Breathe in… hold… out', mode: 'hold' }, { icon: '🤝', label: 'Hold his hand' }, { icon: '🌅', label: 'Look at the sunset together' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'bumper', zone: 'pier', name: 'Roni', title: 'Bumper Car Bonk', look: 'redShirt',
+    at: [FAIR.rink.x0 - 1.4, FAIR.rink.z0 + 4.5], pose: 'sit', bubble: 'Bonked my nose!', range: 2.4,
+    blurb: 'Roni got bumped a bit too hard on the bumper cars — his nose is bleeding.',
+    treatment: { title: 'Nosebleed first aid', speed: 1.05, zone: 0.2, steps: [{ icon: '🙇', label: 'Lean forward' }, { icon: '🤏', label: 'Pinch the soft part — hold', mode: 'hold' }, { icon: '🧊', label: 'Cold pack' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'seagull', zone: 'pier', name: 'Liat', title: 'Seagull Snatch!', look: 'ponytail',
+    at: [FAIR.pier.x1 - 1.6, FAIR.pier.z0 + 5], pose: 'cry', bubble: 'It took my hot dog!', range: 2.4,
+    blurb: 'A seagull swooped down and stole Liat’s hot dog — she tripped chasing it onto the pier.',
+    treatment: { title: 'Patch up Liat', speed: 1.0, zone: 0.2, steps: [{ icon: '🧼', label: 'Clean her palms' }, { icon: '🩹', label: 'Two little bandages' }, { icon: '🌭', label: 'A new hot dog (eat it fast!)' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
 ];
+
+/** A kid's bicycle (lying on its side, or upright to ride). */
+function makeBike(upright = false) {
+  const g = new THREE.Group();
+  const frameCol = 0xe0453a;
+  for (const z of [-0.55, 0.55]) {
+    const wheel = part(new THREE.TorusGeometry(0.32, 0.05, 6, 18), 0x1b1b1b, { outline: 0 });
+    wheel.position.set(0, 0.32, z);
+    wheel.rotation.y = Math.PI / 2;
+    g.add(wheel);
+  }
+  const bar = part(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 6), frameCol, { outline: 0.01 });
+  bar.rotation.x = Math.PI / 2;
+  bar.position.y = 0.55;
+  g.add(bar);
+  const seatPost = part(new THREE.CylinderGeometry(0.035, 0.035, 0.45, 6), frameCol, { outline: 0 });
+  seatPost.position.set(0, 0.6, -0.3);
+  g.add(seatPost);
+  const seat = part(new THREE.BoxGeometry(0.16, 0.06, 0.3), 0x2b2f38, { outline: 0 });
+  seat.position.set(0, 0.84, -0.3);
+  g.add(seat);
+  const fork = part(new THREE.CylinderGeometry(0.035, 0.035, 0.6, 6), frameCol, { outline: 0 });
+  fork.position.set(0, 0.62, 0.5);
+  g.add(fork);
+  const handle = part(new THREE.CylinderGeometry(0.03, 0.03, 0.6, 6), 0x2b2f38, { outline: 0 });
+  handle.rotation.z = Math.PI / 2;
+  handle.position.set(0, 0.92, 0.5);
+  g.add(handle);
+  if (upright) { g.position.set(0, -0.35, 0.05); g.scale.setScalar(1.15); }
+  else g.rotation.z = Math.PI / 2 - 0.15;
+  return g;
+}
+
+/** A cartoon wasp (yellow/black stripes, buzzing wings). */
+function makeWasp() {
+  const g = new THREE.Group();
+  const body = part(new THREE.SphereGeometry(0.12, 10, 8), 0xffd23f, { outline: 0.008 });
+  body.scale.set(1, 1, 1.6);
+  g.add(body);
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.118, 0.025, 4, 16), toon(0x1b1b1b));
+  stripe.position.z = -0.04;
+  g.add(stripe);
+  const head = part(new THREE.SphereGeometry(0.07, 8, 6), 0x1b1b1b, { outline: 0 });
+  head.position.z = 0.2;
+  g.add(head);
+  const wings = [];
+  for (const sx of [-1, 1]) {
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.12), new THREE.MeshBasicMaterial({ color: 0xddf3ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+    w.position.set(sx * 0.12, 0.09, 0);
+    w.rotation.z = sx * 0.4;
+    g.add(w);
+    wings.push(w);
+  }
+  g.userData.wings = wings;
+  g.scale.setScalar(1.6);
+  return g;
+}
+
+function makeBasketball() {
+  const b = part(new THREE.SphereGeometry(0.18, 14, 10), 0xe0703a, { outline: 0.015 });
+  const seam = new THREE.Mesh(new THREE.TorusGeometry(0.182, 0.008, 4, 24), new THREE.MeshBasicMaterial({ color: 0x2b1a0e }));
+  b.add(seam);
+  const seam2 = seam.clone(); seam2.rotation.y = Math.PI / 2; b.add(seam2);
+  return b;
+}
 
 const BEACON_MAT = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 0.22, depthWrite: false });
 const BEACON_GREEN = new THREE.MeshBasicMaterial({ color: 0x4cc35a, transparent: true, opacity: 0.25, depthWrite: false });
@@ -313,6 +513,82 @@ export class MissionSystem {
       this.ambient.push({ kid, mode: 'stroll', a: i * 1.5, r: ZOO.ring + (i % 2 ? 0.8 : -0.8), speed: (i % 2 ? 1 : -1) * 0.045, cx: ZOO.center.x, cz: ZOO.center.z });
     });
 
+    // ---- Downtown: skaters looping the plaza, a hoops game, a kid at the bus stop
+    const P = DOWNTOWN.plaza;
+    ['capKid', 'glassesKid'].forEach((look, i) => {
+      const kid = buildKid(look);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'stroll', a: i * 3, r: 11.5 - i * 0.7, speed: (i ? -1 : 1) * 0.09, cx: P.cx, cz: P.cz });
+    });
+    ['redShirt', 'ponytail'].forEach((look, i) => {
+      const kid = buildKid(look);
+      this.group.add(kid.root);
+      const ball = i === 0 ? makeBasketball() : null;
+      if (ball) this.group.add(ball);
+      this.ambient.push({ kid, mode: 'patrol', from: [DT_SPOTS.hoopEast.x - 16, DT_SPOTS.hoopEast.z - 3 + i * 5], to: [DT_SPOTS.hoopEast.x - 4, DT_SPOTS.hoopEast.z - 2 + i * 4], speed: 2.6 + i * 0.4, phase: i * 1.7, ball });
+    });
+    const commuter = buildKid('gownKid');
+    commuter.root.position.set(DT_SPOTS.busStop.x + 1.2, 0, DT_SPOTS.busStop.z - 1.6);
+    commuter.root.rotation.y = Math.PI / 2;
+    this.group.add(commuter.root);
+    this.ambient.push({ kid: commuter, mode: 'wave' });
+
+    // ---- Maple Heights: a kid bouncing on a trampoline, one riding a bike down Oak Street, tag in the schoolyard
+    const tramp = MH_MAP.tramps[1] ?? MH_MAP.tramps[0];
+    if (tramp) {
+      const kid = buildKid('capKid');
+      kid.root.position.set(tramp[0], 0.85, tramp[1]);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'bounce', x: tramp[0], z: tramp[1] });
+    }
+    const rider = buildKid('glassesKid');
+    this.group.add(rider.root);
+    const bike = makeBike(true);
+    rider.root.add(bike);
+    this.ambient.push({ kid: rider, mode: 'patrol', from: [MH.westX + 2, MH.oakZ + 1.6], to: [MH.loopX - 2, MH.oakZ + 1.6], speed: 4.2, phase: 0.3, ride: true });
+    if (MH_SPOTS.schoolyard) ['pinkHat', 'redShirt', 'ponytail'].forEach((look, i) => {
+      const kid = buildKid(look);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'stroll', a: i * 2.1, r: 3.4, speed: 0.55, cx: MH_SPOTS.schoolyard.x + 9, cz: MH_SPOTS.schoolyard.z + 3 });
+    });
+
+    // ---- Sunset Pier: kids on the carousel and the Ferris wheel, a balloon seller, visitors, a kid fishing
+    if (FAIR.carousel.horses) [0, 3].forEach((h, i) => {
+      const kid = buildKid(i ? 'pinkHat' : 'capKid');
+      kid.root.position.set(0, 0.05, -0.05);
+      kid.root.scale.setScalar(0.8);
+      FAIR.carousel.horses[h].add(kid.root);
+      this.ambient.push({ kid, mode: 'ride' });
+    });
+    if (FAIR.wheel.gondolas) [2, 7].forEach((gi, i) => {
+      const kid = buildKid(i ? 'redShirt' : 'ponytail');
+      kid.root.position.set(0, -2.15, 0);
+      kid.root.scale.setScalar(0.8);
+      FAIR.wheel.gondolas[gi].add(kid.root);
+      this.ambient.push({ kid, mode: 'ride', wave: true });
+    });
+    if (PIER_SPOTS.balloons) {
+      const seller = buildKid('mom');
+      seller.root.position.set(PIER_SPOTS.balloons.x + 1.1, 0, PIER_SPOTS.balloons.z + 0.9);
+      seller.root.rotation.y = 0.6;
+      this.group.add(seller.root);
+      this.ambient.push({ kid: seller, mode: 'wave' });
+    }
+    ['gownKid', 'glassesKid', 'bandageBoy'].forEach((look, i) => {
+      const kid = buildKid(look);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'stroll', a: i * 2.1, r: 7.5, speed: 0.08 * (i % 2 ? -1 : 1), cx: 122, cz: 88 });
+    });
+    const fisher = buildKid('redShirt');
+    fisher.root.position.set(FAIR.pier.x1 - 1.3, 0.1, FAIR.pier.z1 - 32);
+    fisher.root.rotation.y = Math.PI / 2;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 2.6, 5), toon(0x7a4a26));
+    rod.position.set(0.25, 1.4, 1.0);
+    rod.rotation.x = 0.9;
+    fisher.root.add(rod);
+    this.group.add(fisher.root);
+    this.ambient.push({ kid: fisher, mode: 'wave' });
+
     const builder = buildKid('gownKid');
     builder.root.position.set(BEACH.castles.x - 2.4, 0, BEACH.castles.z - 1.2);
     builder.root.rotation.y = 1.2;
@@ -351,7 +627,13 @@ export class MissionSystem {
       n++;
     }
     // a trail down the boardwalk and some on the sand
-    const spots = [[0, 64], [0, 72], [-20, 88], [10, 100], [30, 96], [-40, 106], [44, 112], [-10, 112], [52, 88], [-48, 96]];
+    const spots = [[0, 64], [0, 72], [-20, 88], [10, 100], [30, 96], [-40, 106], [44, 112], [-10, 112], [52, 88], [-48, 96],
+      // Main Street and Downtown (grab them on foot or in the ambulance)
+      [-36, -37], [-52, -37], [-84, -37], [-97, -37], [-111.5, -55], [-111.5, -70], [-139, -79], [-160, -79], [-153.5, -10],
+      [-132.5, -28.5], [-124, -8], [-176, 5], [-90, 5], [-69.5, 25], [-111.5, 30], [-153.5, -55], [-90, -79],
+      // Maple Heights and Sunset Pier
+      [84.5, -20], [84.5, 10], [84.5, 25], [100, -2], [112, 33], [70, 33], [119.5, 15], [72, -2],
+      [100, 72], [124, 84], [146, 90], [140, 104], [123, 130], [123, 148], [123, 164], [94, 98]];
     spots.forEach(([x, z], i) => {
       const g = new THREE.Group();
       const candy = part(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 20), colors[i % colors.length], { outline: 0.03 });
@@ -411,6 +693,20 @@ export class MissionSystem {
       kid.root.add(ring);
       return ring;
     }
+    if (kind === 'bike') {
+      const bike = makeBike();
+      const kp = kid.root.position;
+      bike.position.set(kp.x + 1.3, 0, kp.z + 0.3);
+      bike.rotation.y = 0.4;
+      this.group.add(bike);
+      return bike;
+    }
+    if (kind === 'wasp') {
+      const wasp = makeWasp();
+      wasp.userData.home = kid.root.position.clone();
+      this.group.add(wasp);
+      return wasp;
+    }
     const prop = kind === 'crab' ? makeCrab() : kind === 'jelly' ? makeJellyfish() : makeSunscreen();
     const kp = kid.root.position;
     if (kind === 'crab') prop.position.set(kp.x + 0.35, 0, kp.z + 0.45);
@@ -434,6 +730,9 @@ export class MissionSystem {
       this.ui.toast({
         beach: '🏖️ Zone 2 — The Beach<br><small>Kids are splashing around… keep an eye on them!</small>',
         zoo: '🦁 Zone 3 — Wolfson City Zoo<br><small>Lions, elephants, giraffes, penguins… and cheeky monkeys!</small>',
+        downtown: '🏙️ Zone 4 — Downtown Wolfson<br><small>Skaters, hoops and ice cream in the big city!</small>',
+        suburbs: '🏡 Zone 5 — Maple Heights<br><small>Trampolines, treehouses and the school — what could go wrong?</small>',
+        pier: '🎡 Zone 6 — Sunset Pier<br><small>Rides, cotton candy and a pier out over the sea!</small>',
         hospital: '🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>',
       }[zone] ?? '🌳 The Park', 3000);
       this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
@@ -473,6 +772,26 @@ export class MissionSystem {
         a.kid.root.position.set(x, 0, z);
         a.kid.root.rotation.y = Math.atan2(-Math.sin(a.a) * a.speed, Math.cos(a.a) * a.speed);
         animateRig(a.kid, 'walk', t + a.r, dt);
+      } else if (a.mode === 'ride') {
+        animateRig(a.kid, a.wave && Math.sin(t * 0.8) > 0.4 ? 'wave' : 'sit', t, dt);
+      } else if (a.mode === 'bounce') {
+        const k = Math.abs(Math.sin(t * 3.2));
+        a.kid.root.position.set(a.x, 0.85 + k * 1.7, a.z);
+        a.kid.root.rotation.y = t * 0.6;
+        animateRig(a.kid, k > 0.3 ? 'cheer' : 'idle', t, dt);
+      } else if (a.mode === 'patrol') {
+        // back and forth between two points (with an optional dribbled ball)
+        const len = Math.hypot(a.to[0] - a.from[0], a.to[1] - a.from[1]);
+        const u = ((t * a.speed) / len + a.phase) % 2, k = u < 1 ? u : 2 - u, dir = u < 1 ? 1 : -1;
+        const x = a.from[0] + (a.to[0] - a.from[0]) * k, z = a.from[1] + (a.to[1] - a.from[1]) * k;
+        a.kid.root.position.set(x, 0, z);
+        a.kid.root.rotation.y = Math.atan2((a.to[0] - a.from[0]) * dir, (a.to[1] - a.from[1]) * dir);
+        animateRig(a.kid, a.ride ? 'sit' : 'run', t, dt, a.speed);
+        if (a.ride) a.kid.root.position.y = 0.35;
+        if (a.ball) {
+          const f = a.kid.root.rotation.y;
+          a.ball.position.set(x + Math.sin(f) * 0.6 + Math.cos(f) * 0.35, 0.18 + Math.abs(Math.sin(t * 7)) * 0.8, z + Math.cos(f) * 0.6 - Math.sin(f) * 0.35);
+        }
       } else if (a.mode === 'float') {
         a.kid.root.position.set(a.x + Math.sin(t * 0.3 + a.phase) * 1.5, -0.5 + Math.sin(t * 2 + a.phase) * 0.08, a.z + Math.sin(t * 0.5 + a.phase) * 0.6);
         a.kid.root.rotation.y = Math.PI + Math.sin(t * 0.4 + a.phase) * 0.6;
@@ -527,6 +846,13 @@ export class MissionSystem {
         }
         if (m.def.prop === 'jelly' && m.prop) m.prop.position.y = 0.05 + Math.sin(t * 2) * 0.05;
         if (m.def.prop === 'crab' && m.prop) m.prop.userData.legs.forEach((l, j) => { l.rotation.z = Math.sin(t * 18 + j) * 0.3; });
+        if (m.def.prop === 'wasp' && m.prop) {
+          // the wasp buzzes in loops around the lemonade
+          const h = m.prop.userData.home;
+          m.prop.position.set(h.x + Math.cos(t * 3.1) * 1.1, 1.6 + Math.sin(t * 7) * 0.25, h.z + Math.sin(t * 2.3) * 1.1);
+          m.prop.rotation.y = t * 3.1;
+          m.prop.userData.wings.forEach((w, j) => { w.rotation.x = Math.sin(t * 60 + j) * 0.6; });
+        }
         // face the player (patients on beds/chairs/scales keep still; the monkey keeps running)
         const target = Math.atan2(p.x - kp.x, p.z - kp.z);
         if (!m.def.spot && !m.def.chase) m.kid.root.rotation.y += (Math.atan2(Math.sin(target - m.kid.root.rotation.y), Math.cos(target - m.kid.root.rotation.y))) * Math.min(1, dt * 3);
@@ -609,7 +935,7 @@ export class MissionSystem {
     const w = new THREE.Vector3();
     let best = null, bestD = 2.6;
     for (const a of this.ambient) {
-      if (!a.kid.root.visible || a.checking) continue;
+      if (!a.kid.root.visible || a.checking || a.mode === 'ride') continue; // (no check-ups on a moving ride)
       a.kid.root.getWorldPosition(w);
       const d = Math.hypot(w.x - p.x, w.z - p.z);
       if (d < bestD && Math.abs(w.y - p.y) < 2.5) { best = a; bestD = d; }

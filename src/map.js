@@ -6,6 +6,9 @@ import { ZOO, MAP_DECOR } from './zoo.js';
 import { INTERIOR } from './hospital.js';
 import { RAMPS } from './stunts.js';
 import { FRENZY_TOKEN } from './frenzy.js';
+import { DOWNTOWN, DT_MAP } from './downtown.js';
+import { MH, MH_MAP } from './suburbs.js';
+import { FAIR } from './pier.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -15,6 +18,9 @@ const ZONE_BLIPS = [
   { x: 0, z: 96, icon: '🏖️', name: 'Sunny Beach' },
   { x: ZOO.gate.x, z: ZOO.gate.z, icon: '🦁', name: 'Wolfson City Zoo' },
   { x: 0, z: 0, icon: '🌳', name: 'Wolfson Park' },
+  { x: DOWNTOWN.plaza.cx, z: DOWNTOWN.plaza.cz, icon: '🏙️', name: 'Downtown Wolfson' },
+  { x: MH.mapleX, z: MH.oakZ, icon: '🏡', name: 'Maple Heights' },
+  { x: FAIR.gate.x + 4, z: FAIR.gate.z, icon: '🎡', name: 'Sunset Pier' },
 ];
 export const ZONE_LABELS = [
   { x: 0, z: 12, text: 'WOLFSON PARK' },
@@ -22,14 +28,25 @@ export const ZONE_LABELS = [
   { x: 0, z: 100, text: 'SUNNY BEACH' },
   { x: 97, z: -46, text: 'ZOO ROAD' },
   { x: ZOO.center.x, z: ZOO.max.z + 7, text: 'WOLFSON CITY ZOO' },
+  { x: DOWNTOWN.plaza.cx, z: DOWNTOWN.min.z - 6, text: 'DOWNTOWN' },
+  { x: -86, z: -37, text: 'MAIN ST' },
+  { x: 104, z: 16, text: 'MAPLE HEIGHTS' },
+  { x: 121, z: 60.5, text: 'SUNSET PIER' },
 ];
 const isInterior = (z) => z < -300;
+/** A wall tint → a slightly darker roof colour for the map. */
+function roofColor(hex) {
+  const k = 0.78, r = Math.round(((hex >> 16) & 255) * k), g = Math.round(((hex >> 8) & 255) * k), b = Math.round((hex & 255) * k);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
 
 /**
  * Paints the outdoor world in an illustrated map style. P(x, z) → [cx, cy] maps world to canvas (it may
  * rotate), s = pixels per world unit. Everything goes through P so the rotating radar and the big map share it.
  */
-export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => fn(x, y), time = 0 } = {}) {
+export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => fn(x, y), time = 0, focus = null } = {}) {
+  // the radar only needs what's near the player (it repaints every frame)
+  const near = focus ? (x, z, pad = 4) => Math.abs(x - focus.x) < focus.r + pad && Math.abs(z - focus.z) < focus.r + pad : () => true;
   const path = (pts) => { ctx.beginPath(); pts.forEach(([x, z], i) => { const [a, b] = P(x, z); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.closePath(); };
   const poly = (pts, fill, stroke, lw = 1) => { path(pts); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } };
   const rect = (x0, z0, x1, z1, fill, stroke, lw) => poly([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], fill, stroke, lw);
@@ -63,8 +80,9 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   rect(-400, WORLD.shoreline, 400, WORLD.wadeLimit + 4, '#56c2f0');
   if (detail) for (let i = 0; i < 4; i++) { const z = WORLD.shoreline + 4 + i * 7; line(-120, z, 120, z, 'rgba(255,255,255,0.35)', Math.max(1, 0.4 * s), [6 * s, 9 * s]); }
   rect(-85, 66, 85, WORLD.shoreline, '#f3d68f');
-  rect(-85, WORLD.shoreline - 4, 85, WORLD.shoreline, '#e2bd73');
-  line(-85, WORLD.shoreline + 0.4, 85, WORLD.shoreline + 0.4, '#ffffff', Math.max(1.5, 0.8 * s));
+  rect(85, 62, 154, WORLD.shoreline, '#f3d68f');
+  rect(-85, WORLD.shoreline - 4, 154, WORLD.shoreline, '#e2bd73');
+  line(-85, WORLD.shoreline + 0.4, 154, WORLD.shoreline + 0.4, '#ffffff', Math.max(1.5, 0.8 * s));
   rect(-2.2, 55, 2.2, 84, '#a8743f', '#7a4a26', 1);
   if (detail) for (let z = 56; z < 84; z += 1.2) line(-2.2, z, 2.2, z, 'rgba(90,55,25,0.45)', 0.6);
   rect(BEACH.tower.x - 1.5, BEACH.tower.z - 1.5, BEACH.tower.x + 1.5, BEACH.tower.z + 1.5, '#ffffff', '#e0323a', 2);
@@ -101,6 +119,80 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   rect(115, -53, 133, -42, '#5a6068', '#c9ced4', 1.5);
   if (detail) for (let i = 0; i <= 6; i++) line(115 + i * 3, -50.5, 115 + i * 3, -45.5, '#ffffff', 0.8);
   ['#e0323a', '#ffd23f', null, '#2f7fc1', '#ffffff', '#4cc35a'].forEach((c, i) => { if (c) rect(116.6 + i * 3, -50, 118.4 + i * 3, -46, c, '#1b1b1b', 0.8); });
+
+  // ---- Downtown: pavements, streets, buildings (roofs tinted like their walls), City Plaza and the court
+  rect(DOWNTOWN.min.x, DOWNTOWN.min.z, DOWNTOWN.max.x, DOWNTOWN.max.z, '#b9c0c9');
+  for (const t of DT_MAP.streets) if (near(t.x, t.z)) rect(t.x - 3.55, t.z - 3.55, t.x + 3.55, t.z + 3.55, '#4a5058');
+  if (detail) {
+    const dash = [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)], lw = Math.max(1, 0.25 * s);
+    for (const t of DT_MAP.streets) {
+      if (!near(t.x, t.z)) continue;
+      const [e, so, w, n] = t.open;
+      if (e && w && !so && !n) line(t.x - 3.5, t.z, t.x + 3.5, t.z, '#ffd23f', lw, dash);
+      else if (so && n && !e && !w) line(t.x, t.z - 3.5, t.x, t.z + 3.5, '#ffd23f', lw, dash);
+      else if (e + so + w + n >= 3) for (let k = -2; k <= 2; k++) { rect(t.x + k * 1.2 - 0.3, t.z - 3.4, t.x + k * 1.2 + 0.3, t.z - 2.6, '#ffffff'); rect(t.x + k * 1.2 - 0.3, t.z + 2.6, t.x + k * 1.2 + 0.3, t.z + 3.4, '#ffffff'); }
+    }
+  }
+  for (const b of DT_MAP.blocks) {
+    rect(b.x0, b.z0, b.x1, b.z1, b.kind === 'plaza' ? '#ead6b0' : b.kind === 'court' ? '#7fbf6a' : '#dcd8d0', '#aab2bd', 1);
+    if (b.kind === 'plaza') {
+      circle(b.cx, b.cz, 15, null, '#c98f5a', Math.max(1, 1.2 * s));
+      circle(b.cx, b.cz, 5.5, '#c9d3dd', '#8f98a2', 1);
+      circle(b.cx, b.cz, 4.6, '#5cc8f2');
+      rect(b.x0 + 1, b.z1 - 12, b.x0 + 15, b.z1 - 0.5, '#9aa3ad', '#7a828c', 0.8);
+    }
+    if (b.kind === 'court') {
+      rect(b.cx - 14, b.cz - 7.5, b.cx + 14, b.cz + 7.5, '#e0703a', '#ffffff', Math.max(1, 0.3 * s));
+      line(b.cx, b.cz - 7.5, b.cx, b.cz + 7.5, '#ffffff', Math.max(1, 0.3 * s));
+      circle(b.cx, b.cz, 2.2, null, '#ffffff', Math.max(1, 0.3 * s));
+    }
+  }
+  if (detail) shadow((c) => { for (const b of DT_MAP.buildings) if (near(b.x, b.z, 12)) rect(b.x - b.w / 2, b.z - b.d / 2, b.x + b.w / 2, b.z + b.d / 2, c); });
+  for (const b of DT_MAP.buildings) {
+    if (!near(b.x, b.z, 12)) continue;
+    const roof = b.wall ? roofColor(b.wall) : '#8d96a8';
+    rect(b.x - b.w / 2, b.z - b.d / 2, b.x + b.w / 2, b.z + b.d / 2, roof, '#5b6573', Math.max(1, 0.3 * s));
+    if (detail && b.h > 30) rect(b.x - b.w / 4, b.z - b.d / 4, b.x + b.w / 4, b.z + b.d / 4, 'rgba(255,255,255,0.35)');
+  }
+  for (const [x, z, r] of DT_MAP.trees) circle(x, z, r, '#2f8a35');
+
+  // ---- Maple Heights: lawns, gardens, pavements, streets, houses with coloured roofs, the school
+  for (const y of MH_MAP.yards) rect(y.x0, y.z0, y.x1, y.z1, '#6cc24a');
+  for (const [x0, z0, x1, z1] of MH_MAP.fences) line(x0, z0, x1, z1, '#ffffff', Math.max(1, 0.25 * s));
+  const sch = MH_MAP.school;
+  rect(sch.x0, sch.z0, sch.x1, sch.z1, '#d9c39c', '#ffffff', Math.max(1, 0.3 * s));
+  for (const t of MH_MAP.streets) {
+    if (!near(t.x, t.z)) continue;
+    rect(t.x - 5.1, t.z - 5.1, t.x + 5.1, t.z + 5.1, '#d4d8dc');
+  }
+  for (const t of MH_MAP.streets) if (near(t.x, t.z)) rect(t.x - 3.55, t.z - 3.55, t.x + 3.55, t.z + 3.55, '#4a5058');
+  if (detail) for (const t of MH_MAP.streets) {
+    if (!near(t.x, t.z)) continue;
+    const [e, so, w, n] = t.open;
+    if (e && w && !so && !n) line(t.x - 3.5, t.z, t.x + 3.5, t.z, '#ffffff', Math.max(1, 0.2 * s), [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)]);
+    else if (so && n && !e && !w) line(t.x, t.z - 3.5, t.x, t.z + 3.5, '#ffffff', Math.max(1, 0.2 * s), [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)]);
+  }
+  for (const [x, z] of MH_MAP.pools) circle(x, z, 2.2, '#4fc0f0', '#ff8ac0', Math.max(1, 0.4 * s));
+  for (const [x, z] of MH_MAP.tramps) circle(x, z, 2, '#1b1b1b', '#2f7fc1', Math.max(1, 0.4 * s));
+  if (detail) shadow((c) => { for (const h of MH_MAP.houses) rect(h.x - h.w / 2, h.z - h.d / 2, h.x + h.w / 2, h.z + h.d / 2, c); });
+  for (const h of MH_MAP.houses) rect(h.x - h.w / 2, h.z - h.d / 2, h.x + h.w / 2, h.z + h.d / 2, h.roof ? roofColor(h.roof) : '#46a86a', '#3b4250', Math.max(1, 0.3 * s));
+  if (sch.building) { const b = sch.building; rect(b.x - b.w / 2, b.z - b.d / 2, b.x + b.w / 2, b.z + b.d / 2, '#e0b84a', '#3b4250', Math.max(1, 0.3 * s)); text(b.x, b.z, '🏫', Math.max(10, 4 * s)); }
+  for (const [x, z, r] of MH_MAP.trees) circle(x, z, r, '#2f8a35');
+
+  // ---- Sunset Pier: car park, the brick fairground, rides, stalls, the pier and its lighthouse
+  const F = FAIR;
+  rect(F.park.x0, F.park.z0, F.park.x1, F.park.z1, '#5a6068', '#c9ced4', 1);
+  rect(F.x0, F.z0, F.x1, F.z1, '#e8b49a', '#e0453a', Math.max(1.5, 0.4 * s));
+  rect(F.pier.x0, F.pier.z0, F.pier.x1, F.pier.z1, '#b07a45', '#7a4a26', Math.max(1, 0.3 * s));
+  if (detail) for (let z = F.pier.z0; z < F.pier.z1; z += 1.5) line(F.pier.x0, z, F.pier.x1, z, 'rgba(90,55,25,0.45)', 0.6);
+  circle(F.lighthouse.x, F.lighthouse.z, 2.2, '#ffffff', '#e0453a', Math.max(1.5, 0.6 * s));
+  circle(F.carousel.x, F.carousel.z, F.carousel.r + 0.6, '#e0453a', '#ffffff', Math.max(1.5, 0.5 * s));
+  circle(F.carousel.x, F.carousel.z, 1.2, '#ffd23f');
+  circle(F.drop.x, F.drop.z, 3.2, '#9aa3ad', '#2f7fc1', Math.max(1, 0.4 * s));
+  rect(F.rink.x0, F.rink.z0, F.rink.x1, F.rink.z1, '#3b4250', '#ffd23f', Math.max(1, 0.4 * s));
+  for (const st of F.stalls) rect(st.x - 2.1, st.z - 1.5, st.x + 2.1, st.z + 1.5, '#ff8ac0', '#7a1a4a', 0.8);
+  line(F.wheel.x - 9.5, F.wheel.z + 9.5, F.wheel.x + 9.5, F.wheel.z - 9.5, '#ffffff', Math.max(2, 1.4 * s));
+  if (s > 0.8) { text(F.wheel.x, F.wheel.z, '🎡', Math.max(12, 5 * s)); text(F.carousel.x, F.carousel.z, '🎠', Math.max(10, 3.5 * s)); text(F.lighthouse.x, F.lighthouse.z - 5, '🗼', Math.max(9, 3 * s)); }
 
   // ---- the hospital (with a soft shadow)
   shadow((c) => rect(-17, -57, 17, -47, c));
@@ -233,7 +325,7 @@ export class Radar {
       const [ex, ey] = P(INTERIOR.exitDoor.x, INTERIOR.exitDoor.z);
       this.icon(ex, ey, '🚪', 13);
     } else {
-      paintWorld(ctx, P, s, { upright });
+      paintWorld(ctx, P, s, { upright, focus: { x: ox, z: oz, r: RANGE * 1.42 } });
       // the ambulance, drawn as a small van shape (when you're not driving it)
       if (ambulance && !ambulance.driving) {
         const f = { x: Math.sin(ambulance.heading), z: Math.cos(ambulance.heading) }, r = { x: f.z, z: -f.x };
@@ -333,7 +425,7 @@ export class Radar {
 /* ------------------------------------------------------------------ */
 /* Full-screen map                                                      */
 /* ------------------------------------------------------------------ */
-const BOUNDS = { x0: -95, x1: 245, z0: -78, z1: 140 };
+const BOUNDS = { x0: -210, x1: 245, z0: -100, z1: 182 };
 
 export class BigMap {
   constructor(radar, getState) {

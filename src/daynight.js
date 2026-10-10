@@ -2,6 +2,7 @@
 // sunset, night is a soft blue with stars, glowing street lamps and ambulance headlights (never too dark).
 import * as THREE from 'three';
 import { toon } from './toon.js';
+import { NIGHT_MATS } from './kit.js';
 
 const DAY_SECONDS = 8 * 60; // one full in-game day lasts 8 real minutes
 
@@ -43,8 +44,8 @@ export class DayNight {
     this.apply();
   }
 
-  /** Soft glow halos on every street-lamp bulb (call once the world is built). */
-  addLampHalos() {
+  /** Soft glow halos on every street-lamp bulb (call once the world is built); extra: [{x,y,z}] for instanced bulbs. */
+  addLampHalos(extra = []) {
     const c = document.createElement('canvas'); c.width = c.height = 64;
     const x = c.getContext('2d');
     const grd = x.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -52,13 +53,19 @@ export class DayNight {
     x.fillStyle = grd; x.fillRect(0, 0, 64, 64);
     this.haloMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0, fog: false });
     const bulbs = [];
-    this.scene.traverse((o) => { if (o.isMesh && o.material === this.lampMat) bulbs.push(o); });
+    this.scene.traverse((o) => { if (o.isMesh && !o.isInstancedMesh && o.material === this.lampMat) bulbs.push(o); });
     for (const b of bulbs) {
       const s = new THREE.Sprite(this.haloMat);
       s.scale.setScalar(3.2);
       b.add(s);
     }
-    return bulbs.length;
+    for (const p of extra) {
+      const s = new THREE.Sprite(this.haloMat);
+      s.scale.setScalar(p.size ?? 3.6);
+      s.position.set(p.x, p.y, p.z);
+      (p.parent ?? this.scene).add(s);
+    }
+    return bulbs.length + extra.length;
   }
 
   get clock() {
@@ -105,5 +112,8 @@ export class DayNight {
     this.lampMat.emissive.setRGB(0.42 + n * 0.58, 0.35 + n * 0.5, 0.12 + n * 0.25);
     this.headlight.intensity = n > 0.25 ? 40 * Math.min(1, n * 1.6) : 0;
     if (this.haloMat) this.haloMat.opacity = Math.max(0, n - 0.15) * 0.9;
+    // city windows light up after dusk
+    const glow = Math.max(0, n - 0.25) * 1.2;
+    for (const m of NIGHT_MATS) m.emissiveIntensity = glow;
   }
 }

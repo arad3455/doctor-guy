@@ -13,7 +13,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 await g(() => { const a = __game.ambulance; __game.player.pos.copy(a.doorPoint); });
 await wait(500);
 await page.keyboard.press('KeyE');
-await wait(400);
+await page.waitForFunction(() => __game.ambulance.driving, { timeout: 15000 }).catch(() => console.log('could not get in!'));
 const results = [];
 for (const [i, r] of (await g(() => __game.ramps)).entries()) {
   // line up 26 m before the ramp, pointing at it, already rolling

@@ -24,7 +24,7 @@ export const KITS = {
   },
   roads: {
     dir: 'kenney_city-kit-roads/Models/GLB format',
-    models: ['road-straight', 'road-crossing', 'road-end-round', 'light-curved', 'light-square-double', 'traffic-light', 'sign-highway', 'sign-highway-detailed', 'construction-cone', 'construction-barrier', 'electricity-pole', 'road-sign-street', 'dumpster'],
+    models: ['road-straight', 'road-crossing', 'road-end-round', 'light-curved', 'light-square-double', 'traffic-light', 'sign-highway', 'sign-highway-detailed', 'construction-cone', 'construction-barrier', 'electricity-pole', 'road-sign-street', 'dumpster', 'road-crossroad', 'road-crossroad-path', 'road-intersection', 'road-intersection-path', 'road-bend', 'road-square', 'road-end', 'road-sign-stop', 'light-square', 'traffic-light-hanging'],
   },
   cars: {
     dir: 'kenney_car-kit/Models/GLB format',
@@ -33,6 +33,18 @@ export const KITS = {
   town: {
     dir: 'kenney_fantasy-town-kit_2.0/Models/GLB format',
     models: ['stall', 'stall-red', 'stall-green', 'stall-bench', 'stall-stool', 'cart', 'lantern', 'banner-red', 'banner-green', 'fountain-round-detail', 'hedge', 'hedge-large', 'hedge-curved', 'fence', 'fence-curved', 'pillar-stone', 'rock-large', 'poles'],
+  },
+  commercial: {
+    dir: 'kenney_city-kit-commercial_2.1/Models/GLB format',
+    models: ['building-a', 'building-b', 'building-c', 'building-d', 'building-e', 'building-f', 'building-g', 'building-h', 'building-i', 'building-j', 'building-k', 'building-l', 'building-m', 'building-n',
+      'building-skyscraper-a', 'building-skyscraper-b', 'building-skyscraper-c', 'building-skyscraper-d', 'building-skyscraper-e',
+      'detail-awning', 'detail-awning-wide', 'detail-parasol-a', 'detail-parasol-b',
+      'low-detail-building-a', 'low-detail-building-c', 'low-detail-building-e', 'low-detail-building-g', 'low-detail-building-wide-a', 'low-detail-building-wide-b'],
+  },
+  suburban: {
+    dir: 'kenney_city-kit-suburban_20/Models/GLB format',
+    models: ['building-type-a', 'building-type-b', 'building-type-c', 'building-type-d', 'building-type-e', 'building-type-f', 'building-type-g', 'building-type-h', 'building-type-i', 'building-type-j', 'building-type-k', 'building-type-l', 'building-type-m', 'building-type-n', 'building-type-o', 'building-type-p', 'building-type-q', 'building-type-r', 'building-type-s', 'building-type-t', 'building-type-u',
+      'driveway-long', 'driveway-short', 'fence-1x3', 'fence-2x3', 'fence-3x3', 'fence-low', 'fence', 'path-long', 'path-stones-long', 'planter', 'tree-large', 'tree-small'],
   },
 };
 
@@ -70,4 +82,4 @@ for (const [kit, { dir, models }] of Object.entries(KITS)) {
   await io.write(out, target);
   console.log(`${kit}: ${models.length} models → assets/kenney/${kit}.glb (${(statSync(out).size / 1024).toFixed(0)} KB)`);
 }
-writeFileSync(join(ROOT, 'assets/kenney/LICENSE.txt'), 'Models by Kenney (www.kenney.nl) — Creative Commons Zero (CC0 1.0), https://creativecommons.org/publicdomain/zero/1.0/\nPacks: Nature Kit, City Kit (Roads), Car Kit, Fantasy Town Kit.\n');
+writeFileSync(join(ROOT, 'assets/kenney/LICENSE.txt'), 'Models by Kenney (www.kenney.nl) — Creative Commons Zero (CC0 1.0), https://creativecommons.org/publicdomain/zero/1.0/\nPacks: Nature Kit, City Kit (Roads), City Kit (Commercial), City Kit (Suburban), Car Kit, Fantasy Town Kit.\n');

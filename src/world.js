@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { part, toon, instanced, signTexture, canvasTexture, FONT } from './toon.js';
 import { rampAt } from './stunts.js';
+import { onPier } from './pier.js';
 
 export const WORLD = {
   half: 56, // park half-size (fence at half + 1)
@@ -40,21 +41,43 @@ export function inPond(x, z) {
 
 /** True where Doctor Guy is wading (pond or the shallow sea) — slower, and he sinks to the knees. */
 export function inWater(x, z) {
-  return inPond(x, z) || z > WORLD.shoreline + 1;
+  return inPond(x, z) || (z > WORLD.shoreline + 1 && !onPier(x, z));
 }
 
 /** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
-export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
+export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
 
 /** GTA-style location name for the corner label. */
 export function locationName(p) {
   if (p.z < -300) return p.z < -413.5 ? 'X-Ray · Wolfson Medical Center' : 'Wolfson Medical Center';
+  if (p.x < -60) return downtownName(p);
+  if (p.x > 117 && p.z > 113) return p.z > 165 ? 'Sunset Pier · Lighthouse' : 'Sunset Pier';
+  if (p.x > 92 && p.z > 63) return 'Sunset Pier Funfair';
+  if (p.x > 60 && p.z > 63 && p.z < 78) return 'Pier Car Park';
   if (p.x > 137) return 'Wolfson City Zoo';
+  if (p.x > 58 && p.z > -33 && p.z < 63) return suburbName(p);
   if (p.x > 56) return 'Zoo Road';
   if (p.z > 82) return 'Sunny Beach';
   if (p.z > 56) return 'The Boardwalk';
   if (p.z < -30) return 'Hospital Plaza';
   return 'Wolfson Park';
+}
+
+function downtownName(p) {
+  if (p.x < -112 && p.x > -153 && p.z > -37 && p.z < 5) return 'City Plaza';
+  if (p.x < -153 && p.z > -37 && p.z < 5) return 'Wolfson Hoops';
+  if (Math.abs(p.z + 37) < 4) return 'Main Street';
+  if (p.x > -112 && p.z > -37 && p.z < 5) return 'Market Row';
+  if (p.z < -37) return 'Downtown · Tower District';
+  return 'Downtown Wolfson';
+}
+
+function suburbName(p) {
+  if (p.x > 88 && p.z < -6) return 'Maple Heights Elementary';
+  if (Math.abs(p.x - 84.5) < 4) return 'Maple Lane';
+  if (Math.abs(p.z + 2) < 4) return 'Oak Street';
+  if (Math.abs(p.z - 33) < 4) return 'Birch Street';
+  return 'Maple Heights';
 }
 
 // Walkable areas: the park, the boardwalk through the south gate, and the beach up to wading depth
@@ -65,6 +88,12 @@ const WALKABLE = [
   { minX: -17.6, maxX: 17.6, minZ: -413.6, maxZ: -386.6 }, // inside the hospital (see hospital.js)
   { minX: -5.6, maxX: 5.6, minZ: -425.6, maxZ: -413.0 }, // its X-ray room
   { minX: 50, maxX: 140, minZ: -40.4, maxZ: -33.6 }, // Zoo Road, through the park's east gate (see zoo.js)
+  { minX: -66, maxX: -50, minZ: -40.4, maxZ: -33.6 }, // Main Street, through the park's west gate
+  { minX: -199.5, maxX: -64, minZ: -83, maxZ: 51 }, // Downtown (see downtown.js)
+  { minX: 60, maxX: 136.5, minZ: -34, maxZ: 62 }, // Maple Heights (see suburbs.js)
+  { minX: 57, maxX: 150, minZ: 62, maxZ: 114 }, // the sand east of the beach, the car park and Sunset Pier's funfair (pier.js)
+  { minX: 57, maxX: 117, minZ: 62, maxZ: 127 }, // …down to the water's edge
+  { minX: 118.6, maxX: 127.4, minZ: 110, maxZ: 177.5 }, // the pier itself, out over the sea
   { minX: 115.5, maxX: 132.5, minZ: -52.6, maxZ: -40 }, // the zoo car park
   { minX: 137.5, maxX: 232.5, minZ: -45.5, maxZ: 45.5 }, // the zoo
 ];
@@ -163,11 +192,14 @@ export function buildWorld(scene) {
   ring.position.y = 0.02;
   ring.receiveShadow = true;
   world.add(ring);
-  const lane = new THREE.Mesh(new THREE.PlaneGeometry(5, 22), pathMat);
-  lane.rotation.x = -Math.PI / 2;
-  lane.position.set(0, 0.021, -31);
-  lane.receiveShadow = true;
-  world.add(lane);
+  // the path to the hospital stops at Zoo Road's zebra crossing (z -40.5 … -33.5)
+  for (const [z0, z1] of [[-33.5, -20], [-42, -40.5]]) {
+    const lane = new THREE.Mesh(new THREE.PlaneGeometry(5, z1 - z0), pathMat);
+    lane.rotation.x = -Math.PI / 2;
+    lane.position.set(0, 0.021, (z0 + z1) / 2);
+    lane.receiveShadow = true;
+    world.add(lane);
+  }
   for (const [x, z, rot] of [[0, 11, 0], [0, -11, 0], [11, 0, Math.PI / 2], [-11, 0, Math.PI / 2]]) {
     const spoke = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 15), pathMat);
     spoke.rotation.set(-Math.PI / 2, 0, rot);
@@ -271,7 +303,6 @@ export function buildWorld(scene) {
   buildFence(world);
 
   // ---- City skyline
-  buildSkyline(world);
 
   // ---- Clouds
   buildClouds(world, animated);
@@ -708,14 +739,15 @@ function buildFence(world) {
       if (z === -H && Math.abs(x) < 20) continue; // hospital side open
       if (z === H && Math.abs(x) < 3) continue; // south gate to the beach
       if (x === H && Math.abs(z + 37) < 4) continue; // east gate: Zoo Road
+      if (x === -H && Math.abs(z + 37) < 4) continue; // west gate: Main Street to Downtown
       pickets.push(new THREE.Matrix4().compose(new THREE.Vector3(x, 0.55, z), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)));
     }
   }
   world.add(instanced(new THREE.BoxGeometry(0.14, 1.1, 0.14), 0xffffff, pickets, { outline: 0.025 }));
   const halfRail = (H - 3) / 2;
-  // east rail is split by the road (z = -37 ± 4)
+  // east and west rails are split by the road (z = -37 ± 4)
   const eastN = (-H + (-41)) / 2, eastS = (-33 + H) / 2;
-  for (const [x, z, w, d] of [[-(3 + halfRail), H, 2 * halfRail, 0.08], [3 + halfRail, H, 2 * halfRail, 0.08], [-H, 0, 0.08, 2 * H], [H, eastN, 0.08, -41 + H], [H, eastS, 0.08, H + 33]]) {
+  for (const [x, z, w, d] of [[-(3 + halfRail), H, 2 * halfRail, 0.08], [3 + halfRail, H, 2 * halfRail, 0.08], [-H, eastN, 0.08, -41 + H], [-H, eastS, 0.08, H + 33], [H, eastN, 0.08, -41 + H], [H, eastS, 0.08, H + 33]]) {
     const rail = part(new THREE.BoxGeometry(w, 0.1, d), 0xffffff, { outline: 0.02 });
     rail.position.set(x, 0.8, z);
     world.add(rail);

@@ -16,7 +16,7 @@ const shot = (n) => page.screenshot({ path: `.shots/zoo-${n}.png` });
 await g(() => { const a = __game.ambulance; __game.player.pos.copy(a.doorPoint); });
 await wait(500);
 await page.keyboard.press('KeyE');
-await wait(400);
+await page.waitForFunction(() => __game.ambulance.driving, { timeout: 15000 }).catch(() => console.log('could not get in!'));
 const drive = await g(() => {
   const a = __game.ambulance;
   const start = a.pos.clone();
