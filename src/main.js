@@ -15,7 +15,11 @@ import { buildDowntown } from './downtown.js';
 import { buildSuburbs } from './suburbs.js';
 import { buildPier, FAIR } from './pier.js';
 import { buildCamp } from './camp.js';
-import { buildHarbor } from './harbor.js';
+import { buildHarbor, HARBOR } from './harbor.js';
+import { GPS } from './gps.js';
+import { DT_MAP } from './downtown.js';
+import { MH_MAP } from './suburbs.js';
+import { CAMP } from './camp.js';
 import { loadKits } from './kit.js';
 import { BigMap } from './map.js';
 import { Career, achievementToast } from './career.js';
@@ -602,6 +606,12 @@ window.__game.suburbs = suburbs;
 window.__game.pier = pier;
 window.__game.camp = camp;
 window.__game.harbor = harbor;
+// GPS routes prefer roads: every street tile of every zone, plus Zoo Road
+{
+  const tileRects = [...DT_MAP.streets, ...MH_MAP.streets, ...(CAMP.streets ?? []), ...(HARBOR.streets ?? [])].map((t) => ({ x0: t.x - 3.6, x1: t.x + 3.6, z0: t.z - 3.6, z1: t.z + 3.6 }));
+  hud.radar.gps = new GPS([...tileRects, { x0: ZOO.road.x0, x1: ZOO.road.x1, z0: ZOO.road.z - 3.6, z1: ZOO.road.z + 3.6 }]);
+  window.__game.gps = hud.radar.gps;
+}
 window.__game.world = worldApi;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;

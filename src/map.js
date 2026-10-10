@@ -417,14 +417,28 @@ export class Radar {
     }
     const wp = this.waypointPos();
     let wpDist = null;
+    // GPS route (along the roads) to the drop-off while carrying a kid, otherwise to the waypoint
+    const routeTo = carried ? missions.dropPos(carried.def) : wp;
+    const route = !inside && routeTo && this.gps && !isInterior(routeTo.z) ? this.gps.route(player.pos, routeTo) : null;
+    if (route && route.length > 1) {
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      for (const [col, lw] of [['rgba(20,20,40,0.55)', 7], [carried ? '#4cc35a' : '#ffd23f', 4]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = lw;
+        ctx.beginPath(); ctx.moveTo(C, C);
+        for (const q of route.slice(1)) { const [a, b] = P(q.x, q.z); ctx.lineTo(a, b); }
+        ctx.stroke();
+      }
+    }
     if (wp) {
       const bp = Radar.blipPos(wp.x, wp.z, inside);
       const [a, b] = rim(bp.x, bp.z);
-      // GPS line from you to the waypoint
-      ctx.setLineDash([5, 4]);
-      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(C, C); ctx.lineTo(a, b); ctx.stroke();
-      ctx.setLineDash([]);
+      // no route (e.g. indoors): a straight dashed line to the waypoint
+      if (!route && !carried) {
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(C, C); ctx.lineTo(a, b); ctx.stroke();
+        ctx.setLineDash([]);
+      }
       ctx.save(); ctx.translate(a, b); ctx.rotate(Math.PI / 4);
       ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 2;
       ctx.fillRect(-6, -6, 12, 12); ctx.strokeRect(-6, -6, 12, 12);
@@ -601,9 +615,20 @@ export class BigMap {
       ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 2.5;
       ctx.fillRect(-8, -8, 16, 16); ctx.strokeRect(-8, -8, 16, 16);
       ctx.restore();
-      const [pa, pb] = this.toScreen(...Object.values(Radar.blipPos(player.pos.x, player.pos.z, false)));
-      ctx.setLineDash([6, 5]); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(pa, pb); ctx.lineTo(a, b); ctx.stroke(); ctx.setLineDash([]);
+      const route = this.radar.gps && !isInterior(player.pos.z) && !isInterior(wp.z) ? this.radar.gps.route(player.pos, wp) : null;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (route && route.length > 1) {
+        for (const [col, lw] of [['rgba(20,20,40,0.55)', 7], ['#ffd23f', 4]]) {
+          ctx.strokeStyle = col; ctx.lineWidth = lw;
+          ctx.beginPath();
+          route.forEach((q, i) => { const [x, y] = this.toScreen(q.x, q.z); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+          ctx.stroke();
+        }
+      } else {
+        const [pa, pb] = this.toScreen(...Object.values(Radar.blipPos(player.pos.x, player.pos.z, false)));
+        ctx.setLineDash([6, 5]); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(pa, pb); ctx.lineTo(a, b); ctx.stroke(); ctx.setLineDash([]);
+      }
     }
     // you
     const me = Radar.blipPos(player.pos.x, player.pos.z, false);
