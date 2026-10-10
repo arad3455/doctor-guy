@@ -12,6 +12,7 @@ import { DoorNurses } from './nurses.js';
 import { buildRoad, buildZoo, inZoo, ZOO } from './zoo.js';
 import { loadKits } from './kit.js';
 import { BigMap } from './map.js';
+import { Career } from './career.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -71,6 +72,8 @@ const hud = new HUD();
 const minigame = new MiniGame();
 
 let started = false;
+let timeScale = 1; // slow motion for the PATIENT SAVED moment
+const career = new Career({ setSlowmo: (v) => { timeScale = v; }, onLollipop: (n) => { if (missions) missions.lollipops += n; } });
 
 /* ---- Getting in and out of the ambulance ---- */
 const setButtons = (driving) => {
@@ -173,6 +176,7 @@ function resetAmbulance() {
 }
 
 const ui = {
+  career,
   isDriving: () => ambulance.driving,
   vehicle: () => ambulance,
   exitVehicle: (force) => exitAmbulance(force),
@@ -186,10 +190,10 @@ const ui = {
   toast: (h, ms) => hud.toast(h, ms),
   prompt: (l) => hud.prompt(l),
   onFinished: () => {
+    // let the last PATIENT SAVED banner finish first
+    if (career.showing || career.queue.length) { setTimeout(ui.onFinished, 600); return; }
     sfx.fanfare();
-    const mins = Math.floor(missions.time / 60), secs = Math.floor(missions.time % 60);
-    document.getElementById('end-stats').innerHTML =
-      `🍭 <b>${missions.lollipops}</b> lollipops · ⏱️ ${mins}:${String(secs).padStart(2, '0')}<br><small>More of Wolfson City coming soon…</small>`;
+    career.renderStats(missions.total, missions.time);
     document.getElementById('end').classList.remove('hidden');
     hud.show(false);
     started = false;
@@ -217,6 +221,8 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Escape') showHelp(false);
 });
 document.getElementById('restart').addEventListener('click', () => {
+  career.reset();
+  timeScale = 1;
   resetAmbulance();
   nurses?.reset();
   hospital?.showFilm('off');
@@ -276,7 +282,7 @@ function frame() {
     requestAnimationFrame(frame);
     return;
   }
-  const dt = rawDt;
+  const dt = rawDt * timeScale;
   t += dt;
   for (const a of animated) a.update(t, dt);
 
@@ -289,7 +295,9 @@ function frame() {
     const stickMag = Math.min(1, Math.hypot(stick.x, stick.y));
     if (stickMag > 0.12) ({ throttle, steer } = stickDrive(stick, stickMag));
     if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
+    const before = ambulance.pos.clone();
     ambulance.update(dt, t, { throttle, steer });
+    career.travel(Math.hypot(ambulance.pos.x - before.x, ambulance.pos.z - before.z), true);
     engine.set(ambulance.speed);
     // Doctor Guy rides inside: zones, spawning, lollipops and the minimap follow the van
     player.pos.copy(ambulance.pos);
@@ -301,7 +309,10 @@ function frame() {
     ambulance.update(dt, t, {});
     input.enabled = !minigame.active;
     const wasGround = player.onGround;
+    const before = player.pos.clone();
     player.update(dt, t, input);
+    const moved = Math.hypot(player.pos.x - before.x, player.pos.z - before.z);
+    if (moved < 5) career.travel(moved, false); // (ignore teleports through doors)
     if (wasGround && !player.onGround && player.vel.y > 0) sfx.jump();
     missions.update(dt, t, input);
     minigame.update(dt);
@@ -388,6 +399,7 @@ window.__game.nurses = nurses;
 window.__game.zoo = zoo;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;
+window.__game.career = career;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades

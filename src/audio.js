@@ -89,3 +89,12 @@ export const siren = {
 sfx.door = () => { tone(180, 0.08, { type: 'square', vol: 0.08 }); tone(120, 0.1, { type: 'square', vol: 0.08, delay: 0.07 }); };
 
 sfx.honk = () => { tone(392, 0.22, { type: 'square', vol: 0.06 }); tone(330, 0.22, { type: 'square', vol: 0.05 }); };
+
+sfx.stinger = () => { tone(220, 0.18, { type: 'sawtooth', vol: 0.05, slide: 1.5 }); tone(440, 0.3, { type: 'square', vol: 0.05, delay: 0.16 }); tone(330, 0.4, { type: 'triangle', vol: 0.08, delay: 0.16 }); };
+sfx.missionPassed = () => {
+  // a short "mission passed" jingle: a rising arpeggio and a held chord
+  [392, 523, 659, 784].forEach((f, i) => tone(f, 0.18, { type: 'square', vol: 0.05, delay: i * 0.1 }));
+  [523, 659, 784, 1047].forEach((f) => tone(f, 0.9, { type: 'triangle', vol: 0.06, delay: 0.45 }));
+  tone(131, 0.9, { type: 'sawtooth', vol: 0.04, delay: 0.45 });
+};
+sfx.tick = () => tone(1568, 0.05, { type: 'square', vol: 0.03 });

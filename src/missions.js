@@ -392,7 +392,7 @@ export class MissionSystem {
     sfx.alert();
     const p = this.player;
     if (!this.busy && !p.carrying && Math.hypot(p.vel.x, p.vel.z) < 0.5) p.rig.playOnce?.('wave', { timeScale: 1.2, maxTime: 2.6 });
-    this.ui.toast(`🚨 ${def.title}!`, 2600);
+    this.ui.career?.missionStart(def, kid.root.position, this.player.pos);
     return m;
   }
 
@@ -751,21 +751,24 @@ export class MissionSystem {
       } else setTimeout(() => this.group.remove(prop), 1500);
     }
     const elapsed = this.time - m.spawnedAt;
-    let reward = m.def.reward;
-    const bonuses = [];
-    if (elapsed < m.def.bonusTime) { reward += 2; bonuses.push('⚡ speedy'); }
-    if (!m.misses) { reward += 1; bonuses.push('🎯 perfect'); }
-    if (m.byAmbulance) { reward += 1; bonuses.push('🚑 ambulance'); }
-    this.lollipops += reward;
+    const lines = [{ label: m.def.zone === 'hospital' ? 'Check-up' : 'Rescue', amount: m.def.reward }];
+    if (elapsed < m.def.bonusTime) lines.push({ label: '⚡ Speedy', amount: 2 });
+    if (!m.misses) lines.push({ label: '🎯 Perfect treatment', amount: 1 });
+    if (m.byAmbulance) lines.push({ label: '🚑 Ambulance delivery', amount: 1 });
     if (m.def.film) this.ui.hospital?.showFilm(m.def.film); // the scan lights up on the lightbox
     const thanks = makeBubble(m.def.thanks ?? 'Thanks Dr. Guy!', { w: 380, bg: '#fffbe0' });
     thanks.scale.multiplyScalar(1.3);
     thanks.position.y = m.kid.height + 0.9;
     m.kid.root.add(thanks);
     setTimeout(() => m.kid.root.remove(thanks), 3500);
-    sfx.success();
-    const extra = [m.def.done, bonuses.join(' · ')].filter(Boolean).join('<br>');
-    this.ui.toast(`✅ ${m.def.name} is ${m.def.zone === 'hospital' ? 'all checked' : 'safe'}! +${reward} 🍭${extra ? `<br><small>${extra}</small>` : ''}`, m.def.done ? 3400 : 2600);
+    // GTA-style "PATIENT SAVED" banner; lollipops tick into the wallet as its counter runs
+    const condition = m.def.done ? `${m.def.title} — ${m.def.done}` : m.def.title;
+    if (this.ui.career) {
+      this.ui.career.patientSaved({ name: m.def.name, condition, hospital: m.def.zone === 'hospital', lines, elapsed, perfect: !m.misses, ambulance: !!m.byAmbulance });
+    } else {
+      this.lollipops += lines.reduce((t, l) => t + l.amount, 0);
+      sfx.success();
+    }
     this.nextSpawn = Math.min(this.nextSpawn, this.time + 6);
   }
 }

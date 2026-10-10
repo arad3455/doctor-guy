@@ -413,3 +413,88 @@ html.touch #waypoint-info { top: calc(112px + env(safe-area-inset-top)); right: 
 .help-card { width: min(560px, 100%); background: var(--paper); border: 4px solid var(--ink); border-radius: 20px; padding: 22px 26px; box-shadow: 0 8px 0 var(--ink); }
 .help-card h2 { margin: 0 0 10px; font-size: 30px; }
 .help-card ul { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 10px; font-size: 16px; }
+
+/* ---------- GTA touches: mission card, PATIENT SAVED, ranks, shift report ---------- */
+#rank {
+  position: absolute; top: 74px; left: 16px; display: flex; align-items: center; gap: 8px;
+  background: rgba(20, 12, 40, 0.82); color: #fff; border: 3px solid var(--ink); border-radius: 14px;
+  padding: 5px 12px 5px 8px; box-shadow: 0 3px 0 var(--ink); min-width: 210px;
+}
+#rank.pop { animation: chipPop 0.45s ease-out; }
+@keyframes chipPop { 40% { transform: scale(1.12); } }
+.rk-icon { font-size: 22px; }
+.rk-body { display: flex; flex-direction: column; flex: 1; gap: 3px; }
+.rk-name { font-weight: 700; font-size: 14px; }
+.rk-bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,0.2); overflow: hidden; }
+.rk-fill { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffd23f, #ff3c8e); transition: width 0.8s ease; }
+.rk-xp { font-size: 11px; opacity: 0.8; white-space: nowrap; }
+#missions { top: 128px; }
+.stat.bump { animation: chipPop 0.25s ease-out; }
+@media (max-height: 500px), (max-width: 640px) {
+  #rank { top: 56px; min-width: 0; padding: 3px 8px 3px 6px; }
+  #rank .rk-xp { display: none; }
+  .rk-name { font-size: 12px; }
+  #missions { top: 100px; }
+}
+
+#mission-card {
+  position: absolute; top: 18%; left: 50%; transform: translate(-50%, -20px); opacity: 0;
+  text-align: center; pointer-events: none; transition: opacity 0.35s, transform 0.35s;
+  text-shadow: 0 3px 0 rgba(0,0,0,0.55), 0 0 18px rgba(0,0,0,0.5);
+}
+#mission-card.show { opacity: 1; transform: translate(-50%, 0); }
+.mc-kicker { color: #ff5a5a; font: 700 15px 'Fredoka', sans-serif; letter-spacing: 3px; }
+.mc-title { font: 400 clamp(30px, 5vw, 54px) 'Anton', 'Impact', sans-serif; color: #fff; letter-spacing: 1px; line-height: 1.05; }
+.mc-sub { color: #ffe9a8; font-weight: 700; font-size: 16px; }
+
+#wash { position: fixed; inset: 0; pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.6s;
+  background: radial-gradient(ellipse at center, rgba(255,210,63,0.08), rgba(80,20,90,0.55)); backdrop-filter: saturate(1.4); }
+#wash.on { opacity: 1; }
+#saved-banner, #rank-banner {
+  position: fixed; left: 0; right: 0; top: 50%; transform: translateY(-50%); z-index: 31; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+#saved-banner::before, #rank-banner::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -18px; height: calc(100% + 36px); z-index: -1;
+  background: linear-gradient(90deg, transparent, rgba(15,8,30,0.82) 18%, rgba(15,8,30,0.82) 82%, transparent);
+}
+.sb-title, .rb-name {
+  font: 400 clamp(48px, 9vw, 104px) 'Anton', 'Impact', sans-serif; letter-spacing: 2px; line-height: 1;
+  background: linear-gradient(180deg, #ffd23f 0%, #ff8a3d 45%, #ff3c8e 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 2px #1b0b2e; paint-order: stroke fill;
+}
+.sb-sub { color: #fff; font-weight: 700; font-size: clamp(16px, 2.2vw, 22px); margin: 4px 0 10px; }
+.sb-lines { display: grid; gap: 4px; width: min(380px, 86vw); }
+.sb-line, .sb-total { display: flex; justify-content: space-between; color: #fff; font-size: 17px; opacity: 0; transform: translateX(-16px); transition: opacity 0.25s, transform 0.25s; }
+.sb-line.on, .sb-total.on { opacity: 1; transform: none; }
+.sb-total { border-top: 2px solid rgba(255,255,255,0.5); padding-top: 6px; margin-top: 4px; font-size: 22px; font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 1px; color: #ffd23f; }
+.sb-xp { color: #9fe3ff; font-weight: 700; font-size: 15px; opacity: 0; transition: opacity 0.3s; }
+.sb-xp.on { opacity: 1; }
+#saved-banner.in .sb-title, #rank-banner.in .rb-name { animation: slam 0.55s cubic-bezier(.2,1.6,.4,1) both; }
+#saved-banner.in .sb-sub { animation: logoIn 0.5s 0.3s both; }
+#saved-banner.out, #rank-banner.out { animation: fadeOut 0.45s forwards; }
+@keyframes slam { from { opacity: 0; transform: scale(2.2); letter-spacing: 20px; } to { opacity: 1; transform: none; } }
+@keyframes fadeOut { to { opacity: 0; transform: translateY(-50%) scale(0.96); } }
+.rb-kicker { color: #9fe3ff; font: 700 18px 'Fredoka', sans-serif; letter-spacing: 6px; }
+.rb-icon { font-size: 64px; line-height: 1.1; }
+
+/* shift report */
+#end { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; overflow: auto;
+  background: linear-gradient(rgba(25,10,45,0.82), rgba(25,10,45,0.92)), url('assets/title/key-art-wide.webp') center / cover; }
+.report { width: min(640px, 100%); text-align: center; color: #fff; }
+.rp-kicker { font: 400 clamp(40px, 7vw, 76px) 'Anton', 'Impact', sans-serif; letter-spacing: 2px; line-height: 1;
+  background: linear-gradient(180deg, #ffd23f, #ff8a3d 45%, #ff3c8e); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 2px #1b0b2e; paint-order: stroke fill; }
+.rp-title { font-weight: 700; font-size: 18px; margin: 4px 0 14px; opacity: 0.9; }
+#end-rank { display: inline-flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.35); border-radius: 16px; padding: 8px 18px; margin-bottom: 14px; text-align: left; }
+.er-icon { font-size: 40px; }
+#end-rank small { display: block; opacity: 0.7; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+#end-rank b { display: block; font-size: 22px; }
+#end-rank em { font-style: normal; color: #9fe3ff; font-size: 13px; }
+#end-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.st { background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.st-i { font-size: 22px; }
+.st-l { font-size: 12px; opacity: 0.75; }
+.st-v { font: 400 24px 'Anton', 'Impact', sans-serif; letter-spacing: 1px; color: #ffd23f; }
+.st-note { grid-column: 1 / -1; font-size: 13px; opacity: 0.75; }
+.rp-quote { opacity: 0.8; font-style: italic; margin: 14px 0; }
+@media (max-width: 520px) { #end-stats { grid-template-columns: repeat(2, 1fr); } }

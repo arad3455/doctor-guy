@@ -44,7 +44,9 @@
       <div class="stat"><span class="icon">🍭</span><span id="lollipops">0</span></div>
       <div class="stat"><span class="icon">⛑️</span><span id="rescued">0</span>/<span id="total">0</span></div>
     </div>
+    <div id="rank"><span class="rk-icon">🩹</span><span class="rk-body"><span class="rk-name">Volunteer</span><span class="rk-bar"><span class="rk-fill"></span></span></span><span class="rk-xp">0 XP</span></div>
     <div id="missions"></div>
+    <div id="mission-card"></div>
     <canvas id="minimap" width="200" height="200" title="Open the map (M)"></canvas>
     <div id="map-hint">M · map</div>
     <div id="waypoint-info" class="hidden"></div>
@@ -79,6 +81,19 @@
       </div>
     </div>
     <div class="bm-legend"><span>🔴 Emergency</span><span>🟢 Drop-off</span><span>⭐ Waypoint</span><span>🚑 Ambulance</span><span>🏥 Hospital</span><span>🟡 You</span></div>
+  </div>
+
+  <!-- GTA-style mission passed banner -->
+  <div id="wash"></div>
+  <div id="saved-banner" class="hidden">
+    <div class="sb-title">PATIENT SAVED</div>
+    <div class="sb-sub"></div>
+    <div class="sb-lines"></div>
+  </div>
+  <div id="rank-banner" class="hidden">
+    <div class="rb-kicker">PROMOTED</div>
+    <div class="rb-icon"></div>
+    <div class="rb-name"></div>
   </div>
 
   <!-- Fade for entering / leaving buildings -->
@@ -127,14 +142,15 @@
     </div>
   </div>
 
-  <!-- End -->
+  <!-- End: shift report -->
   <div id="end" class="hidden">
-    <div class="title-card">
-      <h1>Shift complete!</h1>
-      <p class="subtitle">Every kid in Wolfson City is safe and sound.</p>
-      <p id="end-stats"></p>
-      <p class="zone">“Smiles make healing easier.”</p>
-      <button id="restart">Play again</button>
+    <div class="report">
+      <div class="rp-kicker">SHIFT COMPLETE</div>
+      <div class="rp-title">Every kid in Wolfson City is safe</div>
+      <div id="end-rank"></div>
+      <div id="end-stats"></div>
+      <p class="rp-quote">“Smiles make healing easier.”</p>
+      <button id="restart">Start a new shift</button>
     </div>
   </div>
 
