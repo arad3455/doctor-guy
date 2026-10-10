@@ -147,7 +147,9 @@ export class Ambulance {
       const road = onOpenRoad(this.pos);
       if (throttle > 0) this.speed += (this.speed < 0 ? BRAKE : road ? ACCEL_ROAD : ACCEL) * throttle * dt;
       else if (throttle < 0) this.speed += (this.speed > 0 ? BRAKE : ACCEL * 0.7) * throttle * dt;
-      this.steer += (steer - this.steer) * Math.min(1, dt * 8);
+      // steering wheel: eases towards the input (no snapping), returns to centre a bit faster
+      const rate = Math.abs(steer) < Math.abs(this.steer) ? 7 : 4.5;
+      this.steer += (steer - this.steer) * Math.min(1, dt * rate);
     } else {
       this.steer += (0 - this.steer) * Math.min(1, dt * 4);
     }
@@ -159,7 +161,8 @@ export class Ambulance {
     this.speed = THREE.MathUtils.clamp(this.speed, -MAX_REV, Math.max(top, this.speed - 12 * dt));
 
     // turning: needs some speed, tighter at low speed, reversed when backing up
-    const grip = THREE.MathUtils.clamp(Math.abs(this.speed) / 5, 0, 1) * Math.max(0.25, 1 - Math.abs(this.speed) / (MAX_FWD * 2.4));
+    // turning: needs some speed; gentler at high speed so road driving doesn't twitch
+    const grip = THREE.MathUtils.clamp(Math.abs(this.speed) / 4, 0, 1) * Math.max(0.35, 1 - Math.abs(this.speed) / (MAX_ROAD * 1.6));
     this.heading -= this.steer * STEER * grip * Math.sign(this.speed) * dt;
 
     const prev = this.pos.clone();

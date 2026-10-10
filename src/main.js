@@ -244,20 +244,19 @@ wpBeam.visible = false;
 scene.add(wpBeam);
 
 /**
- * Phone driving, camera-relative like mobile GTA: push the stick towards where you want to go and the
- * van drives and turns that way; pull it back (towards the camera) and it reverses.
+ * Phone driving, GTA-style and relative to the van (not the camera, which keeps swinging behind it —
+ * camera-relative steering made the van chase its own tail): left/right steers, pushing up drives,
+ * pulling back reverses. Any push also gives gas, so a sideways tilt still drives, and even a light
+ * tilt beats rolling resistance. Analog with a soft curve: small tilts = gentle turns.
  */
-function stickDrive(stick, mag, yaw, van) {
-  const fx = -Math.sin(yaw), fz = -Math.cos(yaw); // camera forward on the ground
-  const dx = fx * -stick.y + -fz * stick.x, dz = fz * -stick.y + fx * stick.x; // stick → world direction
-  const want = Math.atan2(dx, dz);
-  const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
-  const diff = wrap(want - van.heading);
-  if (stick.y > 0.55 && Math.abs(stick.x) < 0.5) {
-    // pulled straight back: reverse, steering the tail towards the stick
-    return { throttle: -mag, steer: THREE.MathUtils.clamp(wrap(want - van.heading - Math.PI) * 2, -1, 1) };
-  }
-  return { throttle: mag * (Math.abs(diff) > 2.2 ? 0.45 : 1), steer: THREE.MathUtils.clamp(-diff * 2, -1, 1) };
+window.__stickDrive = (stick, mag) => stickDrive(stick, mag); // for tools/stick-smooth.mjs
+function stickDrive(stick, mag) {
+  const x = stick.x, y = stick.y;
+  const curve = (v) => Math.sign(v) * Math.pow(Math.abs(v), 1.6); // gentle near the centre
+  const reversing = y > 0.45 && Math.abs(x) < 0.75;
+  if (reversing) return { throttle: -(0.45 + 0.55 * y), steer: curve(x) };
+  const push = Math.max(-y, Math.abs(x) * 0.9, mag * 0.6); // forward part of the push
+  return { throttle: 0.42 + 0.58 * Math.min(1, push), steer: curve(x) };
 }
 
 const clock = new THREE.Clock();
@@ -281,7 +280,7 @@ function frame() {
     let throttle = k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown');
     let steer = k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft');
     const stickMag = Math.min(1, Math.hypot(stick.x, stick.y));
-    if (stickMag > 0.15) ({ throttle, steer } = stickDrive(stick, stickMag, input.yaw, ambulance));
+    if (stickMag > 0.12) ({ throttle, steer } = stickDrive(stick, stickMag));
     if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
     ambulance.update(dt, t, { throttle, steer });
     engine.set(ambulance.speed);
