@@ -46,13 +46,19 @@ export const KITS = {
     models: ['building-type-a', 'building-type-b', 'building-type-c', 'building-type-d', 'building-type-e', 'building-type-f', 'building-type-g', 'building-type-h', 'building-type-i', 'building-type-j', 'building-type-k', 'building-type-l', 'building-type-m', 'building-type-n', 'building-type-o', 'building-type-p', 'building-type-q', 'building-type-r', 'building-type-s', 'building-type-t', 'building-type-u',
       'driveway-long', 'driveway-short', 'fence-1x3', 'fence-2x3', 'fence-3x3', 'fence-low', 'fence', 'path-long', 'path-stones-long', 'planter', 'tree-large', 'tree-small'],
   },
+  industrial: {
+    dir: 'kenney_city-kit-industrial_2.0/Models/GLB format',
+    prefix: 'ind-', // its building names clash with the commercial kit
+    models: ['building-a', 'building-b', 'building-c', 'building-d', 'building-e', 'building-f', 'building-g', 'building-h', 'building-i', 'building-j', 'building-k', 'building-l',
+      'chimney-large', 'chimney-medium', 'detail-tank-large', 'detail-tank', 'shipping-container-a', 'shipping-container-b', 'shipping-container-c', 'water-tower'],
+  },
 };
 
 await MeshoptEncoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
 mkdirSync(join(ROOT, 'assets/kenney'), { recursive: true });
 const only = process.argv[2];
-for (const [kit, { dir, models }] of Object.entries(KITS)) {
+for (const [kit, { dir, models, prefix = '' }] of Object.entries(KITS)) {
   if (only && only !== kit) continue;
   const target = await io.read(join(SRC, dir, `${models[0]}.glb`));
   const scene = target.getRoot().getDefaultScene() ?? target.getRoot().listScenes()[0];
@@ -61,7 +67,7 @@ for (const [kit, { dir, models }] of Object.entries(KITS)) {
     for (const child of sc.listChildren()) { sc.removeChild(child); holder.addChild(child); }
     return holder;
   };
-  const first = wrap(scene, models[0]);
+  const first = wrap(scene, prefix + models[0]);
   scene.addChild(first);
   for (const name of models.slice(1)) {
     const src = await io.read(join(SRC, dir, `${name}.glb`));
@@ -69,7 +75,7 @@ for (const [kit, { dir, models }] of Object.entries(KITS)) {
     mergeDocuments(target, src);
     for (const sc of target.getRoot().listScenes()) {
       if (before.has(sc)) continue;
-      scene.addChild(wrap(sc, name));
+      scene.addChild(wrap(sc, prefix + name));
       sc.dispose();
     }
   }
@@ -82,4 +88,4 @@ for (const [kit, { dir, models }] of Object.entries(KITS)) {
   await io.write(out, target);
   console.log(`${kit}: ${models.length} models → assets/kenney/${kit}.glb (${(statSync(out).size / 1024).toFixed(0)} KB)`);
 }
-writeFileSync(join(ROOT, 'assets/kenney/LICENSE.txt'), 'Models by Kenney (www.kenney.nl) — Creative Commons Zero (CC0 1.0), https://creativecommons.org/publicdomain/zero/1.0/\nPacks: Nature Kit, City Kit (Roads), City Kit (Commercial), City Kit (Suburban), Car Kit, Fantasy Town Kit.\n');
+writeFileSync(join(ROOT, 'assets/kenney/LICENSE.txt'), 'Models by Kenney (www.kenney.nl) — Creative Commons Zero (CC0 1.0), https://creativecommons.org/publicdomain/zero/1.0/\nPacks: Nature Kit, City Kit (Roads), City Kit (Commercial), City Kit (Suburban), City Kit (Industrial), Car Kit, Fantasy Town Kit.\n');

@@ -14,9 +14,10 @@ const PALETTE = {
   wood: 0xb07a45, woodDark: 0x8a5a32, woodInner: 0xe8c89a,
 };
 export const KIT_SIZES = {}; // name → THREE.Vector3 bounding-box size (handy for placement)
+export const KIT_CENTERS = {}; // name → bounding-box centre in the model's own units
 /** City-building materials whose windows light up at night (daynight.js sets their emissiveIntensity). */
 export const NIGHT_MATS = new Set();
-const GLOW_KITS = new Set(['commercial', 'suburban']);
+const GLOW_KITS = new Set(['commercial', 'suburban', 'industrial']);
 const glowMaps = new Map();
 /** An emissive map that is black except the window-glass swatch (column 5, row 0 of the 8×8 atlas) in warm light. */
 function windowGlow(tex) {
@@ -32,7 +33,7 @@ function windowGlow(tex) {
   return t;
 }
 
-export async function loadKits(names = ['nature', 'roads', 'cars', 'town', 'commercial', 'suburban']) {
+export async function loadKits(names = ['nature', 'roads', 'cars', 'town', 'commercial', 'suburban', 'industrial']) {
   await Promise.all(names.map(async (kitName) => {
     try {
       const gltf = await gltfLoader.loadAsync(new URL(`../assets/kenney/${kitName}.glb`, import.meta.url).href);
@@ -58,7 +59,9 @@ export async function loadKits(names = ['nature', 'roads', 'cars', 'town', 'comm
         // three.js renames a node that shares its name with its child mesh ("stall" → "stall_1")
         const name = /_\d+$/.test(node.name) ? node.name.replace(/_\d+$/, '') : node.name;
         templates[name] = node;
-        KIT_SIZES[name] = new THREE.Box3().setFromObject(node).getSize(new THREE.Vector3());
+        const box = new THREE.Box3().setFromObject(node);
+        KIT_SIZES[name] = box.getSize(new THREE.Vector3());
+        KIT_CENTERS[name] = box.getCenter(new THREE.Vector3()); // some models aren't centred on their origin
       }
     } catch (e) {
       console.warn(`[kit] could not load ${kitName}`, e);

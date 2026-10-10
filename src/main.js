@@ -15,6 +15,7 @@ import { buildDowntown } from './downtown.js';
 import { buildSuburbs } from './suburbs.js';
 import { buildPier, FAIR } from './pier.js';
 import { buildCamp } from './camp.js';
+import { buildHarbor } from './harbor.js';
 import { loadKits } from './kit.js';
 import { BigMap } from './map.js';
 import { Career, achievementToast } from './career.js';
@@ -69,6 +70,7 @@ let downtown = null; // Zone 4, west of the park
 let suburbs = null; // Zone 5, Maple Heights (south of Zoo Road)
 let pier = null; // Zone 6, Sunset Pier
 let camp = null; // Zone 7, Pinewood Camp
+let harbor = null; // Zone 8, Wolfson Harbor
 let road = null; // Zoo Road, built from Kenney's road kit once the kits have loaded
 let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
@@ -508,6 +510,7 @@ function frame() {
   if (downtown) downtown.group.visible = !inside && player.pos.x < 60 && !window.__hide?.downtown;
   if (suburbs) suburbs.group.visible = !inside && player.pos.x > -10 && player.pos.z > -80 && !window.__hide?.suburbs;
   if (camp) camp.group.visible = !inside && player.pos.z < 0 && player.pos.x > -60 && !window.__hide?.camp;
+  if (harbor) harbor.group.visible = !inside && player.pos.x < 20 && player.pos.z > -40 && !window.__hide?.harbor;
   if (pier) {
     pier.group.visible = !inside && player.pos.x > -40 && player.pos.z > -20 && !window.__hide?.pier;
     FAIR.beam.material.opacity = Math.max(0, dayNight.night - 0.2) * 0.3; // the lighthouse sweeps at night
@@ -576,8 +579,10 @@ pier = buildPier(scene);
 animated.push(...pier.animated);
 camp = buildCamp(scene);
 animated.push(...camp.animated);
+harbor = buildHarbor(scene);
+animated.push(...harbor.animated);
 animated.push(...zoo.animated);
-dayNight.addLampHalos([...downtown.bulbs.map((b) => ({ ...b, parent: downtown.group })), ...suburbs.bulbs.map((b) => ({ ...b, parent: suburbs.group })), ...pier.bulbs.map((b) => ({ ...b, parent: pier.group })), ...camp.bulbs.map((b) => ({ ...b, parent: camp.group }))]);
+dayNight.addLampHalos([...downtown.bulbs.map((b) => ({ ...b, parent: downtown.group })), ...suburbs.bulbs.map((b) => ({ ...b, parent: suburbs.group })), ...pier.bulbs.map((b) => ({ ...b, parent: pier.group })), ...camp.bulbs.map((b) => ({ ...b, parent: camp.group })), ...harbor.bulbs.map((b) => ({ ...b, parent: harbor.group }))]);
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
 applyCosmetics(); // saved hats, paint, siren…
@@ -596,6 +601,7 @@ window.__game.downtown = downtown;
 window.__game.suburbs = suburbs;
 window.__game.pier = pier;
 window.__game.camp = camp;
+window.__game.harbor = harbor;
 window.__game.world = worldApi;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;

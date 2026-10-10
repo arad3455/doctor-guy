@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { toon, instanced, canvasTexture } from './toon.js';
 import { addBox, addCircle, cameraBlockers } from './world.js';
-import { scatter, KIT_SIZES } from './kit.js';
+import { scatter, KIT_SIZES, KIT_CENTERS } from './kit.js';
 
 /** Small deterministic random generator (same city every visit). */
 export function seeded(seed = 1) {
@@ -76,7 +76,10 @@ export function buildings(group, list, { outline = 0.012, blockers = [] } = {}) 
   for (const b of list) {
     const key = `${b.name}|${b.wall ?? ''}|${b.roof ?? ''}`;
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({ x: b.x, z: b.z, rot: (b.rot ?? 0) + Math.PI, scale: b.scale }); // Kenney's city models face -z
+    // Kenney's city models face -z (hence + π); shift off-centre models so their footprint is centred on x, z
+    const th = (b.rot ?? 0) + Math.PI, c = KIT_CENTERS[b.name];
+    const ox = c ? (c.x * Math.cos(th) + c.z * Math.sin(th)) * b.scale : 0, oz = c ? (-c.x * Math.sin(th) + c.z * Math.cos(th)) * b.scale : 0;
+    groups.get(key).push({ x: b.x - ox, z: b.z - oz, rot: th, scale: b.scale });
     const size = KIT_SIZES[b.name];
     if (!size) continue;
     const turned = Math.abs(Math.sin(b.rot ?? 0)) > 0.5;

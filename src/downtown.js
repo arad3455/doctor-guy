@@ -56,7 +56,7 @@ export function buildDowntown(scene) {
   for (const i of XS) street(cells, i, ZS[0], i, ZS[3]);
   for (const j of ZS) street(cells, XS[3], j, XS[0], j);
   street(cells, XS[0], 0, -1, 0); // Main Street → Zoo Road (its first tile is cell 0,0)
-  const { group: streetGroup, tiles } = buildStreets(cells, { extra: new Set(['0,0']) });
+  const { group: streetGroup, tiles } = buildStreets(cells, { extra: new Set(['0,0', `${XS[1]},${ZS[3] + 1}`]) }); // Zoo Road; Harbor Road (harbor.js)
   group.add(streetGroup);
   DT_MAP.streets = tiles;
 
@@ -167,13 +167,12 @@ export function buildDowntown(scene) {
   const m = DOWNTOWN;
   hedgeLine(group, m.max.x + 1.2, m.min.z, m.max.x + 1.2, m.max.z, { skip: (x, z) => Math.abs(z - DOWNTOWN.gateZ) < 4.5 });
   hedgeLine(group, m.min.x - 1, m.min.z - 1, m.max.x + 1, m.min.z - 1);
-  hedgeLine(group, m.min.x - 1, m.max.z + 1, m.max.x + 1, m.max.z + 1);
+  hedgeLine(group, m.min.x - 1, m.max.z + 1, m.max.x + 1, m.max.z + 1, { skip: (x) => Math.abs(x - gx(XS[1])) < 4.5 }); // gap: Harbor Road
   hedgeLine(group, m.min.x - 1, m.min.z, m.min.x - 1, m.max.z);
   const skyline = [];
   const lows = ['low-detail-building-a', 'low-detail-building-c', 'low-detail-building-e', 'low-detail-building-g', 'low-detail-building-wide-a', 'low-detail-building-wide-b'];
   for (let x = m.min.x - 8; x < m.max.x - 6; x += 9 + rand() * 4) {
     skyline.push({ name: rand.pick(lows), x, z: m.min.z - 12 - rand() * 8, rot: 0, scale: 12 + rand() * 6, wall: rand.pick(WALL_TINTS), noCollide: true });
-    if (x < -92) skyline.push({ name: rand.pick(lows), x, z: m.max.z + 12 + rand() * 6, rot: Math.PI, scale: 10 + rand() * 6, wall: rand.pick(WALL_TINTS), noCollide: true });
   }
   for (let z = m.min.z - 4; z < m.max.z + 6; z += 9 + rand() * 4) skyline.push({ name: rand.pick(lows), x: m.min.x - 12 - rand() * 8, z, rot: Math.PI / 2, scale: 12 + rand() * 6, wall: rand.pick(WALL_TINTS), noCollide: true });
   buildings(group, skyline, { outline: 0, blockers: [] });

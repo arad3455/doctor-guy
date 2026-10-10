@@ -5,6 +5,7 @@ import { part, toon, instanced, signTexture, canvasTexture, FONT } from './toon.
 import { rampAt } from './stunts.js';
 import { onPier } from './pier.js';
 import { inLake } from './camp.js';
+import { onJetty } from './harbor.js';
 
 export const WORLD = {
   half: 56, // park half-size (fence at half + 1)
@@ -77,16 +78,17 @@ export function inPond(x, z) {
 
 /** True where Doctor Guy is wading (pond or the shallow sea) — slower, and he sinks to the knees. */
 export function inWater(x, z) {
-  return inPond(x, z) || inLake(x, z) || (z > WORLD.shoreline + 1 && !onPier(x, z));
+  return inPond(x, z) || inLake(x, z) || (z > WORLD.shoreline + 1 && !onPier(x, z) && !onJetty(x, z));
 }
 
 /** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
-export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : z < -95 && x > 0 ? 'camp' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
+export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : z < -95 && x > 0 ? 'camp' : x < -88 && z > 51.5 ? 'harbor' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
 
 /** GTA-style location name for the corner label. */
 export function locationName(p) {
   if (p.z < -300) return p.z < -413.5 ? 'X-Ray · Wolfson Medical Center' : 'Wolfson Medical Center';
   if (p.z < -95 && p.x > 0) return campName(p);
+  if (p.x < -88 && p.z > 51.5) return p.x > -104 && p.z > 113 ? 'Harbor Jetty' : p.x < -150 && p.z > 80 ? 'Container Yard' : Math.abs(p.x + 132) < 10 && p.z > 92 ? 'Fish Market' : Math.abs(p.x + 111.5) < 4 ? 'Harbor Road' : 'Wolfson Harbor';
   if (p.x > 58 && p.x < 70 && p.z < -42) return 'Pine Road';
   if (p.x < -60) return downtownName(p);
   if (p.x > 117 && p.z > 113) return p.z > 165 ? 'Sunset Pier · Lighthouse' : 'Sunset Pier';
@@ -140,6 +142,9 @@ const WALKABLE = [
   { minX: 57, maxX: 117, minZ: 62, maxZ: 127 }, // …down to the water's edge
   { minX: 118.6, maxX: 127.4, minZ: 110, maxZ: 177.5 }, // the pier itself, out over the sea
   { minX: 60, maxX: 67, minZ: -100, maxZ: -40 }, // Pine Road, north off Zoo Road
+  { minX: -115.5, maxX: -107.5, minZ: 50, maxZ: 53 }, // Harbor Road, south out of Downtown
+  { minX: -199.5, maxX: -92, minZ: 52, maxZ: 115.5 }, // Wolfson Harbor's quay (harbor.js)
+  { minX: -102.6, maxX: -99.4, minZ: 114, maxZ: 139.5 }, // …and its jetty
   { minX: 9, maxX: 151, minZ: -217, maxZ: -98.5 }, // Pinewood Camp (camp.js)
   { minX: 115.5, maxX: 132.5, minZ: -52.6, maxZ: -40 }, // the zoo car park
   { minX: 137.5, maxX: 232.5, minZ: -45.5, maxZ: 45.5 }, // the zoo

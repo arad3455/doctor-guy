@@ -10,6 +10,7 @@ import { DOWNTOWN, DT_MAP } from './downtown.js';
 import { MH, MH_MAP } from './suburbs.js';
 import { FAIR } from './pier.js';
 import { CAMP } from './camp.js';
+import { HARBOR, HB_MAP } from './harbor.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -23,6 +24,7 @@ const ZONE_BLIPS = [
   { x: MH.mapleX, z: MH.oakZ, icon: '🏡', name: 'Maple Heights' },
   { x: FAIR.gate.x + 4, z: FAIR.gate.z, icon: '🎡', name: 'Sunset Pier' },
   { x: CAMP.site.x, z: CAMP.site.z, icon: '🏕️', name: 'Pinewood Camp' },
+  { x: HARBOR.roadX, z: 80, icon: '⚓', name: 'Wolfson Harbor' },
 ];
 export const ZONE_LABELS = [
   { x: 0, z: 12, text: 'WOLFSON PARK' },
@@ -35,6 +37,7 @@ export const ZONE_LABELS = [
   { x: 104, z: 16, text: 'MAPLE HEIGHTS' },
   { x: 121, z: 60.5, text: 'SUNSET PIER' },
   { x: 80, z: -208, text: 'PINEWOOD CAMP' },
+  { x: -146, z: 60, text: 'WOLFSON HARBOR' },
 ];
 const isInterior = (z) => z < -300;
 /** A wall tint → a slightly darker roof colour for the map. */
@@ -217,6 +220,23 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   rect(Cp.ranger.x - 3.3, Cp.ranger.z - 4.5, Cp.ranger.x + 3.3, Cp.ranger.z + 4.5, '#2f6b3a', '#1b3a20', Math.max(1, 0.3 * s));
   for (const [x, z, r] of Cp.trees) if (near(x, z, 6)) circle(x, z, r, '#2a7a30');
   if (s > 0.8) { text(Cp.site.x, Cp.site.z - 14, '⛺', Math.max(10, 3.5 * s)); text(Cp.falls.x, Cp.falls.z - 12, '💦', Math.max(10, 3 * s)); }
+
+  // ---- Wolfson Harbor: the quay, Harbor Road, warehouses, the container yard, fish market, the ship and jetty
+  const Hb = HARBOR;
+  rect(Hb.x0, Hb.z0, Hb.x1, Hb.z1, '#c4c8cc', '#8f98a2', Math.max(1, 0.3 * s));
+  line(Hb.x0, Hb.z1 - 1, Hb.x1, Hb.z1 - 1, '#ffd23f', Math.max(1, 0.3 * s));
+  rect(Hb.roadX - 3.55, 50.5, Hb.roadX + 3.55, 106.5, '#4a5058');
+  if (detail) line(Hb.roadX, 51, Hb.roadX, 106, '#ffffff', Math.max(1, 0.2 * s), [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)]);
+  rect(Hb.yard.x0 - 2, Hb.yard.z0 - 2, Hb.yard.x1 + 2, Hb.yard.z1 + 2, '#6a7078');
+  const cc = ['#e0453a', '#2f7fc1', '#4cc35a'];
+  HB_MAP.containers.forEach((c, i) => rect(c.x - c.l / 2, c.z - c.w / 2, c.x + c.l / 2, c.z + c.w / 2, cc[i % 3], '#1b1b1b', 0.6));
+  for (const b of HB_MAP.buildings) if (b.w) rect(b.x - b.w / 2, b.z - b.d / 2, b.x + b.w / 2, b.z + b.d / 2, b.wall ? roofColor(b.wall) : '#8d96a8', '#5b6573', Math.max(1, 0.3 * s));
+  rect(Hb.market.x - Hb.market.w / 2, Hb.market.z - Hb.market.d / 2, Hb.market.x + Hb.market.w / 2, Hb.market.z + Hb.market.d / 2, '#2f7fc1', '#ffffff', 1);
+  rect(Hb.jetty.x0, Hb.jetty.z0 - 1, Hb.jetty.x1, Hb.jetty.z1, '#b07a45', '#7a4a26', 0.8);
+  const sh = Hb.ship;
+  poly([[sh.x - sh.len / 2, sh.z - sh.beam / 2], [sh.x + sh.len / 2 - 6, sh.z - sh.beam / 2], [sh.x + sh.len / 2 + 2, sh.z], [sh.x + sh.len / 2 - 6, sh.z + sh.beam / 2], [sh.x - sh.len / 2, sh.z + sh.beam / 2]], '#c0392b', '#1b1b1b', Math.max(1, 0.3 * s));
+  rect(sh.x - sh.len / 2 + 1, sh.z - sh.beam / 2 + 1, sh.x - sh.len / 2 + 7, sh.z + sh.beam / 2 - 1, '#ffffff');
+  if (s > 0.8) { text(-171, 92, '🏗️', Math.max(10, 3.5 * s)); text(Hb.market.x, Hb.market.z, '🐟', Math.max(10, 3 * s)); }
 
   // ---- the hospital (with a soft shadow)
   shadow((c) => rect(-17, -57, 17, -47, c));

@@ -8,6 +8,7 @@ import { DT_SPOTS, DOWNTOWN } from './downtown.js';
 import { MH, MH_SPOTS, MH_MAP } from './suburbs.js';
 import { FAIR, PIER_SPOTS } from './pier.js';
 import { CAMP, CAMP_SPOTS } from './camp.js';
+import { HARBOR, HARBOR_SPOTS } from './harbor.js';
 import { kit } from './kit.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
@@ -392,6 +393,50 @@ export const MISSIONS = [
     treatment: { title: 'Ankle splint', speed: 1.15, zone: 0.18, steps: [{ icon: '🧊', label: 'Ice pack' }, { icon: '🪵', label: 'Splint it' }, { icon: '🩹', label: 'Wrap it tight' }] },
     deliver: 'hospital', reward: 10, bonusTime: 120,
   },
+
+  // ---------------- Zone 8: Wolfson Harbor (south of Downtown, down Harbor Road) ----------------
+  {
+    id: 'seasick', zone: 'harbor', name: 'Yarin', title: 'Seasick Sailor', look: 'glassesKid',
+    get at() { const g = HARBOR_SPOTS.gangway; return [g.x + 2.6, g.z - 1]; }, pose: 'sit', bubble: 'The ground is wobbly…', range: 2.4, tint: 0xd8f5c8,
+    blurb: 'Yarin just got off the ship and the whole world is still rocking.',
+    treatment: { title: 'Settle the seasickness', speed: 0.95, zone: 0.22, steps: [{ icon: '🌅', label: 'Look at the horizon' }, { icon: '🍪', label: 'A plain cracker' }, { icon: '💧', label: 'Little sips of water' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'fishslip', zone: 'harbor', name: 'Hila', title: 'Slippery Fish!', look: 'ponytail',
+    get at() { const m = HARBOR_SPOTS.market; return [m.x - 3, m.z + 0.6]; }, pose: 'sit', bubble: 'I slipped on a fish!', range: 2.4,
+    blurb: 'Hila stepped on a dropped fish at the fish market and landed on her elbow.',
+    treatment: { title: 'Fix Hila’s elbow', speed: 1.0, zone: 0.2, steps: [{ icon: '🐟', label: 'Move the fish!' }, { icon: '🧊', label: 'Ice the elbow' }, { icon: '🩹', label: 'Wrap it' }] },
+    deliver: null, reward: 4, bonusTime: 45,
+  },
+  {
+    id: 'container', zone: 'harbor', name: 'Dor', title: 'Stuck on a Container', look: 'capKid',
+    get at() { const c = HARBOR_SPOTS.climb; return [c.x, c.z]; }, get y() { return HARBOR_SPOTS.climb.top + 0.02; }, pose: 'cry', bubble: 'I climbed up… now what?', range: 3.6,
+    blurb: 'Dor climbed onto a shipping container in the yard and can’t get down. Stand below and catch him!',
+    treatment: { title: 'Catch Dor!', speed: 1.45, zone: 0.15, steps: [{ icon: '🫶', label: '"Jump, I got you!"' }, { icon: '🙌', label: 'Catch!' }] },
+    deliver: null, reward: 5, bonusTime: 50, special: 'catch',
+  },
+  {
+    id: 'rope', zone: 'harbor', name: 'Oren', title: 'Rope Burn', look: 'redShirt',
+    get at() { const b = HARBOR_SPOTS.bollards.find((v) => v.x > -150) ?? HARBOR_SPOTS.bollards[0]; return [b.x + 1.4, b.z - 1.6]; }, pose: 'cry', bubble: 'The rope burned me!', range: 2.4,
+    blurb: 'Oren tried to help pull a mooring rope and it slid right through his hands.',
+    treatment: { title: 'Rope-burn care', speed: 1.0, zone: 0.2, steps: [{ icon: '🚰', label: 'Cool water — hold', mode: 'hold' }, { icon: '🧴', label: 'Soothing gel' }, { icon: '🧤', label: 'Gloves next time!' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'crabtrap', zone: 'harbor', name: 'Neta', title: 'Crab Trap Pinch', look: 'pinkHat',
+    get at() { return [HARBOR.jetty.x0 + 2.4, HARBOR.jetty.z1 - 6]; }, pose: 'cry', bubble: 'It won’t let go!', range: 2.4, prop: 'crab',
+    blurb: 'Neta peeked into a crab trap at the end of the jetty — and a crab peeked back.',
+    treatment: { title: 'Free Neta’s finger', speed: 1.1, zone: 0.18, steps: [{ icon: '🦀', label: 'Gently open the claw' }, { icon: '🌊', label: 'Rinse it' }, { icon: '🩹', label: 'Bandage' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'gullpoop', zone: 'harbor', name: 'Itamar', title: 'Seagull Surprise', look: 'bandageBoy',
+    at: [-140, 108], pose: 'cry', bubble: 'A seagull… on my HEAD!', range: 2.4,
+    blurb: 'A seagull scored a direct hit on Itamar’s head. Gross — but very lucky!',
+    treatment: { title: 'Clean-up time', speed: 0.9, zone: 0.24, steps: [{ icon: '🧻', label: 'Wipe it off' }, { icon: '🧼', label: 'Wash the hair' }, { icon: '🍀', label: '"That’s good luck!"' }] },
+    deliver: null, reward: 3, bonusTime: 40,
+  },
 ];
 
 /** Something a grown-up carries: a shopping bag or a briefcase (held at the right hand). */
@@ -736,6 +781,23 @@ export class MissionSystem {
       this.ambient.push({ kid: fisher2, mode: 'camper' });
     }
 
+    // ---- Wolfson Harbor: a kid fishing off the jetty, a dock worker walking the quay
+    {
+      const kid = buildKid('capKid');
+      kid.root.position.set(HARBOR.jetty.x1 - 0.5, 0.12, HARBOR.jetty.z0 + 12);
+      kid.root.rotation.y = Math.PI / 2;
+      const rod3 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 2.6, 5), toon(0x7a4a26));
+      rod3.position.set(0.25, 1.4, 1.0);
+      rod3.rotation.x = 0.9;
+      kid.root.add(rod3);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'camper' });
+      const worker = buildKid('nurse');
+      this.group.add(worker.root);
+      worker.root.add(makeCarry('case'));
+      this.ambient.push({ kid: worker, mode: 'patrol', from: [HARBOR.x0 + 6, HARBOR.z1 - 2.2], to: [HARBOR.x1 - 8, HARBOR.z1 - 2.2], speed: 1.4, phase: 0.2, walk: true, adult: true });
+    }
+
     const builder = buildKid('gownKid');
     builder.root.position.set(BEACH.castles.x - 2.4, 0, BEACH.castles.z - 1.2);
     builder.root.rotation.y = 1.2;
@@ -782,7 +844,9 @@ export class MissionSystem {
       [84.5, -20], [84.5, 10], [84.5, 25], [100, -2], [112, 33], [70, 33], [119.5, 15], [72, -2],
       [100, 72], [124, 84], [146, 90], [140, 104], [123, 130], [123, 148], [123, 164], [94, 98],
       // Pine Road and Pinewood Camp
-      [63.5, -55], [63.5, -75], [63.5, -95], [52, -126], [46, -140], [70, -158], [80, -136], [104, -134], [130, -160], [90, -176], [80, -184], [128, -140]];
+      [63.5, -55], [63.5, -75], [63.5, -95], [52, -126], [46, -140], [70, -158], [80, -136], [104, -134], [130, -160], [90, -176], [80, -184], [128, -140],
+      // Harbor Road and the quay
+      [-111.5, 60], [-111.5, 80], [-111.5, 98], [-125, 110], [-160, 110], [-185, 110], [-101, 125], [-170, 78], [-135, 88]];
     spots.forEach(([x, z], i) => {
       const g = new THREE.Group();
       const candy = part(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 20), colors[i % colors.length], { outline: 0.03 });
@@ -883,6 +947,7 @@ export class MissionSystem {
         suburbs: '🏡 Zone 5 — Maple Heights<br><small>Trampolines, treehouses and the school — what could go wrong?</small>',
         pier: '🎡 Zone 6 — Sunset Pier<br><small>Rides, cotton candy and a pier out over the sea!</small>',
         camp: '🌲 Zone 7 — Pinewood Camp<br><small>Campfires, canoes and a waterfall deep in the woods</small>',
+        harbor: '⚓ Zone 8 — Wolfson Harbor<br><small>Ships, cranes, containers and the fish market</small>',
         hospital: '🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>',
       }[zone] ?? '🌳 The Park', 3000);
       this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
