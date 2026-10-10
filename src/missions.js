@@ -631,20 +631,37 @@ export class MissionSystem {
     player.facing = Math.atan2(w.x - player.pos.x, w.z - player.pos.z);
     const rig = player.rig;
     const tall = a.mode !== 'swing' && a.mode !== 'float';
-    if (tall) await sleep(Math.min(0.8, rig.kneel?.() ?? 0)); // down to kid height
-    const listen = makeBubble('🩺 ♥ ♥ ♥', { w: 300, bg: '#ffe3ec' });
-    listen.position.y = a.kid.height + 0.9;
-    a.kid.root.add(listen);
-    sfx.heartbeat();
-    await sleep(1.5);
-    a.kid.root.remove(listen);
-    const [icon, text] = CHECKUP_RESULTS[Math.floor(Math.random() * CHECKUP_RESULTS.length)];
-    const result = makeBubble(`${icon} ${text}`, { w: 460, bg: '#e8fff0' });
-    result.scale.multiplyScalar(1.15);
-    result.position.y = a.kid.height + 0.9;
-    a.kid.root.add(result);
-    setTimeout(() => a.kid.root.remove(result), 3000);
-    if (tall) await sleep((rig.standUp?.() ?? 0) * 0.7);
+    let result;
+    if (rig.checkup) {
+      // stand so the stethoscope lands on the kid's chest, then play the listening motion
+      if (tall) {
+        const dir = new THREE.Vector3(player.pos.x - w.x, 0, player.pos.z - w.z).normalize();
+        player.pos.set(w.x + dir.x * (rig.checkupReach + 0.15), player.pos.y, w.z + dir.z * (rig.checkupReach + 0.15));
+        player.facing = Math.atan2(-dir.x, -dir.z);
+      }
+      rig.checkup(1.15);
+      await rig.untilClip(0.36); // reaching in…
+      const listen = makeBubble('🩺 ♥ ♥ ♥', { w: 300, bg: '#ffe3ec' });
+      listen.position.y = a.kid.height + 0.9;
+      a.kid.root.add(listen);
+      sfx.heartbeat();
+      await rig.untilClip(0.62); // …listening…
+      a.kid.root.remove(listen);
+      result = this.showCheckupResult(a);
+      await rig.untilClip(0.95); // …and back up
+      rig.hideStethoscope();
+    } else {
+      if (tall) await sleep(Math.min(0.8, rig.kneel?.() ?? 0));
+      const listen = makeBubble('🩺 ♥ ♥ ♥', { w: 300, bg: '#ffe3ec' });
+      listen.position.y = a.kid.height + 0.9;
+      a.kid.root.add(listen);
+      sfx.heartbeat();
+      await sleep(1.5);
+      a.kid.root.remove(listen);
+      result = this.showCheckupResult(a);
+      if (tall) await sleep((rig.standUp?.() ?? 0) * 0.7);
+    }
+    const [icon, text] = result;
     player.frozen = false;
     this.busy = false;
     animateRig(a.kid, 'cheer', 0, 0);
@@ -654,6 +671,16 @@ export class MissionSystem {
       this.checkups = (this.checkups ?? 0) + 1;
       this.ui.career?.checkup(a.name, `${icon} ${text}`);
     } else this.ui.toast(`${a.name}: “You already checked me, Doc!” 😄`, 1800);
+  }
+
+  showCheckupResult(a) {
+    const [icon, text] = CHECKUP_RESULTS[Math.floor(Math.random() * CHECKUP_RESULTS.length)];
+    const bubble = makeBubble(`${icon} ${text}`, { w: 460, bg: '#e8fff0' });
+    bubble.scale.multiplyScalar(1.15);
+    bubble.position.y = a.kid.height + 0.9;
+    a.kid.root.add(bubble);
+    setTimeout(() => a.kid.root.remove(bubble), 3000);
+    return [icon, text];
   }
 
   dropPos(def) { return def.deliver === 'mom' ? this.mom.root.position : DROPS[def.deliver].pos; }

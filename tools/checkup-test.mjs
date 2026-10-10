@@ -20,8 +20,20 @@ await wait(800);
 const prompt = await g(() => document.getElementById('prompt').textContent);
 const pops = await g(() => __game.missions.lollipops);
 await page.keyboard.press('KeyE');
-await wait(1600);
+// side camera on Doctor Guy and the kid, shot while he's listening
+await g(() => {
+  __game.follow.update = () => {
+    const p = __game.player, c = __game.follow.camera;
+    const f = { x: Math.sin(p.facing), z: Math.cos(p.facing) }, r = { x: f.z, z: -f.x };
+    const mid = p.pos.clone().add({ x: f.x * 0.8, y: 1.3, z: f.z * 0.8 });
+    c.position.set(mid.x + r.x * 3.6, 1.7, mid.z + r.z * 3.6);
+    c.lookAt(mid);
+  };
+});
+await page.waitForFunction(() => __game.missions.ambient.some((a) => a.checking && a.kid.root.children.some((c) => c.isSprite)), { timeout: 20000 });
+await wait(900);
 await page.screenshot({ path: '.shots/checkup-1-listen.png' });
+await g(() => { delete __game.follow.update; });
 await page.waitForFunction(() => !__game.missions.busy, { timeout: 20000 });
 await wait(400);
 await page.screenshot({ path: '.shots/checkup-2-result.png' });

@@ -5,5 +5,7 @@
   "anim_kneel": "01a12116-9e6a-7009-976a-d2328ded5400",
   "anim_pickup": "01a12116-bb5f-7792-89c1-82f91410aa0c",
   "anim_cheer": "01a12116-ee39-76ee-b9a0-8d2915bd4e35",
-  "anim_wave": "01a12117-2039-7498-917d-f6f97b61ce63"
+  "anim_wave": "01a12117-2039-7498-917d-f6f97b61ce63",
+  "motion_stethoscope": "01a12559-fdd4-739b-bba5-669bca74e9ee",
+  "anim_stethoscope": "01a1255a-30fb-75dd-a78b-0a44448167fb"
 }

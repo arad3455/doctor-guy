@@ -8,6 +8,7 @@
     "kneel": "anims/kneel.glb",
     "pickup": "anims/pickup.glb",
     "cheer": "anims/cheer.glb",
-    "wave": "anims/wave.glb"
+    "wave": "anims/wave.glb",
+    "stethoscope": "anims/stethoscope.glb"
   }
 }

@@ -210,6 +210,8 @@ export function createAnimator(model, clips, stateClips) {
   return {
     actions,
     get current() { return current; },
+    /** Progress 0..1 of the playing one-shot clip (1 when none). */
+    get progress() { return oneShot ? Math.min(1, oneShot.action.time / oneShot.action.getClip().duration) : 1; },
     playOnce,
     /** Ends the current one-shot early so the normal state animation blends back in. */
     endOnce() { if (oneShot && !oneShot.hold) oneShot.end = t; },
