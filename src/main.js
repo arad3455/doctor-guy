@@ -11,7 +11,6 @@ import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
 import { DoorNurses } from './nurses.js';
 import { buildRoad, buildZoo, inZoo, ZOO } from './zoo.js';
 import { loadKits } from './kit.js';
-import { Traffic } from './traffic.js';
 import { BigMap } from './map.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
@@ -55,7 +54,6 @@ park.add(entryGate.group);
 animated.push(entryGate);
 const beach = buildBeach(scene);
 let road = null; // Zoo Road, built from Kenney's road kit once the kits have loaded
-let traffic = null; // cars driving Zoo Road
 let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
 const input = new Input(canvas);
@@ -327,7 +325,6 @@ function frame() {
   beach.group.visible = !inside && player.pos.z > 25 && player.pos.x < 110;
   beach.sea.visible = !inside;
   if (road) road.group.visible = !inside;
-  if (traffic) { traffic.group.visible = !inside; if (started && !inside) traffic.update(dt, { player, ambulance }); }
   if (zoo) zoo.group.visible = !inside && player.pos.x > 70;
   base.visible = !inside;
   ambulance.root.visible = !inside;
@@ -367,7 +364,6 @@ frame();
 // Characters load in parallel; the Start button unlocks when they're in
 await Promise.all([doctorReady, preloadKids(), ambulanceReady, loadKits()]);
 road = buildRoad(scene);
-traffic = new Traffic(scene);
 hospital = await buildHospital(scene);
 zoo = await buildZoo(scene);
 animated.push(...zoo.animated);
@@ -382,7 +378,6 @@ window.__game.hospital = hospital;
 window.__game.nurses = nurses;
 window.__game.zoo = zoo;
 window.__game.bigMap = bigMap;
-window.__game.traffic = traffic;
 window.__game.hud = hud;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;

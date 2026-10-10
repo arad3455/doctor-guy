@@ -6,12 +6,12 @@ import { part, toon } from './toon.js';
 import { getColliders, clampWalkable, inPond, WORLD } from './world.js';
 
 const LENGTH = 7; // game units (Doctor Guy is 2.45 tall)
-const MAX_FWD = 17;
-const MAX_ROAD = 30; // on Zoo Road
+const MAX_FWD = 12.5;
+const MAX_ROAD = 21; // on Zoo Road
 const onOpenRoad = (p) => p.x > -24 && p.x < 137 && Math.abs(p.z + 37) < 3.6; // all of Zoo Road
-const MAX_REV = 6;
-const ACCEL = 9;
-const ACCEL_ROAD = 15;
+const MAX_REV = 5;
+const ACCEL = 7;
+const ACCEL_ROAD = 10;
 const BRAKE = 22;
 const DRAG = 3.2;
 const STEER = 1.9; // rad/s at full lock and speed

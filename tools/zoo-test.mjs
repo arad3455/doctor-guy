@@ -21,8 +21,8 @@ const drive = await g(() => {
   const a = __game.ambulance;
   const start = a.pos.clone();
   let t = 0;
-  a.siren = true; // emergency run: traffic pulls over
-  while (a.pos.x < 136 && t < 30) { a.update(1 / 60, t, { throttle: 1, steer: 0 }); __game.traffic.update(1 / 60, { player: __game.player, ambulance: a }); t += 1 / 60; }
+  a.siren = true;
+  while (a.pos.x < 136 && t < 30) { a.update(1 / 60, t, { throttle: 1, steer: 0 }); t += 1 / 60; }
   a.siren = false;
   return { from: start.toArray().map((v) => +v.toFixed(1)), to: a.pos.toArray().map((v) => +v.toFixed(1)), seconds: +t.toFixed(1), heading: +a.heading.toFixed(2) };
 });
@@ -96,7 +96,6 @@ await page.keyboard.press('KeyM');
 await wait(800);
 await shot('12-waypoint');
 const info = await g(() => document.getElementById('waypoint-info').textContent);
-console.log('traffic:', JSON.stringify(await g(() => __game.traffic.cars.map((c) => ({ x: +c.x.toFixed(0), speed: +c.speed.toFixed(1), hidden: c.hidden })))));
 console.log('map open:', open, '→ waypoint', JSON.stringify(wp), '→', info);
 console.log('ERRORS:', errors.length ? errors : 'none');
 await browser.close();
