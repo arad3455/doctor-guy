@@ -18,6 +18,11 @@ const KEY = process.env.MESHY_API_KEY ?? dotenv.match(/^MESHY_API_KEY=(.+)$/m)?.
 if (!KEY) { console.error('Set MESHY_API_KEY in .env'); process.exit(1); }
 
 export const PROPS = {
+  xray: {
+    polycount: 8000,
+    prompt: 'A hospital X-ray machine: a flat padded examination table on a white base, with a big X-ray tube head on an arm reaching over the table from a tall column at one end, a small control panel. White and light-grey with yellow radiation warning stickers. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',
+    texture: 'White and light-grey X-ray machine and table, light-blue padded tabletop, small yellow warning stickers.',
+  },
   bed: {
     polycount: 8000,
     prompt: 'A modern hospital bed for children: white metal frame with side rails, a light-blue mattress and white pillow, a folded light-blue blanket at the foot, small wheels, a headboard. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',

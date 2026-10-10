@@ -63,7 +63,7 @@ await wait(600);
 console.log('before pressure:', await g(() => JSON.stringify({ prompt: document.getElementById('prompt').textContent, busy: __game.missions.busy, p: __game.player.pos.toArray().map((v) => +v.toFixed(2)), kid: __game.missions.missions.find((m) => m.def.id === 'pressure').kid.root.position.toArray().map((v) => +v.toFixed(2)), state: __game.missions.missions.find((m) => m.def.id === 'pressure').state, blood: __game.missions.missions.find((m) => m.def.id === 'blood').state })));
 await tap('#btn-action');
 await page.waitForFunction(() => __game.minigame.active, { timeout: 8000 });
-for (let i = 0; i < 80 && (await g(() => __game.minigame.active)); i++) {
+for (let i = 0; i < 200 && (await g(() => __game.minigame.active)); i++) {
   const mode = await g(() => __game.minigame.mode);
   if (mode === 'mash') {
     await page.touchscreen.tap(vw / 2, vh * 0.3);
@@ -72,6 +72,7 @@ for (let i = 0; i < 80 && (await g(() => __game.minigame.active)); i++) {
   }
   else { await g(() => { const m = __game.minigame; m.pos = m.zoneX + m.zoneW / 2; m.dir = 0; }); await page.touchscreen.tap(vw / 2, vh * 0.3); await wait(300); }
 }
+await page.waitForFunction(() => !__game.missions.busy, { timeout: 20000 }).catch(() => {});
 await wait(600);
 const pressure = await g(() => __game.missions.missions.find((m) => m.def.id === 'pressure').state);
 console.log('mash state:', await g(() => JSON.stringify({ active: __game.minigame.active, step: __game.minigame.step, mode: __game.minigame.mode, misses: __game.minigame.misses, pos: +__game.minigame.pos.toFixed(2), t: +__game.minigame.mashTime.toFixed(2) })));

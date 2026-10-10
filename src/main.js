@@ -7,7 +7,8 @@ import { MiniGame } from './minigame.js';
 import { HUD } from './hud.js';
 import { initAudio, sfx, engine, siren } from './audio.js';
 import { Ambulance, PARKING } from './vehicle.js';
-import { buildHospital, INTERIOR, isInside } from './hospital.js';
+import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
+import { DoorNurses } from './nurses.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -42,6 +43,12 @@ scene.add(sun.target);
 const { world: park, base, animated, swingSeats } = buildWorld(scene);
 const OUTDOOR_BG = null, INDOOR_BG = new THREE.Color(0x2c3a4c);
 let hospital = null; // the interior, built once the kids (and the nurse) have loaded
+let nurses = null; // nurses who come out when they hear the siren
+// A blue gate in the hospital doorway so you can see you can go inside
+const entryGate = makeGate(0x3fa9ff, '🏥 ENTER', { width: 4.4, height: 3.5, labelY: 6.4, labelSize: 4 }); // label clears the canopy
+entryGate.group.position.set(0, 0, -46.75);
+park.add(entryGate.group);
+animated.push(entryGate);
 const beach = buildBeach(scene);
 animated.push(...beach.animated);
 const input = new Input(canvas);
@@ -167,6 +174,7 @@ const ui = {
   vehicleAction,
   extraAction,
   get hospital() { return hospital; },
+  onHospitalHandover: () => nurses?.escort(),
   swingSeats,
   minigame,
   toast: (h, ms) => hud.toast(h, ms),
@@ -195,6 +203,8 @@ function start() {
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
 document.getElementById('restart').addEventListener('click', () => {
   resetAmbulance();
+  nurses?.reset();
+  hospital?.showFilm('off');
   if (isInside(player.pos)) player.pos.copy(INTERIOR.exitTo);
   player.reset();
   missions.reset();
@@ -265,6 +275,7 @@ function frame() {
 
   // Streaming: only draw a zone's props when you're near it (the sea/sand horizon always stays)
   const inside = isInside(player.pos);
+  if (started) nurses?.update(dt, t, { inside });
   park.visible = !inside && player.pos.z < 105;
   beach.group.visible = !inside && player.pos.z > 25;
   beach.sea.visible = !inside;
@@ -290,9 +301,13 @@ await Promise.all([doctorReady, preloadKids(), ambulanceReady]); // kids fall ba
 hospital = await buildHospital(scene);
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
+nurses = new DoorNurses(scene, ambulance, {
+  onCallout: () => hud.toast('🏥 The nurses heard the siren — they’re coming out to meet you!', 2600),
+});
 missions = new MissionSystem(scene, player, ui);
 window.__game.missions = missions;
 window.__game.hospital = hospital;
+window.__game.nurses = nurses;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades

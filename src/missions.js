@@ -140,6 +140,22 @@ export const MISSIONS = [
     treatment: { title: 'Avi’s blood pressure', speed: 1.05, zone: 0.2, steps: [{ icon: '🩺', label: 'Wrap the cuff' }, { icon: '💪', label: 'Pump the cuff — tap fast!', mode: 'mash' }, { icon: '📟', label: 'Read the monitor' }] },
     deliver: null, reward: 4, bonusTime: 50,
   },
+  {
+    id: 'wrist', zone: 'hospital', name: 'Noga', title: 'X-ray: Sore Wrist', look: 'pinkHat',
+    spot: 'xtable', pose: 'sit', bubble: 'My wrist hurts', range: 2.8, xray: true, film: 'wrist',
+    blurb: 'Noga fell off her scooter. Take an X-ray of her wrist in the X-Ray room.',
+    done: 'Just a sprain — no broken bones! 🩹',
+    treatment: { title: 'Noga’s wrist X-ray', speed: 1.0, zone: 0.2, steps: [{ icon: '🦺', label: 'Lead apron on' }, { icon: '🎯', label: 'Line up the wrist' }, { icon: '📸', label: 'Take the X-ray — hold still', mode: 'hold' }, { icon: '🖼️', label: 'Read the scan' }] },
+    deliver: null, reward: 5, bonusTime: 55,
+  },
+  {
+    id: 'coin', zone: 'hospital', name: 'Ben', title: 'X-ray: Swallowed a Coin', look: 'redShirt',
+    spot: 'xstand', pose: 'idle', bubble: 'I swallowed a coin!', range: 2.6, xray: true, film: 'coin',
+    blurb: 'Ben swallowed a coin! Find it with the chest X-ray in the X-Ray room.',
+    done: 'There it is! It will pass on its own 🪙',
+    treatment: { title: 'Find Ben’s coin', speed: 1.05, zone: 0.2, steps: [{ icon: '🧍', label: 'Stand against the panel' }, { icon: '📸', label: 'Take the X-ray — hold still', mode: 'hold' }, { icon: '🔍', label: 'Spot the coin' }, { icon: '🍌', label: 'Banana and lots of water' }] },
+    deliver: null, reward: 5, bonusTime: 55,
+  },
 ];
 
 const BEACON_MAT = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 0.22, depthWrite: false });
@@ -487,6 +503,8 @@ export class MissionSystem {
       this.deliverBeacon.position.set(target.x, 20, target.z);
     }
 
+    this.ui.hospital?.setXrayInUse(this.missions.some((m) => m.def.xray && m.state !== 'done'));
+
     this.handleInteraction(input);
 
     if (!this.finished && this.rescued === this.total) {
@@ -630,7 +648,10 @@ export class MissionSystem {
     if (m.def.deliver !== 'mom') {
       const d = DROPS[m.def.deliver];
       this.leaving.push({ kid: m.kid, to: d.walkTo, vanish: m.def.deliver === 'hospital' });
-      if (m.def.deliver === 'hospital') this.ui.hospital?.admit(m.def.look); // they'll be resting in the Ward
+      if (m.def.deliver === 'hospital') {
+        this.ui.hospital?.admit(m.def.look); // they'll be resting in the Ward
+        this.ui.onHospitalHandover?.(); // nurses waiting outside walk them in
+      }
     } else {
       m.kid.root.position.copy(this.mom.root.position).add(new THREE.Vector3(0.8, 0, 0.5));
       m.kid.root.rotation.y = this.mom.root.rotation.y;
@@ -662,13 +683,15 @@ export class MissionSystem {
     if (!m.misses) { reward += 1; bonuses.push('🎯 perfect'); }
     if (m.byAmbulance) { reward += 1; bonuses.push('🚑 ambulance'); }
     this.lollipops += reward;
+    if (m.def.film) this.ui.hospital?.showFilm(m.def.film); // the scan lights up on the lightbox
     const thanks = makeBubble('Thanks Dr. Guy!', { w: 380, bg: '#fffbe0' });
     thanks.scale.multiplyScalar(1.3);
     thanks.position.y = m.kid.height + 0.9;
     m.kid.root.add(thanks);
     setTimeout(() => m.kid.root.remove(thanks), 3500);
     sfx.success();
-    this.ui.toast(`✅ ${m.def.name} is safe! +${reward} 🍭${bonuses.length ? `<br><small>${bonuses.join(' · ')}</small>` : ''}`, 2600);
+    const extra = [m.def.done, bonuses.join(' · ')].filter(Boolean).join('<br>');
+    this.ui.toast(`✅ ${m.def.name} is ${m.def.zone === 'hospital' ? 'all checked' : 'safe'}! +${reward} 🍭${extra ? `<br><small>${extra}</small>` : ''}`, m.def.done ? 3400 : 2600);
     this.nextSpawn = Math.min(this.nextSpawn, this.time + 6);
   }
 }

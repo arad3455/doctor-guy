@@ -76,6 +76,7 @@ for (const id of ids) {
     const k = m.kid.root.position;
     if (id === 'tower') __game.player.pos.set(-13.2, 0, 7.5);
     else if (m.def.water || id === 'pond') __game.player.pos.set(k.x, 0, k.z - 1.6);
+    else if (m.def.spot) { const yaw = m.kid.root.rotation.y; __game.player.pos.set(k.x + Math.sin(yaw) * 1.7, 0, k.z + Math.cos(yaw) * 1.7); } // stand in front of seated/standing patients
     else __game.player.pos.set(k.x, 0, k.z - 1.5);
     __game.player.vel.set(0, 0, 0);
     if (!m.found) { m.found = true; m.bubble.visible = m.icon.visible = m.beacon.visible = true; }

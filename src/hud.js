@@ -134,6 +134,20 @@ export class HUD {
       for (const [x1, z1, x2, z2] of this.plan.walls) { ctx.beginPath(); ctx.moveTo(tx(x1), tz(z1)); ctx.lineTo(tx(x2), tz(z2)); ctx.stroke(); }
     }
 
+    // The hospital entrance: a blue "H" you can find from anywhere outside
+    if (player.pos.z > -300) {
+      const hx = tx(0), hz = tz(-46.5);
+      ctx.fillStyle = '#3fa9ff';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(hx - 8, hz - 8, 16, 16, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('H', hx, hz + 1);
+    }
+
     // The ambulance (when you're not in it)
     const amb = this.ambulance;
     if (amb && !amb.driving) {

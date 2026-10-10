@@ -28,6 +28,7 @@ const PROP_FIT = {
   desk: { length: 3.9, yaw: 0 },
   scale: { height: 2.3, yaw: 0 },
   chair: { height: 1.35, yaw: 0 },
+  xray: { length: 3.6, yaw: 0 },
 };
 
 export async function buildHospital(scene) {
@@ -52,6 +53,7 @@ export async function buildHospital(scene) {
     { name: 'Exam', x0: -18, x1: -6, z0: -14, z1: 0, color: '#dff3e2', line: '#c4e3c9', map: '#cdebd2' },
     { name: 'Lab', x0: -18, x1: -6, z0: 0, z1: 14, color: '#ece3f6', line: '#d6c8ea', map: '#ddd0f0' },
     { name: 'Ward', x0: 6, x1: 18, z0: -14, z1: 14, color: '#dfeefa', line: '#c5dcf0', map: '#cfe4f6' },
+    { name: 'X-Ray', x0: -6, x1: 6, z0: -26, z1: -14, color: '#e9edf2', line: '#cfd6df', map: '#d6dde6' },
   ];
   for (const r of rooms) {
     const w = r.x1 - r.x0, d = r.z1 - r.z0;
@@ -90,7 +92,8 @@ export async function buildHospital(scene) {
     plan.walls.push([O.x + x1, O.z + z1, O.x + x2, O.z + z2]);
   };
   const { halfX: X, halfZ: Z } = INTERIOR;
-  wall(-X, -Z, X, -Z); // north
+  wall(-X, -Z, 2.2, -Z); wall(4.6, -Z, X, -Z); // north, with the doorway to X-ray
+  wall(-6, -26, 6, -26); wall(-6, -26, -6, -Z); wall(6, -26, 6, -Z); // X-ray room
   wall(-X, -Z, -X, Z); // west
   wall(X, -Z, X, Z); // east
   wall(-X, Z, -2.2, Z); wall(2.2, Z, X, Z); // south, with the entrance
@@ -127,10 +130,12 @@ export async function buildHospital(scene) {
   sign('WARD', 5.82, -7, -Math.PI / 2, { bg: '#3a9c5a' });
   sign('WARD', 5.82, 7, -Math.PI / 2, { bg: '#3a9c5a' });
   sign('EXIT', 0, Z - 0.17, Math.PI, { bg: '#2e9c3c', w: 1.6 });
+  sign('X-RAY ☢', 3.4, -Z + 0.17, 0, { bg: '#f2c200', fg: '#1b1b1b', w: 2.2 });
   const poster = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.9), new THREE.MeshBasicMaterial({
     map: signTexture(['WOLFSON MEDICAL CENTER', 'Small Patients · Big Dreams'], { w: 1024, h: 384, size: 70, fg: '#1e3fa0', bg: '#fff8e6' }),
   }));
-  poster.position.copy(W(0, -Z + 0.17, 2.1));
+  poster.scale.setScalar(0.85);
+  poster.position.copy(W(-2.2, -Z + 0.17, 2.1));
   group.add(poster);
   const chart = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshBasicMaterial({
     map: canvasTexture(256, 360, (ctx, w, h) => {
@@ -235,12 +240,66 @@ export async function buildHospital(scene) {
     group.add(rail);
   }
 
+  // X-ray room: the machine, a standing chest X-ray panel, a lightbox, lead aprons, an "in use" light
+  const xray = place('xray', -1.2, -21.5, 0);
+  {
+    const b = new THREE.Box3().setFromObject(xray);
+    addBox((b.min.x + b.max.x) / 2, (b.min.z + b.max.z) / 2, b.max.x - b.min.x, b.max.z - b.min.z);
+  }
+  const stand = new THREE.Group();
+  const panel = part(new THREE.BoxGeometry(1.3, 1.6, 0.25), 0xe9edf2, { outline: 0.02 });
+  panel.position.y = 1.55;
+  const frame = part(new THREE.BoxGeometry(1.45, 1.75, 0.18), 0x9aa3ad, { outline: 0 });
+  frame.position.set(0, 1.55, -0.06);
+  const column = part(new THREE.BoxGeometry(0.25, 2.6, 0.25), 0x9aa3ad, { outline: 0.015 });
+  column.position.set(0, 1.3, -0.25);
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.3), toon(0xcfe3ff));
+  plate.position.set(0, 1.55, 0.13);
+  stand.add(panel, frame, column, plate);
+  stand.position.copy(W(4, -25.2));
+  group.add(stand);
+  addBox(O.x + 4, O.z - 25.3, 1.6, 0.8);
+  // lightbox on the west wall: shows the latest scan
+  const films = {
+    off: canvasTexture(256, 192, (ctx, w, h) => { ctx.fillStyle = '#1c2633'; ctx.fillRect(0, 0, w, h); }),
+    wrist: xrayFilm('wrist'),
+    coin: xrayFilm('coin'),
+  };
+  const lightbox = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.35), new THREE.MeshBasicMaterial({ map: films.off }));
+  lightbox.position.copy(W(-5.83, -18.5, 1.9));
+  lightbox.rotation.y = Math.PI / 2;
+  group.add(lightbox);
+  const lbFrame = part(new THREE.BoxGeometry(0.08, 1.5, 1.95), 0x5a6b7d, { outline: 0 });
+  lbFrame.position.copy(W(-5.9, -18.5, 1.9));
+  group.add(lbFrame);
+  for (const [z, color] of [[-23.8, 0x6a4fb0], [-23.1, 0x2f7fc1]]) { // lead aprons on hooks
+    const apron = part(new THREE.BoxGeometry(0.08, 1.0, 0.55), color, { outline: 0.012 });
+    apron.position.copy(W(5.8, z, 1.7));
+    group.add(apron);
+  }
+  const inUse = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.3, 0.08), new THREE.MeshBasicMaterial({ color: 0x552222 }));
+  inUse.position.copy(W(3.4, -Z + 0.2, 3.05));
+  group.add(inUse);
+  const inUseLabel = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 0.26), new THREE.MeshBasicMaterial({
+    transparent: true,
+    map: canvasTexture(256, 52, (ctx, w, h) => { ctx.fillStyle = '#fff'; ctx.font = `700 30px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('X-RAY IN USE', w / 2, h / 2 + 2); }),
+  }));
+  inUseLabel.position.copy(W(3.4, -Z + 0.25, 3.05));
+  group.add(inUseLabel);
+
+  // the way out: a green gate in the entrance
+  const exitGate = makeGate(0x3ccf6a, 'EXIT 🚪', { width: 4.2, height: 2.9 });
+  exitGate.group.position.copy(W(0, Z - 0.25));
+  exitGate.group.rotation.y = Math.PI;
+  group.add(exitGate.group);
+  animated.push(exitGate);
+
   // ---------- spots where patients stand or sit ----------
   group.updateMatrixWorld(true);
   const ray = new THREE.Raycaster();
-  const topAt = (objs, x, z, fallback) => {
+  const topAt = (objs, x, z, fallback, maxY = Infinity) => {
     ray.set(new THREE.Vector3(x, 20, z), new THREE.Vector3(0, -1, 0));
-    const hit = ray.intersectObjects(objs, true).find((h) => h.object.visible);
+    const hit = ray.intersectObjects(objs, true).find((h) => h.object.visible && h.point.y < maxY);
     return hit ? hit.point.y : fallback;
   };
   const bedSpot = (i) => {
@@ -257,7 +316,14 @@ export async function buildHospital(scene) {
     bed2: bedSpot(1),
     bed3: bedSpot(2),
     bed4: bedSpot(3),
+    xstand: { pos: W(4, -24.45), yaw: Math.PI, top: 0, sit: false }, // facing the chest panel
   };
+  {
+    // sit on the X-ray table's front (south) edge, facing into the room
+    const b = new THREE.Box3().setFromObject(xray);
+    const x = (b.min.x + b.max.x) / 2 - 0.3, z = b.max.z - 0.45;
+    spots.xtable = { pos: new THREE.Vector3(x, 0, z), yaw: 0, top: topAt([xray], x, z - 0.3, 0.9, 1.5), sit: true };
+  }
 
   // ---------- the nurse at reception ----------
   const nurse = buildKid('nurse');
@@ -297,6 +363,9 @@ export async function buildHospital(scene) {
     plan,
     admit,
     greet() { greetT = 3.5; },
+    /** Puts a scan on the lightbox ('wrist' | 'coin' | 'off'). */
+    showFilm(name) { lightbox.material.map = films[name] ?? films.off; lightbox.material.needsUpdate = true; },
+    setXrayInUse(on) { inUse.material.color.setHex(on ? 0xff2a2a : 0x552222); },
   };
 }
 
@@ -346,6 +415,109 @@ function fallbackProp(name) {
   else if (name === 'monitor') { box(0.08, 1.6, 0.08, 0x9aa3ad, 0.8); box(0.7, 0.5, 0.15, 0x2b2f38, 1.7); }
   else if (name === 'desk') { box(3.8, 1.1, 1.2, 0xffffff, 0.55); box(3.9, 0.08, 1.3, 0xd8b98a, 1.14); }
   else if (name === 'scale') { box(0.8, 0.12, 0.8, 0xd0d4da, 0.06); box(0.08, 2.1, 0.08, 0xd0d4da, 1.1, 0, -0.35); }
+  else if (name === 'xray') { box(3.4, 0.2, 1.2, 0xcfd6df, 0.9); box(2.8, 0.8, 0.9, 0xe9edf2, 0.4); box(0.35, 2.6, 0.35, 0xe9edf2, 1.3, 1.6, -0.5); box(0.9, 0.5, 0.7, 0xcfd6df, 2.2, 0.6, -0.2); }
   else if (name === 'chair') { box(0.9, 0.15, 0.9, 0x7fb8e8, 0.6); box(0.9, 0.8, 0.12, 0x7fb8e8, 1.05, 0, -0.42); box(0.3, 0.1, 0.9, 0x7fb8e8, 0.85, 0.6, 0.1); }
   return g;
+}
+
+/** Cartoon X-ray scan drawn on a canvas: a wrist (sprain, no break) or a tummy with a swallowed coin. */
+function xrayFilm(kind) {
+  return canvasTexture(256, 192, (ctx, w, h) => {
+    const g = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w * 0.7);
+    g.addColorStop(0, '#2b4c6f'); g.addColorStop(1, '#0d1a2a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(220, 240, 255, 0.92)';
+    ctx.strokeStyle = 'rgba(220, 240, 255, 0.92)';
+    ctx.lineCap = 'round';
+    if (kind === 'wrist') {
+      // forearm bones into a hand with four fingers (it's a cartoon world)
+      ctx.lineWidth = 12;
+      for (const dx of [-14, 14]) { ctx.beginPath(); ctx.moveTo(w / 2 + dx, h); ctx.lineTo(w / 2 + dx * 0.8, 112); ctx.stroke(); }
+      ctx.beginPath(); ctx.ellipse(w / 2, 100, 30, 14, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 9;
+      [-27, -9, 9, 27].forEach((dx, i) => { ctx.beginPath(); ctx.moveTo(w / 2 + dx * 0.7, 92); ctx.lineTo(w / 2 + dx * 1.2, 30 + Math.abs(i - 1.5) * 8); ctx.stroke(); });
+      ctx.beginPath(); ctx.moveTo(w / 2 - 28, 100); ctx.lineTo(w / 2 - 62, 70); ctx.stroke();
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(w / 2, 104, 26, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      // ribs, spine and a coin in the tummy
+      ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.moveTo(w / 2, 10); ctx.lineTo(w / 2, h - 10); ctx.stroke();
+      ctx.lineWidth = 5;
+      for (let i = 0; i < 5; i++) {
+        const y = 28 + i * 16;
+        ctx.beginPath(); ctx.ellipse(w / 2, y + 22, 70 - i * 3, 24, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(w / 2 + 26, 150, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(w / 2 + 26, 150, 21, 0, Math.PI * 2); ctx.stroke();
+    }
+  });
+}
+
+/**
+ * A glowing doorway "gate": a shimmering panel in an arch, a pulsing ring on the floor, a soft beam
+ * and a floating label. Used for the hospital entrance (blue) and the exit (green).
+ */
+export function makeGate(color, label, { width = 4.2, height = 3.3, beam = true, labelY = height + 1.1, labelSize = 2.4 } = {}) {
+  const group = new THREE.Group();
+  const c = new THREE.Color(color);
+  const shimmer = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: { t: { value: 0 }, color: { value: c } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float t; uniform vec3 color; varying vec2 vUv;
+      void main(){
+        vec2 p = vUv - vec2(0.5, 0.0);
+        float ring = 0.5 + 0.5 * sin(length(p * vec2(1.0, 0.8)) * 22.0 - t * 4.0);
+        float edge = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x) * smoothstep(1.0, 0.85, vUv.y);
+        gl_FragColor = vec4(mix(color, vec3(1.0), ring * 0.35), (0.28 + ring * 0.25) * edge);
+      }`,
+  });
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), shimmer);
+  panel.position.y = height / 2;
+  group.add(panel);
+  const glow = new THREE.MeshBasicMaterial({ color: c });
+  for (const sx of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, height, 8), glow);
+    post.position.set(sx * width / 2, height / 2, 0);
+    group.add(post);
+  }
+  const lintel = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, width, 8), glow);
+  lintel.rotation.z = Math.PI / 2;
+  lintel.position.y = height;
+  group.add(lintel);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.6, 40), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.8, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(0, 0.04, 1.2);
+  group.add(ring);
+  let shaft = null;
+  if (beam) {
+    shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 12, 16, 1, true), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.16, depthWrite: false }));
+    shaft.position.set(0, 6, 1.2);
+    group.add(shaft);
+  }
+  const tag = canvasTexture(320, 96, (ctx, w, h) => {
+    ctx.fillStyle = `#${c.getHexString()}`;
+    ctx.strokeStyle = '#1b1b1b';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.roundRect(4, 4, w - 8, h - 8, 26); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.font = `700 46px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, w / 2, h / 2 + 3);
+  });
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tag, depthTest: false, transparent: true }));
+  sprite.scale.set(labelSize, labelSize * 0.3, 1);
+  sprite.renderOrder = 12;
+  sprite.position.set(0, labelY, 0.6);
+  group.add(sprite);
+  return {
+    group,
+    update(t) {
+      shimmer.uniforms.t.value = t;
+      ring.material.opacity = 0.5 + Math.sin(t * 4) * 0.3;
+      ring.scale.setScalar(1 + Math.sin(t * 4) * 0.06);
+      sprite.position.y = labelY + Math.sin(t * 2.5) * 0.15;
+    },
+  };
 }

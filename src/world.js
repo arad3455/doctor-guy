@@ -50,6 +50,7 @@ const WALKABLE = [
   { minX: -2.1, maxX: 2.1, minZ: 50, maxZ: 82 },
   { minX: -57, maxX: 57, minZ: 79, maxZ: 127 },
   { minX: -17.6, maxX: 17.6, minZ: -413.6, maxZ: -386.6 }, // inside the hospital (see hospital.js)
+  { minX: -5.6, maxX: 5.6, minZ: -425.6, maxZ: -413.0 }, // its X-ray room
 ];
 
 /** Keeps a position inside the walkable areas (moves it to the nearest one if it left them all). */

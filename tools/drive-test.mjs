@@ -94,5 +94,34 @@ await wait(800);
 const done = await g(() => ({ state: __game.missions.missions.find((m) => m.def.id === 'pond').state, driving: __game.ambulance.driving, toast: document.getElementById('toast').textContent }));
 console.log('patient run:', run, '→ in van', JSON.stringify(inVan), '→ prompt', JSON.stringify(prompt2), '→', JSON.stringify(done));
 await shot('6-patient-done');
+// ---- Siren near the hospital: nurses come out to meet the van, then walk the patient in
+await g(async () => {
+  const { missions: ms, ambulance: a, player: p } = __game;
+  const def = ms.queue.find((d) => d.deliver === 'hospital');
+  ms.queue.splice(ms.queue.indexOf(def), 1);
+  const m = ms.spawnMission(def);
+  p.pos.set(-8, 0, -20);
+  m.kid.root.position.set(-8, 0, -19);
+  await ms.pickUp(m);
+  a.pos.set(-4, 0, -20); a.heading = Math.PI; a.speed = 0; a.syncTransform();
+  p.pos.copy(a.doorPoint);
+  window.__nurseKid = def.id;
+  __game.nurses.cooldown = 0; // the previous step's hand-over put them on a short break
+});
+await wait(400);
+await page.keyboard.press('KeyE'); // in, siren comes on automatically
+await wait(500);
+await g(() => { const a = __game.ambulance; a.pos.set(4, 0, -36); a.heading = Math.PI; a.speed = 0; a.syncTransform(); });
+await page.waitForFunction(() => __game.nurses.nurses.every((n) => n.state === 'meeting'), { timeout: 20000 });
+await wait(4000); // let them reach the van
+const nurseInfo = await g(() => __game.nurses.nurses.map((n) => ({ state: n.state, dist: +n.rig.root.position.distanceTo(__game.ambulance.pos).toFixed(1) })));
+await g(() => { __game.input.yaw = Math.PI * 0.8; __game.input.distance = 13; });
+await wait(800);
+await shot('7-nurses');
+await page.keyboard.press('KeyE'); // hand over from the van
+await wait(1500);
+const after = await g(() => ({ state: __game.missions.missions.find((m) => m.def.id === window.__nurseKid).state, nurses: __game.nurses.nurses.map((n) => n.state) }));
+await shot('8-nurses-escort');
+console.log('nurses:', JSON.stringify(nurseInfo), '→ after hand-over', JSON.stringify(after));
 console.log('ERRORS:', errors.length ? errors : 'none');
 await browser.close();
