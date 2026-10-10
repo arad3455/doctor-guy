@@ -616,6 +616,7 @@ export class MissionSystem {
     }
     if (!best) return null;
     best.name ??= KID_NAMES[this.ambient.indexOf(best) % KID_NAMES.length];
+    if (best.frenzy) return { label: `⚡ Quick check: ${best.name}`, run: () => this.checkup(best, false) };
     const again = (best.checkedAt ?? -999) > this.time - 60;
     return { label: again ? `🩺 Check ${best.name} again` : `🩺 Check-up: ${best.name}`, run: () => this.checkup(best, again) };
   }
@@ -639,7 +640,7 @@ export class MissionSystem {
         player.pos.set(w.x + dir.x * (rig.checkupReach + 0.15), player.pos.y, w.z + dir.z * (rig.checkupReach + 0.15));
         player.facing = Math.atan2(-dir.x, -dir.z);
       }
-      rig.checkup(1.15);
+      rig.checkup(a.frenzy ? 2.6 : 1.15);
       await rig.untilClip(0.36); // reaching in…
       const listen = makeBubble('🩺 ♥ ♥ ♥', { w: 300, bg: '#ffe3ec' });
       listen.position.y = a.kid.height + 0.9;
@@ -665,6 +666,7 @@ export class MissionSystem {
     player.frozen = false;
     this.busy = false;
     animateRig(a.kid, 'cheer', 0, 0);
+    if (a.frenzy) { this.ui.frenzy?.scored(a); return; } // stays 'checking' until it runs off
     setTimeout(() => { a.checking = false; }, 1200);
     if (!again) {
       a.checkedAt = this.time;

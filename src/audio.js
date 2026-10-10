@@ -117,3 +117,7 @@ sfx.heartbeat = () => { for (let i = 0; i < 3; i++) { tone(62, 0.12, { type: 'si
 
 sfx.achievement = () => { [659, 880, 1175].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.09, delay: i * 0.08 })); tone(1568, 0.5, { type: 'sine', vol: 0.06, delay: 0.26 }); };
 sfx.buy = () => { tone(988, 0.08, { type: 'square', vol: 0.06 }); tone(1319, 0.2, { type: 'square', vol: 0.06, delay: 0.08 }); };
+
+sfx.whoosh = () => tone(240, 0.7, { type: 'sawtooth', vol: 0.04, slide: 2.6 });
+sfx.thud = () => { tone(70, 0.25, { type: 'sine', vol: 0.4, slide: 0.5 }); tone(140, 0.12, { type: 'square', vol: 0.05 }); };
+sfx.stuntBonus = () => [523, 784, 1047, 1319].forEach((f, i) => tone(f, 0.25, { type: 'square', vol: 0.05, delay: i * 0.07 }));

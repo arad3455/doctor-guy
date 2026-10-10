@@ -4,6 +4,10 @@ import * as THREE from 'three';
 import { gltfLoader, toonify } from './skinned.js';
 import { part, toon } from './toon.js';
 import { getColliders, clampWalkable, inPond, WORLD } from './world.js';
+import { rampAt } from './stunts.js';
+
+const GRAVITY = 22;
+const LAUNCH_MIN = 7; // speed needed to leave a ramp's lip
 
 const LENGTH = 7; // game units (Doctor Guy is 2.45 tall)
 const MAX_FWD = 12.5;
@@ -143,6 +147,7 @@ export class Ambulance {
 
   syncTransform() {
     this.root.position.copy(this.pos);
+    this.root.position.y = this.y ?? 0;
     this.root.rotation.y = this.heading;
     for (const c of this.circles) {
       c.x = this.pos.x + Math.sin(this.heading) * c.k * REACH;
@@ -153,6 +158,7 @@ export class Ambulance {
 
   /** input: { throttle -1..1, steer -1..1 } */
   update(dt, t, { throttle = 0, steer = 0 } = {}) {
+    if (this.air) { this.updateAir(dt, t); return; }
     if (this.driving) {
       // throttle forward/back; pressing against the motion brakes first
       const road = onOpenRoad(this.pos);
@@ -187,6 +193,23 @@ export class Ambulance {
       this.pos.copy(prev);
       this.speed *= -0.2;
     }
+    // stunt ramps: drive up the slope, and fly off the lip if you're fast enough
+    const r = rampAt(this.pos.x, this.pos.z);
+    if (r) {
+      this.y = r.h;
+      this.onRamp = r;
+    } else {
+      const last = this.onRamp;
+      this.onRamp = null;
+      this.y = 0;
+      const along = last ? Math.sin(last.ramp.heading) * Math.sin(this.heading) + Math.cos(last.ramp.heading) * Math.cos(this.heading) : 0;
+      if (last && last.u > last.ramp.len / 2 - 1.2 && this.speed > LAUNCH_MIN && along > 0.7) {
+        this.air = { ramp: last.ramp, from: this.pos.clone(), t: 0 };
+        this.y = last.ramp.height;
+        this.vy = this.speed * (last.ramp.height / last.ramp.len) * 1.15 + 2.5;
+        this.onLaunch?.(last.ramp);
+      }
+    }
     this.syncTransform();
 
     // body roll/pitch for feel
@@ -196,6 +219,35 @@ export class Ambulance {
     this.body.rotation.z += (this.steer * grip * 0.05 * Math.sign(this.speed) - this.body.rotation.z) * Math.min(1, dt * 6);
     if (this.bumped > 0) { this.bumped -= dt; this.body.position.y = Math.sin(this.bumped * 40) * 0.04; } else this.body.position.y = 0;
 
+    this.updateLights(t);
+  }
+
+  /** Flying off a stunt ramp: ballistic arc, nose follows the arc, then a bouncy landing. */
+  updateAir(dt, t) {
+    const a = this.air;
+    a.t += dt;
+    this.pos.addScaledVector(this.forward, this.speed * dt);
+    this.vy -= GRAVITY * dt;
+    this.y += this.vy * dt;
+    this.body.rotation.x = THREE.MathUtils.clamp(-Math.atan2(this.vy, Math.max(4, this.speed)) * 0.8, -0.45, 0.45);
+    this.steer *= 0.9;
+    if (this.y <= 0) {
+      this.y = 0;
+      this.air = null;
+      this.vy = 0;
+      this.body.rotation.x = 0;
+      this.bumped = 0.5;
+      this.speed *= 0.75;
+      clampWalkable(this.pos);
+      this.collide();
+      this.onLand?.({ ramp: a.ramp, airtime: a.t, distance: Math.hypot(this.pos.x - a.from.x, this.pos.z - a.from.z) });
+    }
+    if (this.pos.z > WORLD.shoreline - 1) this.pos.z = WORLD.shoreline - 1;
+    this.syncTransform();
+    this.updateLights(t);
+  }
+
+  updateLights(t) {
     // siren lights
     const on = this.siren;
     const phase = Math.sin(t * 14) > 0;

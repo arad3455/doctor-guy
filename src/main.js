@@ -15,6 +15,9 @@ import { BigMap } from './map.js';
 import { Career, achievementToast } from './career.js';
 import { Progress, SHOP, SHOP_CATS, ACHIEVEMENTS } from './progress.js';
 import { WORLD } from './world.js';
+import { DayNight } from './daynight.js';
+import { buildRamps, RAMPS } from './stunts.js';
+import { Frenzy, FRENZY_TOKEN } from './frenzy.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -35,7 +38,8 @@ scene.fog = outdoorFog;
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 900);
 
 // Lighting: bright cartoon daylight
-scene.add(new THREE.HemisphereLight(0xdff2ff, 0x6cc24a, 1.1));
+const hemi = new THREE.HemisphereLight(0xdff2ff, 0x6cc24a, 1.1);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 2.0);
 sun.position.set(30, 50, 20);
 sun.castShadow = true;
@@ -67,6 +71,10 @@ const doctorReady = loadDoctorModel()
   .then((rig) => { if (rig) { player.setRig(rig); applyCosmetics(); console.info('[doctor] generated model loaded, clips:', rig.clips.join(', ')); } })
   .catch((e) => console.warn('[doctor] generated model failed to load, using procedural model', e));
 const ambulance = new Ambulance(scene);
+const ramps = buildRamps(scene);
+let skyMat = null;
+base.traverse((o) => { if (o.material?.uniforms?.top) skyMat = o.material; });
+const dayNight = new DayNight({ scene, sun, hemi, sky: skyMat, fog: outdoorFog, ambulance, startHour: 15.5 });
 const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
 const follow = new FollowCamera(camera);
 follow.blockers = cameraBlockers;
@@ -77,6 +85,25 @@ let started = false;
 let timeScale = 1; // slow motion for the PATIENT SAVED moment
 const progress = new Progress(); // saved in this browser: XP, wallet, lifetime stats, shop, achievements
 const career = new Career({ progress, setSlowmo: (v) => { timeScale = v; }, onLollipop: (n) => { if (missions) missions.lollipops += n; } });
+
+/* ---- Stunt jumps ---- */
+let stuntCam = 0; // seconds of cinematic camera left
+ambulance.onLaunch = (ramp) => {
+  if (!ambulance.driving) return;
+  timeScale = 0.4; // GTA-style slow motion while airborne
+  stuntCam = 99;
+  sfx.whoosh();
+};
+ambulance.onLand = ({ ramp, airtime, distance }) => {
+  timeScale = 1;
+  stuntCam = 0.6;
+  sfx.thud();
+  if (!ambulance.driving || airtime < 0.35) return;
+  const unique = !progress.data.stunts?.[ramp.id];
+  progress.data.stunts = { ...(progress.data.stunts ?? {}), [ramp.id]: Date.now() };
+  progress.dirty = true;
+  career.stunt({ name: ramp.name, distance: distance / 1.36, airtime, unique, found: Object.keys(progress.data.stunts).length, total: RAMPS.length });
+};
 
 /* ---- Doctor Shop + cosmetics ---- */
 function applyCosmetics() {
@@ -226,6 +253,9 @@ function extraAction() {
   if (isInside(p)) {
     return Math.hypot(p.x - INTERIOR.exitDoor.x, p.z - INTERIOR.exitDoor.z) < 2.4 ? { label: 'Leave the hospital 🚪', run: leaveHospital } : null;
   }
+  if (frenzy?.available && Math.hypot(p.x - FRENZY_TOKEN.x, p.z - FRENZY_TOKEN.z) < 2.2) {
+    return { label: `⚡ Start Check-up Frenzy${progress.data.frenzyBest ? ` (best ${progress.data.frenzyBest})` : ''}`, run: () => frenzy.start() };
+  }
   if (Math.hypot(p.x - WORLD.stand.x, p.z - WORLD.stand.z) < 3.4) {
     return { label: '🛍️ Doctor Shop', run: () => openShop(true) };
   }
@@ -253,6 +283,7 @@ const ui = {
   extraAction,
   get hospital() { return hospital; },
   get zoo() { return zoo; },
+  get frenzy() { return frenzy; },
   onHospitalHandover: () => nurses?.escort(),
   swingSeats,
   minigame,
@@ -268,11 +299,13 @@ const ui = {
     const got = ACHIEVEMENTS.filter((a) => progress.has(a.id));
     document.getElementById('end-trophies').innerHTML = `🏆 ${got.length}/${ACHIEVEMENTS.length} achievements · ${got.map((a) => `<span title="${a.name}">${a.icon}</span>`).join(' ')}`;
     document.getElementById('end').classList.remove('hidden');
+    frenzy.abort();
     hud.show(false);
     started = false;
     resetAmbulance();
   },
 };
+let frenzy = null;
 let missions = null; // created once the kids have loaded (see bottom)
 
 function start() {
@@ -298,6 +331,8 @@ document.getElementById('restart').addEventListener('click', () => {
   timeScale = 1;
   resetAmbulance();
   nurses?.reset();
+  dayNight.hour = 15.5;
+  frenzy?.abort();
   hospital?.showFilm('off');
   if (isInside(player.pos)) player.pos.copy(INTERIOR.exitTo);
   player.reset();
@@ -383,6 +418,7 @@ function frame() {
     player.vel.set(0, 0, 0);
     player.facing = ambulance.heading;
     missions.update(dt, t, input);
+    frenzy.update(dt, t);
     hud.update(missions, player, ambulance, input.yaw);
   } else if (started) {
     ambulance.update(dt, t, {});
@@ -394,6 +430,7 @@ function frame() {
     if (moved < 5) career.travel(moved, false); // (ignore teleports through doors)
     if (wasGround && !player.onGround && player.vel.y > 0) sfx.jump();
     missions.update(dt, t, input);
+    frenzy.update(dt, t);
     minigame.update(dt);
     hud.update(missions, player, ambulance, input.yaw);
   } else {
@@ -403,13 +440,20 @@ function frame() {
   }
   // Title screen: orbit high above the middle of the park (orbiting Doctor Guy at the hospital door put
   // the camera inside the hospital for the first seconds — the old "black background" on start-up)
-  if (started && ambulance.driving) {
+  if (started && ambulance.driving && stuntCam > 0) {
+    stuntCam -= rawDt;
+    const a = ambulance, side = { x: Math.cos(a.heading), z: -Math.sin(a.heading) };
+    const c = camera.position, target = a.root.position.clone().add(new THREE.Vector3(0, 1.4, 0));
+    const want = target.clone().add(new THREE.Vector3(side.x * 11 - Math.sin(a.heading) * 5, 3.2, side.z * 11 - Math.cos(a.heading) * 5));
+    c.lerp(want, Math.min(1, rawDt * 4));
+    camera.lookAt(target);
+  } else if (started && ambulance.driving) {
     // swing round behind the van unless you've just looked around yourself
     if (performance.now() - (input.lastLook ?? 0) > 1500) {
       const want = ambulance.heading + Math.PI;
       input.yaw += Math.atan2(Math.sin(want - input.yaw), Math.cos(want - input.yaw)) * Math.min(1, dt * 2.5);
     }
-    follow.update(dt, ambulance, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.32), distance: Math.max(input.distance, 12) });
+    follow.update(dt, { pos: ambulance.root.position }, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.32), distance: Math.max(input.distance, 12) });
   } else if (started && isInside(player.pos)) {
     // indoors: look down into the rooms over the (roofless) walls
     follow.update(dt, player, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.78), distance: THREE.MathUtils.clamp(input.distance, 6, 11) });
@@ -421,6 +465,7 @@ function frame() {
   if (started) nurses?.update(dt, t, { inside });
   // (the park and beach also drop out when you're far east at the zoo, and vice versa)
   park.visible = !inside && player.pos.z < 105 && player.pos.x < 150;
+  ramps.visible = !inside;
   beach.group.visible = !inside && player.pos.z > 25 && player.pos.x < 110;
   beach.sea.visible = !inside;
   if (road) road.group.visible = !inside;
@@ -462,7 +507,11 @@ function frame() {
   }
 
   // Keep shadows centred on the player
-  sun.position.set(player.pos.x + 30, 50, player.pos.z + 20);
+  if (started && !isInside(player.pos)) dayNight.update(dt, { outside: true, playerPos: player.pos });
+  const so = dayNight.sunOffset ?? new THREE.Vector3(30, 50, 20);
+  sun.position.set(player.pos.x + so.x, so.y, player.pos.z + so.z);
+  const clockEl = document.getElementById('clock');
+  if (clockEl && started) clockEl.textContent = (dayNight.night > 0.5 ? '🌙 ' : '☀️ ') + dayNight.clock;
   sun.target.position.set(player.pos.x, 0, player.pos.z);
 
   renderer.render(scene, camera);
@@ -478,6 +527,7 @@ road = buildRoad(scene);
 hospital = await buildHospital(scene);
 zoo = await buildZoo(scene);
 animated.push(...zoo.animated);
+dayNight.addLampHalos();
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
 applyCosmetics(); // saved hats, paint, siren…
@@ -486,7 +536,9 @@ nurses = new DoorNurses(scene, ambulance, {
   onCallout: () => hud.toast('🏥 The nurses heard the siren — they’re coming out to meet you!', 2600),
 });
 missions = new MissionSystem(scene, player, ui);
+frenzy = new Frenzy({ scene, missions, career, progress, ui });
 window.__game.missions = missions;
+window.__game.frenzy = frenzy;
 window.__game.hospital = hospital;
 window.__game.nurses = nurses;
 window.__game.zoo = zoo;
@@ -495,6 +547,8 @@ window.__game.hud = hud;
 window.__game.career = career;
 window.__game.progress = progress;
 window.__game.openShop = openShop;
+window.__game.dayNight = dayNight;
+window.__game.ramps = RAMPS;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades

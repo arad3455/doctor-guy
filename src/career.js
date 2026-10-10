@@ -98,10 +98,10 @@ export class Career {
     });
   }
 
-  showSaved({ name, condition, hospital, lines, total, xp, streak }) {
+  showSaved({ title, name, condition, hospital, lines, total, xp, streak }) {
     return new Promise((resolve) => {
       const el = $('saved-banner');
-      el.querySelector('.sb-title').textContent = hospital ? 'CHECK-UP COMPLETE' : 'PATIENT SAVED';
+      el.querySelector('.sb-title').textContent = title ?? (hospital ? 'CHECK-UP COMPLETE' : 'PATIENT SAVED');
       el.querySelector('.sb-sub').textContent = `${name} · ${condition}`;
       const list = el.querySelector('.sb-lines');
       list.innerHTML = lines.map((l) => `<div class="sb-line"><span>${l.label}</span><b>+${l.amount} 🍭</b></div>`).join('')
@@ -169,6 +169,33 @@ export class Career {
     if (animate) { chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
   }
 
+  /** Landed a stunt jump: a STUNT JUMP banner (with the one-time UNIQUE STUNT BONUS). */
+  stunt({ name, distance, airtime, unique, found, total }) {
+    const lines = [{ label: `${name} · ${distance.toFixed(0)} m · ${airtime.toFixed(1)} s air`, amount: 2 + Math.round(distance / 4) }];
+    if (unique) lines.push({ label: `⭐ Unique stunt bonus (${found}/${total})`, amount: 10 });
+    const total_ = lines.reduce((s, l) => s + l.amount, 0);
+    this.stats.stunts = (this.stats.stunts ?? 0) + 1;
+    this.xp += 10 + (unique ? 25 : 0);
+    this.queue.push({ kind: 'saved', title: unique ? 'UNIQUE STUNT BONUS' : 'STUNT JUMP', name: '🚑💨', condition: name, lines, total: total_, xp: 10 + (unique ? 25 : 0), streak: 0 });
+    if (unique) sfx.stuntBonus();
+    this.pump();
+  }
+
+  /** Check-up Frenzy over: a FRENZY COMPLETE banner paying out the score. */
+  frenzyOver({ score, count, record, best, lines }) {
+    lines = lines.filter((l) => l.amount > 0);
+    if (!lines.length) lines = [{ label: 'No check-ups this time — try again!', amount: 0 }];
+    const total = lines.reduce((s, l) => s + l.amount, 0);
+    this.stats.checkups = (this.stats.checkups ?? 0) + count;
+    this.stats.lollipops += total;
+    this.progress.add('checkups', count);
+    const before = this.rankIndex, xp = 15 + score * 3;
+    this.xp += xp;
+    this.queue.push({ kind: 'saved', title: 'FRENZY COMPLETE', name: `⚡ ${score} pts`, condition: record && score > 0 ? '🏆 New record!' : `Best: ${best} pts`, lines, total, xp, streak: 0 });
+    if (this.rankIndex > before) this.queue.push({ kind: 'rank', rank: RANKS[this.rankIndex] });
+    this.pump();
+  }
+
   /** A stethoscope check-up on a kid out playing: a small reward and a side notification. */
   checkup(name, result) {
     this.stats.checkups = (this.stats.checkups ?? 0) + 1;
@@ -204,6 +231,7 @@ export class Career {
       ['🚑', 'Distance driven', `${Math.round(s.driven)} m`],
       ['🏥', 'Ambulance deliveries', s.byAmbulance],
       ['🩺', 'Stethoscope check-ups', s.checkups ?? 0],
+      ['🚑💨', 'Stunt jumps', s.stunts ?? 0],
     ];
     $('end-rank').innerHTML = `<span class="er-icon">${r.icon}</span><span><small>Final rank</small><b>${r.name}</b><em>${this.xp} XP</em></span>`;
     $('end-stats').innerHTML = cells.map(([i, l, v]) => `<div class="st"><span class="st-i">${i}</span><span class="st-l">${l}</span><b class="st-v">${v}</b></div>`).join('')

@@ -4,6 +4,8 @@ import { WORLD, clampWalkable, PARK_TREES } from './world.js';
 import { BEACH } from './beach.js';
 import { ZOO, MAP_DECOR } from './zoo.js';
 import { INTERIOR } from './hospital.js';
+import { RAMPS } from './stunts.js';
+import { FRENZY_TOKEN } from './frenzy.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -142,6 +144,20 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
     ctx.fillStyle = '#2f8a35'; ctx.beginPath(); ctx.arc(a, b, Math.max(1, r * s), 0, Math.PI * 2); ctx.fill();
     if (detail) { ctx.fillStyle = '#4fb447'; ctx.beginPath(); ctx.arc(a - r * s * 0.25, b - r * s * 0.25, r * s * 0.55, 0, Math.PI * 2); ctx.fill(); }
   }
+
+  // stunt ramps: a yellow arrow pointing the way you jump
+  for (const r of RAMPS) {
+    const f = { x: Math.sin(r.heading), z: Math.cos(r.heading) }, q = { x: f.z, z: -f.x };
+    poly([
+      [r.x - f.x * r.len / 2 + q.x * r.width / 2, r.z - f.z * r.len / 2 + q.z * r.width / 2],
+      [r.x + f.x * r.len / 2, r.z + f.z * r.len / 2],
+      [r.x - f.x * r.len / 2 - q.x * r.width / 2, r.z - f.z * r.len / 2 - q.z * r.width / 2],
+    ], '#ffd23f', '#1b1b1b', 1.5);
+  }
+
+  // the Check-up Frenzy token
+  circle(FRENZY_TOKEN.x, FRENZY_TOKEN.z, 1.8, '#ff3c8e', '#ffffff', 1.5);
+  if (s > 1) text(FRENZY_TOKEN.x, FRENZY_TOKEN.z, '⚡', Math.min(18, 3 * s));
 
   if (labels) for (const l of ZONE_LABELS) pill(ctx, P(l.x, l.z), l.text, upright);
 }

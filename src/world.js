@@ -2,6 +2,7 @@
 // The Beach lives in beach.js and is reached through the park's south gate along the boardwalk.
 import * as THREE from 'three';
 import { part, toon, instanced, signTexture, canvasTexture, FONT } from './toon.js';
+import { rampAt } from './stunts.js';
 
 export const WORLD = {
   half: 56, // park half-size (fence at half + 1)
@@ -25,7 +26,7 @@ const platforms = []; // { minX, maxX, minZ, maxZ, y }
 export function getColliders() { return colliders; }
 
 export function groundHeight(x, z) {
-  let h = 0;
+  let h = rampAt(x, z)?.h ?? 0; // you can walk up the stunt ramps too
   for (const p of platforms) {
     if (x > p.minX && x < p.maxX && z > p.minZ && z < p.maxZ) h = Math.max(h, p.y);
   }
@@ -104,6 +105,8 @@ function keepClear(x, z) {
     [WORLD.pond.x, WORLD.pond.z, WORLD.pond.r + 3],
     [WORLD.stand.x, WORLD.stand.z, 5],
     [24, 24, 4],
+    [9, -9, 3], // the Check-up Frenzy token
+    [-40, -9, 13], // the Park Flyer stunt ramp and its landing zone
     [-30, 21, 3], // mission spots
     [38, -6, 3],
     [-45, 43, 2.5],

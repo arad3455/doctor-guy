@@ -46,6 +46,9 @@ export const ACHIEVEMENTS = [
   { id: 'road-trip', icon: '🛣️', name: 'Road Trip', desc: 'Drive 3 km in total', test: (p) => p.life.driven >= 3000 },
   { id: 'sweet-tooth', icon: '🍭', name: 'Sweet Tooth', desc: 'Earn 200 lollipops in total', test: (p) => p.life.earned >= 200 },
   { id: 'shopper', icon: '🛍️', name: 'Retail Therapy', desc: 'Buy 3 things at the Doctor Shop', test: (p) => p.owned.length >= 3 },
+  { id: 'daredevil', icon: '🚑', name: 'Daredevil', desc: 'Land a stunt jump in the ambulance', test: (p) => Object.keys(p.data.stunts ?? {}).length >= 1 },
+  { id: 'stunt-master', icon: '⭐', name: 'Stunt Master', desc: 'Land all 3 unique stunt jumps', test: (p) => Object.keys(p.data.stunts ?? {}).length >= 3 },
+  { id: 'frenzy-fiend', icon: '⚡', name: 'Frenzy Fiend', desc: 'Score 10+ points in a Check-up Frenzy', test: (p) => (p.data.frenzyBest ?? 0) >= 10 },
   { id: 'chief', icon: '🏥', name: 'Chief of Medicine', desc: 'Reach the Chief of Medicine rank', test: (p) => p.xp >= 700 },
   { id: 'real-doctor', icon: '🎓', name: 'Actually a Real Doctor?!', desc: 'Reach the highest rank', test: (p) => p.xp >= 1000 },
 ];
