@@ -34,3 +34,9 @@ Preview: http://localhost:8765/tools/viewer.html?char=generated&view=full&pose=w
 Current model: Meshy web generation → re-rigged via API (`node tools/meshy.mjs rig --model-file assets/doctor-guy/source/rig-input.glb`)
 → clips via `node tools/meshy.mjs animate` (idle, jump, kneel, pickup, cheer, wave + walk/run from the rig).
 Action ids live in `ACTIONS` in tools/meshy.mjs; `node tools/meshy-probe.mjs <search terms>` searches the library for free.
+
+## Third-party assets
+Scenery models (trees, plants, rocks, fences, roads, street lights, traffic lights, cars, market stalls, lanterns,
+banners, fountains) are from [Kenney](https://kenney.nl) — Nature Kit, City Kit (Roads), Car Kit and Fantasy Town Kit —
+released under **CC0 1.0**. Download the packs into `vendor-src/` and run `node tools/pack-kenney.mjs` to rebuild
+`assets/kenney/*.glb`. See `assets/kenney/LICENSE.txt`.

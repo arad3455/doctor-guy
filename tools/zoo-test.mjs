@@ -21,7 +21,9 @@ const drive = await g(() => {
   const a = __game.ambulance;
   const start = a.pos.clone();
   let t = 0;
-  while (a.pos.x < 136 && t < 30) { a.update(1 / 60, t, { throttle: 1, steer: 0 }); t += 1 / 60; }
+  a.siren = true; // emergency run: traffic pulls over
+  while (a.pos.x < 136 && t < 30) { a.update(1 / 60, t, { throttle: 1, steer: 0 }); __game.traffic.update(1 / 60, { player: __game.player, ambulance: a }); t += 1 / 60; }
+  a.siren = false;
   return { from: start.toArray().map((v) => +v.toFixed(1)), to: a.pos.toArray().map((v) => +v.toFixed(1)), seconds: +t.toFixed(1), heading: +a.heading.toFixed(2) };
 });
 console.log('Zoo Road drive:', JSON.stringify(drive));
@@ -44,6 +46,10 @@ for (const [name, pos, look] of [
   ['5-giraffes', [172, 7, 16], [158, 3, 26]],
   ['6-penguins', [170, 5, -14], [160, 0.5, -21]],
   ['7-monkeys', [173, 6, -6], [185, 2, 2]],
+  ['13-plaza', [158, 7, -28], [146, 0.5, -39]],
+  ['14-foodcourt', [172, 6, -26], [172, 1, -40]],
+  ['15-parking', [112, 9, -32], [124, 0.5, -46]],
+  ['16-road-park', [-6, 9, -26], [10, 0.5, -38]],
 ]) {
   await cam(pos, look);
   await wait(1500);
@@ -81,11 +87,16 @@ const pt = await g(() => { const r = document.getElementById('bigmap-canvas').ge
 await page.mouse.click(pt[0], pt[1]);
 await wait(500);
 await shot('11-bigmap');
+// zoom into the zoo on the big map
+await g(() => { const m = __game.bigMap; const [x, y] = m.toScreen(185, 0); m.zoomAt(x, y, 2.6); });
+await wait(500);
+await shot('11b-bigmap-zoom');
 const wp = await g(() => __game.hud.radar.waypoint);
 await page.keyboard.press('KeyM');
 await wait(800);
 await shot('12-waypoint');
 const info = await g(() => document.getElementById('waypoint-info').textContent);
+console.log('traffic:', JSON.stringify(await g(() => __game.traffic.cars.map((c) => ({ x: +c.x.toFixed(0), speed: +c.speed.toFixed(1), hidden: c.hidden })))));
 console.log('map open:', open, '→ waypoint', JSON.stringify(wp), '→', info);
 console.log('ERRORS:', errors.length ? errors : 'none');
 await browser.close();

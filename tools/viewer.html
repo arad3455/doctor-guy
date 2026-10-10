@@ -12,6 +12,8 @@ import { loadDoctorModel } from '../src/doctorModel.js';
 import { preloadKids } from '../src/kidModels.js';
 import { Ambulance } from '../src/vehicle.js';
 import { loadAnimalModel } from '../src/zoo.js';
+import { loadKits, KIT_SIZES, kit } from '../src/kit.js';
+window.__kitSizes = async () => { await loadKits(); return Object.fromEntries(Object.entries(KIT_SIZES).map(([k, v]) => [k, v.toArray().map((n) => +n.toFixed(2))])); };
 await preloadKids();
 const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGLRenderer({ antialias: true });

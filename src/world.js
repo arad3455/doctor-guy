@@ -18,6 +18,7 @@ export const WORLD = {
 };
 
 const colliders = []; // { type:'circle', x, z, r } | { type:'box', minX, maxX, minZ, maxZ }
+export const PARK_TREES = []; // [x, z, canopy radius] for the map
 export const cameraBlockers = []; // meshes the follow camera may not pass through (see FollowCamera)
 const platforms = []; // { minX, maxX, minZ, maxZ, y }
 
@@ -63,6 +64,7 @@ const WALKABLE = [
   { minX: -17.6, maxX: 17.6, minZ: -413.6, maxZ: -386.6 }, // inside the hospital (see hospital.js)
   { minX: -5.6, maxX: 5.6, minZ: -425.6, maxZ: -413.0 }, // its X-ray room
   { minX: 50, maxX: 140, minZ: -40.4, maxZ: -33.6 }, // Zoo Road, through the park's east gate (see zoo.js)
+  { minX: 115.5, maxX: 132.5, minZ: -52.6, maxZ: -40 }, // the zoo car park
   { minX: 137.5, maxX: 232.5, minZ: -45.5, maxZ: 45.5 }, // the zoo
 ];
 
@@ -661,6 +663,7 @@ function buildVegetation(world) {
     const h = 2 + rand() * 1.5;
     const s = 0.9 + rand() * 0.6;
     trunks.push(new THREE.Matrix4().compose(new THREE.Vector3(x, h / 2, z), new THREE.Quaternion(), new THREE.Vector3(1, h, 1)));
+    PARK_TREES.push([x, z, 1.6 * s]);
     const green = [0x3d9c3a, 0x4bb043, 0x2f8a35][Math.floor(rand() * 3)];
     for (const [ox, oy, oz, r] of [[0, 1.2, 0, 1.5], [0.7, 0.5, 0.3, 1.0], [-0.6, 0.6, -0.4, 1.1], [0.1, 0.4, -0.8, 0.9]]) {
       crowns.push(new THREE.Matrix4().compose(

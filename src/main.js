@@ -10,6 +10,8 @@ import { Ambulance, PARKING } from './vehicle.js';
 import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
 import { DoorNurses } from './nurses.js';
 import { buildRoad, buildZoo, inZoo, ZOO } from './zoo.js';
+import { loadKits } from './kit.js';
+import { Traffic } from './traffic.js';
 import { BigMap } from './map.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
@@ -52,7 +54,8 @@ entryGate.group.position.set(0, 0, -46.75);
 park.add(entryGate.group);
 animated.push(entryGate);
 const beach = buildBeach(scene);
-const road = buildRoad(scene);
+let road = null; // Zoo Road, built from Kenney's road kit once the kits have loaded
+let traffic = null; // cars driving Zoo Road
 let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
 const input = new Input(canvas);
@@ -240,6 +243,23 @@ wpBeam.add(wpRing);
 wpBeam.visible = false;
 scene.add(wpBeam);
 
+/**
+ * Phone driving, camera-relative like mobile GTA: push the stick towards where you want to go and the
+ * van drives and turns that way; pull it back (towards the camera) and it reverses.
+ */
+function stickDrive(stick, mag, yaw, van) {
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw); // camera forward on the ground
+  const dx = fx * -stick.y + -fz * stick.x, dz = fz * -stick.y + fx * stick.x; // stick → world direction
+  const want = Math.atan2(dx, dz);
+  const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+  const diff = wrap(want - van.heading);
+  if (stick.y > 0.55 && Math.abs(stick.x) < 0.5) {
+    // pulled straight back: reverse, steering the tail towards the stick
+    return { throttle: -mag, steer: THREE.MathUtils.clamp(wrap(want - van.heading - Math.PI) * 2, -1, 1) };
+  }
+  return { throttle: mag * (Math.abs(diff) > 2.2 ? 0.45 : 1), steer: THREE.MathUtils.clamp(-diff * 2, -1, 1) };
+}
+
 const clock = new THREE.Clock();
 let t = 0;
 function frame() {
@@ -258,9 +278,10 @@ function frame() {
     input.enabled = true;
     const k = (...c) => (input.down(...c) ? 1 : 0);
     const stick = input.stick ?? { x: 0, y: 0 };
-    const stickOn = Math.hypot(stick.x, stick.y) > 0.15;
-    const throttle = THREE.MathUtils.clamp(k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') + (stickOn ? -stick.y : 0), -1, 1);
-    const steer = THREE.MathUtils.clamp(k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft') + (stickOn ? stick.x : 0), -1, 1);
+    let throttle = k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown');
+    let steer = k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft');
+    const stickMag = Math.min(1, Math.hypot(stick.x, stick.y));
+    if (stickMag > 0.15) ({ throttle, steer } = stickDrive(stick, stickMag, input.yaw, ambulance));
     if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
     ambulance.update(dt, t, { throttle, steer });
     engine.set(ambulance.speed);
@@ -302,16 +323,28 @@ function frame() {
   // Streaming: only draw a zone's props when you're near it (the sea/sand horizon always stays)
   const inside = isInside(player.pos);
   if (started) nurses?.update(dt, t, { inside });
-  park.visible = !inside && player.pos.z < 105;
-  beach.group.visible = !inside && player.pos.z > 25;
+  // (the park and beach also drop out when you're far east at the zoo, and vice versa)
+  park.visible = !inside && player.pos.z < 105 && player.pos.x < 150;
+  beach.group.visible = !inside && player.pos.z > 25 && player.pos.x < 110;
   beach.sea.visible = !inside;
-  road.group.visible = !inside;
+  if (road) road.group.visible = !inside;
+  if (traffic) { traffic.group.visible = !inside; if (started && !inside) traffic.update(dt, { player, ambulance }); }
   if (zoo) zoo.group.visible = !inside && player.pos.x > 70;
   base.visible = !inside;
   ambulance.root.visible = !inside;
   if (hospital) hospital.group.visible = inside;
   scene.background = inside ? INDOOR_BG : OUTDOOR_BG;
   scene.fog = inside ? null : outdoorFog;
+
+  // distance culling: ambient people far from the camera aren't drawn (keeps phones smooth)
+  if (missions) {
+    const cam = camera.position;
+    for (const a of missions.ambient) {
+      if (a.mode === 'swing') continue; // parented to the swing seats
+      const p = a.kid.root.position;
+      a.kid.root.visible = Math.hypot(p.x - cam.x, p.z - cam.z) < 85;
+    }
+  }
 
   // waypoint beam (mission waypoints follow the patient; hospital ones show at the doors)
   const wp = hud.radar.waypointPos();
@@ -333,7 +366,9 @@ function frame() {
 frame();
 
 // Characters load in parallel; the Start button unlocks when they're in
-await Promise.all([doctorReady, preloadKids(), ambulanceReady]); // kids fall back to procedural ones per look
+await Promise.all([doctorReady, preloadKids(), ambulanceReady, loadKits()]);
+road = buildRoad(scene);
+traffic = new Traffic(scene);
 hospital = await buildHospital(scene);
 zoo = await buildZoo(scene);
 animated.push(...zoo.animated);
@@ -348,6 +383,7 @@ window.__game.hospital = hospital;
 window.__game.nurses = nurses;
 window.__game.zoo = zoo;
 window.__game.bigMap = bigMap;
+window.__game.traffic = traffic;
 window.__game.hud = hud;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;

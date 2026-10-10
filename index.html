@@ -63,12 +63,19 @@
   <div id="bigmap" class="hidden">
     <div class="bm-head">
       <span class="bm-title">🗺️ Map</span>
-      <span class="bm-help key-hint">Click an emergency or anywhere to set a waypoint · click it again to clear · <kbd>M</kbd> close</span>
-      <span class="bm-help touch-hint">Tap an emergency or anywhere to set a waypoint · tap it again to clear</span>
+      <span class="bm-help key-hint">Click an emergency or anywhere for a waypoint · drag &amp; scroll to move/zoom · <kbd>M</kbd> close</span>
+      <span class="bm-help touch-hint">Tap an emergency or anywhere for a waypoint · drag &amp; pinch to move/zoom</span>
       <span id="bigmap-where"></span>
       <button id="bigmap-close" aria-label="Close map">✕</button>
     </div>
-    <canvas id="bigmap-canvas"></canvas>
+    <div class="bm-stage">
+      <canvas id="bigmap-canvas"></canvas>
+      <div class="bm-tools">
+        <button id="bigmap-zin" aria-label="Zoom in">＋</button>
+        <button id="bigmap-zout" aria-label="Zoom out">－</button>
+        <button id="bigmap-me" aria-label="Centre on me">◎</button>
+      </div>
+    </div>
     <div class="bm-legend"><span>🔴 Emergency</span><span>🟢 Drop-off</span><span>⭐ Waypoint</span><span>🚑 Ambulance</span><span>🏥 Hospital</span><span>🟡 You</span></div>
   </div>
 

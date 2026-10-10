@@ -1,8 +1,8 @@
 // GTA-style navigation: a rotating radar (minimap) with compass and blips, a full-screen world map
 // (M / tap the radar) where you can set a waypoint, and the shared painter that draws the world.
-import { WORLD, clampWalkable } from './world.js';
+import { WORLD, clampWalkable, PARK_TREES } from './world.js';
 import { BEACH } from './beach.js';
-import { ZOO } from './zoo.js';
+import { ZOO, MAP_DECOR } from './zoo.js';
 import { INTERIOR } from './hospital.js';
 
 const $ = (id) => document.getElementById(id);
@@ -24,24 +24,26 @@ export const ZONE_LABELS = [
 const isInterior = (z) => z < -300;
 
 /**
- * Paints the outdoor world. P(x, z) → [cx, cy] maps world to canvas (it may rotate), s = pixels per unit.
- * Shapes are drawn as polygons/circles through P so the same code serves the rotating radar and the big map.
+ * Paints the outdoor world in an illustrated map style. P(x, z) → [cx, cy] maps world to canvas (it may
+ * rotate), s = pixels per world unit. Everything goes through P so the rotating radar and the big map share it.
  */
-export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => fn(x, y) } = {}) {
-  const poly = (pts, fill, stroke, lw = 1) => {
-    ctx.beginPath();
-    pts.forEach(([x, z], i) => { const [a, b] = P(x, z); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); });
-    ctx.closePath();
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
-  };
+export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => fn(x, y), time = 0 } = {}) {
+  const path = (pts) => { ctx.beginPath(); pts.forEach(([x, z], i) => { const [a, b] = P(x, z); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.closePath(); };
+  const poly = (pts, fill, stroke, lw = 1) => { path(pts); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } };
   const rect = (x0, z0, x1, z1, fill, stroke, lw) => poly([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], fill, stroke, lw);
   const circle = (x, z, r, fill, stroke, lw = 1) => {
     const [a, b] = P(x, z);
-    ctx.beginPath(); ctx.arc(a, b, Math.max(0.5, r * s), 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(a, b, Math.max(0.6, r * s), 0, Math.PI * 2);
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
   };
+  const line = (x0, z0, x1, z1, color, lw, dash) => {
+    const [a, b] = P(x0, z0), [c, d] = P(x1, z1);
+    if (dash) ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.stroke();
+    if (dash) ctx.setLineDash([]);
+  };
+  const shadow = (fn) => { ctx.save(); ctx.translate(2.5, 3); fn('rgba(15,40,20,0.22)'); ctx.restore(); };
   const text = (x, z, str, px, color = '#fff') => {
     const [a, b] = P(x, z);
     upright((cx, cy) => {
@@ -51,51 +53,110 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
       ctx.strokeText(str, cx, cy); ctx.fillStyle = color; ctx.fillText(str, cx, cy);
     }, a, b);
   };
+  const detail = s > 1.2;
+  const { road } = ZOO;
 
-  // sea + beach
-  rect(-400, WORLD.shoreline, 400, WORLD.wadeLimit + 4, '#5cc8f2');
-  rect(-400, WORLD.wadeLimit + 4, 400, 600, '#2b8fd8');
-  rect(-85, 66, 85, WORLD.shoreline, '#f2d38a');
-  rect(-2.2, 55, 2.2, 84, '#a8743f');
-  rect(BEACH.tower.x - 1.5, BEACH.tower.z - 1.5, BEACH.tower.x + 1.5, BEACH.tower.z + 1.5, '#e0323a');
-  circle(BEACH.castles.x, BEACH.castles.z, 2.5, '#d9ae5c');
-  for (const [x, z] of BEACH.umbrellas) circle(x, z, 1.6, '#ffffff', '#e0323a', 1);
-  // park
-  rect(-57, -57, 57, 57, null, 'rgba(255,255,255,0.85)', 1.5);
-  circle(0, 0, 23, null, '#e6c88f', 4 * s);
-  rect(-2.5, -42, 2.5, -22, '#e6c88f');
-  rect(-2, 35, 2, 57, '#e6c88f');
-  circle(0, 0, 3, '#bfc7d1');
-  circle(WORLD.pond.x, WORLD.pond.z, WORLD.pond.r, '#3fa9f5');
-  rect(WORLD.tower.x - 1.5, WORLD.tower.z - 1.5, WORLD.tower.x + 1.5, WORLD.tower.z + 1.5, '#e0323a');
+  // ---- sea, surf and the beach
+  rect(-400, WORLD.wadeLimit + 4, 400, 600, '#2b86d0');
+  rect(-400, WORLD.shoreline, 400, WORLD.wadeLimit + 4, '#56c2f0');
+  if (detail) for (let i = 0; i < 4; i++) { const z = WORLD.shoreline + 4 + i * 7; line(-120, z, 120, z, 'rgba(255,255,255,0.35)', Math.max(1, 0.4 * s), [6 * s, 9 * s]); }
+  rect(-85, 66, 85, WORLD.shoreline, '#f3d68f');
+  rect(-85, WORLD.shoreline - 4, 85, WORLD.shoreline, '#e2bd73');
+  line(-85, WORLD.shoreline + 0.4, 85, WORLD.shoreline + 0.4, '#ffffff', Math.max(1.5, 0.8 * s));
+  rect(-2.2, 55, 2.2, 84, '#a8743f', '#7a4a26', 1);
+  if (detail) for (let z = 56; z < 84; z += 1.2) line(-2.2, z, 2.2, z, 'rgba(90,55,25,0.45)', 0.6);
+  rect(BEACH.tower.x - 1.5, BEACH.tower.z - 1.5, BEACH.tower.x + 1.5, BEACH.tower.z + 1.5, '#ffffff', '#e0323a', 2);
+  circle(BEACH.castles.x, BEACH.castles.z, 2.5, '#d9ae5c', '#a8823a', 1);
+  BEACH.umbrellas.forEach(([x, z], i) => { circle(x, z, 1.9, i % 2 ? '#2f7fc1' : '#e0323a', '#ffffff', 1.5); circle(x, z, 0.5, '#ffffff'); });
+
+  // ---- the park: lawn, paths with edges, pond, playgrounds
+  rect(-57, -57, 57, 57, '#72c64f');
+  const pathFill = '#ecd3a0', pathEdge = '#c9a86b';
+  circle(0, 0, 23, null, pathEdge, 5.2 * s);
+  circle(0, 0, 23, null, pathFill, 3.8 * s);
+  for (const [x0, z0, x1, z1] of [[-1.6, -18.5, 1.6, -3.5], [-1.6, 3.5, 1.6, 18.5], [-18.5, -1.6, -3.5, 1.6], [3.5, -1.6, 18.5, 1.6], [-2.5, -42, 2.5, -22], [-2, 25, 2, 57]]) rect(x0, z0, x1, z1, pathFill, pathEdge, 1);
+  circle(0, 0, 7, pathFill, pathEdge, 1);
+  circle(0, 0, 3, '#c9d3dd', '#8f98a2', 1.5);
+  circle(0, 0, 2.3, '#5cc8f2');
+  circle(WORLD.tower.x, WORLD.tower.z, 7.5, '#dcb27a');
+  circle(WORLD.swings.x, WORLD.swings.z, 6.5, '#dcb27a');
+  rect(WORLD.tower.x - 1.5, WORLD.tower.z - 1.5, WORLD.tower.x + 1.5, WORLD.tower.z + 1.5, '#e0323a', '#7a1a1a', 1);
+  rect(WORLD.tower.x + 1.5, WORLD.tower.z - 0.5, WORLD.tower.x + 6.5, WORLD.tower.z + 0.5, '#e0323a');
   rect(WORLD.swings.x - 3.5, WORLD.swings.z - 0.4, WORLD.swings.x + 3.5, WORLD.swings.z + 0.6, '#2457c5');
+  circle(WORLD.pond.x, WORLD.pond.z, WORLD.pond.r + 0.6, '#9aa3ad');
+  circle(WORLD.pond.x, WORLD.pond.z, WORLD.pond.r, '#43aef5');
+  circle(WORLD.pond.x, WORLD.pond.z, WORLD.pond.r * 0.55, '#2a8fd8');
   rect(WORLD.stand.x - 0.7, WORLD.stand.z - 1.5, WORLD.stand.x + 0.7, WORLD.stand.z + 1.5, '#9a6234');
-  // hospital
-  rect(-17, -57, 17, -47, '#efe3cf', '#9a8f7a', 1);
+  rect(-57, -57, 57, 57, null, 'rgba(255,255,255,0.9)', Math.max(1, 0.35 * s));
+
+  // ---- Zoo Road: asphalt, white edges, dashed centre, zebra crossings, car park
+  rect(road.x0, road.z - road.width / 2 - 0.5, road.x1, road.z + road.width / 2 + 0.5, '#c9ced4');
+  rect(road.x0, road.z - road.width / 2, road.x1, road.z + road.width / 2, '#4a5058');
+  line(road.x0, road.z - road.width / 2 + 0.4, road.x1, road.z - road.width / 2 + 0.4, '#ffffff', Math.max(1, 0.25 * s));
+  line(road.x0, road.z + road.width / 2 - 0.4, road.x1, road.z + road.width / 2 - 0.4, '#ffffff', Math.max(1, 0.25 * s));
+  line(road.x0 + 2, road.z, road.x1, road.z, '#ffd23f', Math.max(1, 0.3 * s), [Math.max(2, 2 * s), Math.max(2, 2 * s)]);
+  if (detail) for (const cx of [0, 131]) for (let k = -3; k <= 3; k++) rect(cx - 2.2, road.z + k * 0.9 - 0.3, cx + 2.2, road.z + k * 0.9 + 0.3, '#ffffff');
+  rect(115, -53, 133, -42, '#5a6068', '#c9ced4', 1.5);
+  if (detail) for (let i = 0; i <= 6; i++) line(115 + i * 3, -50.5, 115 + i * 3, -45.5, '#ffffff', 0.8);
+  ['#e0323a', '#ffd23f', null, '#2f7fc1', '#ffffff', '#4cc35a'].forEach((c, i) => { if (c) rect(116.6 + i * 3, -50, 118.4 + i * 3, -46, c, '#1b1b1b', 0.8); });
+
+  // ---- the hospital (with a soft shadow)
+  shadow((c) => rect(-17, -57, 17, -47, c));
+  rect(-17, -57, 17, -47, '#f4ead8', '#a89a80', 1.5);
+  rect(-5, -47, 5, -44.5, '#ffffff', '#c9c0ae', 1);
   rect(-1.5, -53, 1.5, -50.6, '#e0323a');
   rect(-0.5, -54.2, 0.5, -49.4, '#e0323a');
-  // Zoo Road
-  const { road } = ZOO;
-  rect(road.x0, road.z - road.width / 2, road.x1, road.z + road.width / 2, '#4a5058');
-  {
-    ctx.setLineDash([Math.max(2, 2 * s), Math.max(2, 2 * s)]);
-    const [a, b] = P(road.x0, road.z), [c, d] = P(road.x1, road.z);
-    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d);
-    ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = Math.max(1, 0.25 * s); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  // zoo
-  rect(ZOO.min.x, ZOO.min.z, ZOO.max.x, ZOO.max.z, '#7ccf55', '#3a7a3a', 2);
-  circle(ZOO.center.x, ZOO.center.z, ZOO.ring, null, '#e8cf98', 4 * s);
-  rect(ZOO.min.x, road.z - 2.2, ZOO.center.x, road.z + 2.2, '#e8cf98');
+  circle(0, -41, 2, null, '#4cc35a', Math.max(1, 0.5 * s));
+
+  // ---- the zoo
+  rect(ZOO.min.x, ZOO.min.z, ZOO.max.x, ZOO.max.z, '#7ccf55', '#3a7a3a', Math.max(1.5, 0.4 * s));
+  circle(ZOO.center.x, ZOO.center.z, ZOO.ring, null, pathEdge, 5.2 * s);
+  circle(ZOO.center.x, ZOO.center.z, ZOO.ring, null, pathFill, 3.8 * s);
+  rect(ZOO.min.x, road.z - 2.25, ZOO.center.x + 2, road.z + 2.25, pathFill);
+  rect(ZOO.center.x - 2, road.z, ZOO.center.x + 2, ZOO.center.z - ZOO.ring + 1, pathFill);
+  rect(138, -45, 156, -30, '#ddcda9', '#bfae88', 1);
+  circle(148, -41.2, 3, '#c9d3dd', '#8f98a2', 1);
+  circle(148, -41.2, 2.2, '#5cc8f2');
+  for (const [x, c] of [[166, '#4cc35a'], [172, '#e0323a'], [178.5, '#4cc35a']]) rect(x - 1.4, -44, x + 1.4, -41, c, '#1b1b1b', 0.8);
+  rect(147.6, -30.8, 150.4, -28.2, '#ff8ac0', '#1b1b1b', 0.8);
   const penIcons = { lion: '🦁', elephant: '🐘', giraffe: '🦒', penguin: '🐧', monkey: '🐒' };
   for (const [name, p] of Object.entries(ZOO.pens)) {
-    circle(p.x, p.z, p.r, `#${p.color.toString(16).padStart(6, '0')}`, '#8a6f45', 2);
-    if (s > 1) text(p.x, p.z, penIcons[name], Math.min(26, p.r * s * 0.9));
+    shadow((c) => circle(p.x, p.z, p.r + 0.4, c));
+    circle(p.x, p.z, p.r + 0.3, '#8a5a32');
+    circle(p.x, p.z, p.r - 0.2, `#${p.color.toString(16).padStart(6, '0')}`);
+    if (name === 'elephant') circle(p.x + 5, p.z + 4, 3.8, '#43aef5');
+    if (name === 'penguin') circle(p.x - 1.5, p.z + 1.5, 3.8, '#86d6ff');
+    if (name === 'monkey') rect(p.x - 2.7, p.z - 2.7, p.x + 2.7, p.z + 2.7, '#a8743f', '#7a4a26', 1);
+    if (s > 1) text(p.x, p.z, penIcons[name], Math.min(28, p.r * s * 0.95));
   }
-  rect(ZOO.gate.x - 1, ZOO.gate.z - 5.5, ZOO.gate.x + 1, ZOO.gate.z + 5.5, '#c0541f');
+  rect(ZOO.gate.x - 1, ZOO.gate.z - 5.5, ZOO.gate.x + 1, ZOO.gate.z + 5.5, '#c0541f', '#6b2a0d', 1);
 
-  if (labels) for (const l of ZONE_LABELS) text(l.x, l.z, l.text, 15, '#ffffff');
+  // ---- trees everywhere, with shadows and a highlight
+  const trees = [...PARK_TREES, ...MAP_DECOR.trees];
+  if (detail) {
+    ctx.fillStyle = 'rgba(15,40,20,0.22)';
+    for (const [x, z, r] of trees) { const [a, b] = P(x, z); ctx.beginPath(); ctx.arc(a + 2, b + 2.5, r * s, 0, Math.PI * 2); ctx.fill(); }
+  }
+  for (const [x, z, r] of trees) {
+    const [a, b] = P(x, z);
+    ctx.fillStyle = '#2f8a35'; ctx.beginPath(); ctx.arc(a, b, Math.max(1, r * s), 0, Math.PI * 2); ctx.fill();
+    if (detail) { ctx.fillStyle = '#4fb447'; ctx.beginPath(); ctx.arc(a - r * s * 0.25, b - r * s * 0.25, r * s * 0.55, 0, Math.PI * 2); ctx.fill(); }
+  }
+
+  if (labels) for (const l of ZONE_LABELS) pill(ctx, P(l.x, l.z), l.text, upright);
+}
+
+/** A rounded label like a map sticker. */
+function pill(ctx, [x, y], str, upright) {
+  upright((cx, cy) => {
+    ctx.font = '700 14px "Fredoka", sans-serif';
+    const w = ctx.measureText(str).width + 18, h = 24;
+    ctx.fillStyle = 'rgba(20, 32, 46, 0.82)';
+    ctx.beginPath(); ctx.roundRect(cx - w / 2, cy - h / 2, w, h, 12); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(str, cx, cy + 1);
+  }, x, y);
 }
 
 /* ------------------------------------------------------------------ */
@@ -268,7 +329,41 @@ export class BigMap {
     this.open = false;
     $('bigmap-close').addEventListener('click', (e) => { e.stopPropagation(); this.toggle(false); });
     $('minimap').addEventListener('click', () => this.toggle(true));
-    this.canvas.addEventListener('pointerdown', (e) => this.click(e));
+    // drag to pan, pinch / wheel to zoom, tap to set a waypoint
+    const pts = new Map();
+    let moved = 0, pinch = 0;
+    this.canvas.addEventListener('pointerdown', (e) => { this.canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; pinch = 0; });
+    this.canvas.addEventListener('pointermove', (e) => {
+      const p = pts.get(e.pointerId);
+      if (!p) return;
+      const dx = e.clientX - p.x, dy = e.clientY - p.y;
+      p.x = e.clientX; p.y = e.clientY;
+      if (pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        const r = this.canvas.getBoundingClientRect();
+        if (pinch) this.zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, d / pinch);
+        pinch = d; moved = 99;
+        return;
+      }
+      moved += Math.abs(dx) + Math.abs(dy);
+      if (moved > 6 && (this.zoom ?? 1) > 1) {
+        this.center = this.center ?? this.toWorld(this.view.w / 2, this.view.h / 2);
+        this.center = { x: this.center.x - dx / this.view.s, z: this.center.z - dy / this.view.s };
+        this.draw();
+      }
+    });
+    const up = (e) => { if (pts.has(e.pointerId) && pts.size === 1 && moved <= 6) this.click(e); pts.delete(e.pointerId); };
+    this.canvas.addEventListener('pointerup', up);
+    this.canvas.addEventListener('pointercancel', (e) => pts.delete(e.pointerId));
+    this.canvas.addEventListener('wheel', (e) => { e.preventDefault(); const r = this.canvas.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.2 : 1 / 1.2); }, { passive: false });
+    $('bigmap-zin').addEventListener('click', () => this.zoomAt(this.view.w / 2, this.view.h / 2, 1.5));
+    $('bigmap-zout').addEventListener('click', () => this.zoomAt(this.view.w / 2, this.view.h / 2, 1 / 1.5));
+    $('bigmap-me').addEventListener('click', () => {
+      const { player } = this.getState();
+      const me = Radar.blipPos(player.pos.x, player.pos.z, false);
+      this.zoom = Math.max(this.zoom ?? 1, 2.5); this.center = { x: me.x, z: me.z }; this.draw();
+    });
     addEventListener('keydown', (e) => {
       if (e.code === 'KeyM' && !e.repeat && this.enabled?.()) this.toggle();
       if (e.code === 'Escape' && this.open) this.toggle(false);
@@ -279,21 +374,34 @@ export class BigMap {
   toggle(v = !this.open) {
     this.open = v;
     this.el.classList.toggle('hidden', !v);
-    if (v) this.draw();
+    if (v) { this.zoom = 1; this.center = null; this.draw(); }
   }
 
+  /** Fit the world, then apply zoom (1 = whole world) and pan (world-space centre). */
   layout() {
     const dpr = Math.min(devicePixelRatio, 2);
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
-    this.canvas.width = w * dpr; this.canvas.height = h * dpr;
-    const s = Math.min(w / (BOUNDS.x1 - BOUNDS.x0), h / (BOUNDS.z1 - BOUNDS.z0));
-    const ox = (w - (BOUNDS.x1 - BOUNDS.x0) * s) / 2, oz = (h - (BOUNDS.z1 - BOUNDS.z0) * s) / 2;
-    this.view = { dpr, s, ox, oz };
+    if (this.canvas.width !== Math.round(w * dpr)) { this.canvas.width = w * dpr; this.canvas.height = h * dpr; }
+    const fit = Math.min(w / (BOUNDS.x1 - BOUNDS.x0), h / (BOUNDS.z1 - BOUNDS.z0));
+    const s = fit * (this.zoom ?? 1);
+    const c = this.center ?? { x: (BOUNDS.x0 + BOUNDS.x1) / 2, z: (BOUNDS.z0 + BOUNDS.z1) / 2 };
+    this.view = { dpr, s, w, h, ox: w / 2 - c.x * s, oz: h / 2 - c.z * s };
     return this.view;
   }
 
-  toScreen(x, z) { const v = this.view; return [v.ox + (x - BOUNDS.x0) * v.s, v.oz + (z - BOUNDS.z0) * v.s]; }
-  toWorld(px, py) { const v = this.view; return { x: BOUNDS.x0 + (px - v.ox) / v.s, z: BOUNDS.z0 + (py - v.oz) / v.s }; }
+  toScreen(x, z) { const v = this.view; return [v.ox + x * v.s, v.oz + z * v.s]; }
+  toWorld(px, py) { const v = this.view; return { x: (px - v.ox) / v.s, z: (py - v.oz) / v.s }; }
+
+  /** Zoom around a screen point (keeps that spot under the finger/cursor). */
+  zoomAt(px, py, factor) {
+    const before = this.toWorld(px, py);
+    this.zoom = Math.min(8, Math.max(1, (this.zoom ?? 1) * factor));
+    this.center = this.center ?? this.toWorld(this.view.w / 2, this.view.h / 2);
+    this.layout();
+    const after = this.toWorld(px, py);
+    this.center = { x: this.center.x + before.x - after.x, z: this.center.z + before.z - after.z };
+    this.draw();
+  }
 
   draw() {
     const { player, missions, ambulance } = this.getState();
@@ -301,7 +409,7 @@ export class BigMap {
     const ctx = this.ctx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    ctx.fillStyle = '#58ad3f';
+    ctx.fillStyle = '#5fb546';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     paintWorld(ctx, (x, z) => this.toScreen(x, z), s, { labels: true });
     const inside = isInterior(player.pos.z);
@@ -352,7 +460,33 @@ export class BigMap {
     ctx.fillStyle = '#ffd90f'; ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, 9); ctx.lineTo(0, 4); ctx.lineTo(-9, 9); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
+    this.decorations();
     $('bigmap-where').textContent = inside ? '📍 You are inside Wolfson Medical Center' : '';
+  }
+
+  /** Compass rose and scale bar drawn on top of the map. */
+  decorations() {
+    const ctx = this.ctx, { w, h, s } = this.view;
+    // compass rose (north = towards the hospital)
+    const cx = w - 46, cy = 52;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = 'rgba(20,32,46,0.75)'; ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = i === 3 ? '#e0323a' : '#ffffff';
+      ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(6, 0); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    ctx.fillStyle = '#ffffff'; ctx.font = '700 12px "Fredoka", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('N', cx, cy - 40 < 6 ? cy + 40 : cy - 40 + 0);
+    // scale bar: a round number of metres
+    const pxPerM = s * UNITS_PER_M;
+    const metres = [10, 20, 50, 100, 200].find((m) => m * pxPerM > 70) ?? 200;
+    const len = metres * pxPerM, x0 = 18, y0 = h - 22;
+    ctx.fillStyle = 'rgba(20,32,46,0.75)'; ctx.beginPath(); ctx.roundRect(x0 - 8, y0 - 22, len + 16, 32, 8); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x0, y0, len, 4); ctx.fillRect(x0, y0 - 5, 2, 9); ctx.fillRect(x0 + len - 2, y0 - 5, 2, 9);
+    ctx.textAlign = 'left'; ctx.fillText(`${metres} m`, x0, y0 - 12);
   }
 
   badge(x, y, emoji) {

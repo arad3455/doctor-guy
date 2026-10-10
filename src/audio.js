@@ -87,3 +87,5 @@ export const siren = {
 };
 
 sfx.door = () => { tone(180, 0.08, { type: 'square', vol: 0.08 }); tone(120, 0.1, { type: 'square', vol: 0.08, delay: 0.07 }); };
+
+sfx.honk = () => { tone(392, 0.22, { type: 'square', vol: 0.06 }); tone(330, 0.22, { type: 'square', vol: 0.05 }); };

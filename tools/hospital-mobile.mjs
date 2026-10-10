@@ -66,7 +66,16 @@ await page.waitForFunction(() => __game.minigame.active, { timeout: 8000 });
 for (let i = 0; i < 200 && (await g(() => __game.minigame.active)); i++) {
   const mode = await g(() => __game.minigame.mode);
   if (mode === 'mash') {
-    await page.touchscreen.tap(vw / 2, vh * 0.3);
+    // the headless browser renders this scene at ~2 fps, too slow for CDP taps; dispatch a burst of real
+    // pointerdown/up events on the overlay at a thumb's pace (~8/s) instead
+    await page.evaluate(async () => {
+      const el = document.getElementById('minigame');
+      for (let k = 0; k < 8; k++) {
+        el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+        window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }));
+        await new Promise((r) => setTimeout(r, 120));
+      }
+    });
     if (i % 10 === 0) console.log('mash', i, await g(() => JSON.stringify({ pos: +__game.minigame.pos.toFixed(2), t: +__game.minigame.mashTime.toFixed(2), misses: __game.minigame.misses })));
     if (i === 6) await page.screenshot({ path: '.shots/hosp-mash.png' });
   }
