@@ -159,3 +159,82 @@ export function signBoard(geometry, map) {
   g.add(back);
   return g;
 }
+
+/** Tiny detail meshes (spokes, rungs, cups, bolts) don't need to cast shadows: skip them in the shadow pass. */
+export function trimShadows(group, minRadius = 0.7) {
+  let n = 0;
+  group.traverse((o) => {
+    if (!o.isMesh || !o.castShadow || o.isInstancedMesh) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    const s = o.getWorldScale(new THREE.Vector3());
+    if (o.geometry.boundingSphere.radius * Math.max(s.x, s.y, s.z) < minRadius) { o.castShadow = false; n++; }
+  });
+  return n;
+}
+
+/**
+ * Static batching: merges every non-moving plain mesh under `root` into one mesh per material (outlines too), so a
+ * zone made of hundreds of small parts costs a handful of draw calls. Subtrees flagged userData.dynamic (anything
+ * that animates) are left alone, as are instanced/skinned meshes, sprites and lines.
+ */
+export function bakeStatic(root) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const buckets = new Map(); // key → { material, cast, receive, geos: [] }
+  const victims = [], movers = [];
+  const visit = (o) => {
+    if (o.userData.dynamic) { movers.push(o); return; }
+    if (o.isMesh && !o.isInstancedMesh && !o.isSkinnedMesh && !Array.isArray(o.material) && o.visible && o.geometry?.attributes?.position) {
+      const mat = o.material;
+      // (glowing bulbs stay separate: the night halos attach to each one)
+      if ((!mat.transparent || mat.opacity >= 1 || mat.type === 'ShaderMaterial') && !(mat.emissive && mat.emissive.getHex() !== 0)) {
+        const key = `${mat.uuid}|${o.castShadow}|${o.receiveShadow}`;
+        if (!buckets.has(key)) buckets.set(key, { material: mat, cast: o.castShadow, receive: o.receiveShadow, geos: [] });
+        let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        floatAttributes(g); // compressed (quantized) glTF attributes can't be merged with plain ones
+        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+        buckets.get(key).geos.push(g);
+        victims.push(o);
+      }
+    }
+    for (const c of o.children) visit(c);
+  };
+  for (const c of root.children) visit(c);
+  let merged = 0;
+  for (const b of buckets.values()) {
+    if (b.geos.length < 2) { b.geos.forEach((g) => g.dispose()); continue; }
+    // keep only the attributes every piece has
+    const names = ['position', 'normal', 'uv'].filter((n) => b.geos.every((g) => g.attributes[n]));
+    for (const g of b.geos) for (const n of Object.keys(g.attributes)) if (!names.includes(n)) g.deleteAttribute(n);
+    const geo = mergeGeometries(b.geos, false);
+    b.geos.forEach((g) => g.dispose());
+    if (!geo) continue;
+    const m = new THREE.Mesh(geo, b.material);
+    m.castShadow = b.cast; m.receiveShadow = b.receive;
+    m.userData.baked = true;
+    if (b.material.type === 'ShaderMaterial') m.raycast = () => {};
+    root.add(m);
+    merged++;
+    b.done = true;
+  }
+  // remove the originals that went into a merged mesh (keep their parents: they may hold dynamic children)
+  const doneKeys = new Set([...buckets].filter(([, b]) => b.done).map(([k]) => k));
+  for (const o of victims) {
+    if (!doneKeys.has(`${o.material.uuid}|${o.castShadow}|${o.receiveShadow}`)) continue;
+    for (const c of [...o.children]) if (!(victims.includes(c) && doneKeys.has(`${c.material.uuid}|${c.castShadow}|${c.receiveShadow}`))) root.attach(c);
+    o.parent?.remove(o);
+  }
+  // moving parts get their own static insides baked too (a Ferris wheel's spokes, a ship's hull…)
+  for (const m of movers) merged += bakeStatic(m);
+  return merged;
+}
+
+/** Replaces quantized / interleaved attributes with plain Float32 ones (values de-normalised). */
+function floatAttributes(g) {
+  for (const [name, a] of Object.entries(g.attributes)) {
+    if (a.array instanceof Float32Array && !a.normalized && !a.isInterleavedBufferAttribute) continue;
+    const out = new Float32Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++) for (let k = 0; k < a.itemSize; k++) out[i * a.itemSize + k] = a.getComponent ? a.getComponent(i, k) : [a.getX(i), a.getY(i), a.getZ(i), a.getW(i)][k];
+    g.setAttribute(name, new THREE.BufferAttribute(out, a.itemSize));
+  }
+}

@@ -396,6 +396,7 @@ export async function buildZoo(scene) {
       if (lods[name]) lod.addLevel(lods[name].clone(), 26);
       lod.addLevel(new THREE.Object3D(), 95);
       const c = new Critter(lod, { home: new THREE.Vector3(pen.x, 0, pen.z), radius: pen.r - (name === 'penguin' ? 1.2 : 2.6), speed: cfg.speed, kind: name });
+      c.root.userData.dynamic = true; // wanders its pen
       group.add(c.root);
       critters.push(c);
     }

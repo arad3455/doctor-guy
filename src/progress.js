@@ -40,6 +40,7 @@ export const ACHIEVEMENTS = [
   { id: 'funfair-medic', icon: '🎡', name: 'Funfair Medic', desc: 'Save every kid at Sunset Pier', test: (p) => p.zoneDone('pier', 6) },
   { id: 'happy-camper', icon: '🏕️', name: 'Happy Camper', desc: 'Save every kid at Pinewood Camp', test: (p) => p.zoneDone('camp', 6) },
   { id: 'harbor-hero', icon: '⚓', name: 'Harbor Hero', desc: 'Save every kid at Wolfson Harbor', test: (p) => p.zoneDone('harbor', 6) },
+  { id: 'explorer', icon: '🧭', name: 'Explorer', desc: 'Visit all 9 areas of Wolfson', test: (p) => Object.keys(p.data.visited ?? {}).length >= 9 },
   { id: 'monkey', icon: '🐒', name: 'Monkey Business', desc: 'Get your stethoscope back from the monkey', test: (p) => !!p.life.missions.monkey },
   { id: 'lion-tamer', icon: '🦁', name: 'Lion Tamer', desc: 'Calm the kid at the lion pen', test: (p) => !!p.life.missions.lion },
   { id: 'perfectionist', icon: '🎯', name: 'Perfectionist', desc: '5 perfect treatments in a row', test: (p, c) => (c?.career.stats.bestStreak ?? 0) >= 5 },

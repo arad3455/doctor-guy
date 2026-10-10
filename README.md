@@ -15,7 +15,7 @@ A browser 3D open-world rescue game (Three.js, no build step). Play it at https:
 | 🌲 Pinewood Camp | north, up Pine Road | pine forest, lake with canoes and a dock, waterfall, campsite, ranger station, deer |
 | ⚓ Wolfson Harbor | south of Downtown, down Harbor Road | warehouses, container yard with a gantry crane, fish market, cargo ship, jetty and fishing boats |
 
-Stunt ramps, the Check-up Frenzy token, a day/night cycle and 26 achievements are scattered around it all.
+Stunt ramps, the Check-up Frenzy token, a day/night cycle and 27 achievements are scattered around it all.
 
 ## Run
 ```

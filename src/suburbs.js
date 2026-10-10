@@ -7,7 +7,7 @@ import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.
 import { addBox, addCircle } from './world.js';
 import { scatter, kit, KIT_SIZES, WALL_TINTS, ROOF_TINTS } from './kit.js';
 import { buildStreets, street, gx, gz, TILE } from './streets.js';
-import { seeded, slab, streetLamps, buildings, addCameraBlocker, parkedCars, trees, signBoard } from './cityprops.js';
+import { seeded, slab, streetLamps, buildings, addCameraBlocker, parkedCars, trees, signBoard, bakeStatic } from './cityprops.js';
 
 const HALF = TILE / 2;
 const MAPLE = 15; // Maple Lane: grid column (x = 84.5)
@@ -162,6 +162,7 @@ export function buildSuburbs(scene) {
   }
   addBox(MH.mapleX + HALF + 3, -28.5, 4.4, 0.4);
   addCameraBlocker(group, blockers);
+  bakeStatic(group);
   return { group, animated, bulbs };
 }
 
@@ -214,6 +215,7 @@ function trampoline(group, animated, x, z) {
   const net = new THREE.Mesh(new THREE.CylinderGeometry(2.05, 2.05, 1.7, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0x1b1b1b, transparent: true, opacity: 0.18, side: THREE.DoubleSide }));
   net.position.y = 1.75;
   g.add(net);
+  mat.userData.dynamic = true; // bounces
   group.add(g);
   addCircle(x, z, 2.2);
   animated.push({ update: (t) => { mat.position.y = 0.82 - Math.max(0, Math.sin(t * 4 + x)) * 0.06; } });
@@ -420,6 +422,7 @@ function buildSchool(group, animated, blockers) {
   addCircle(bx + w / 2 + 2, z1 - 1.5, 0.25);
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1, 8, 1), new THREE.MeshBasicMaterial({ map: signTexture(['🍁'], { w: 128, h: 80, size: 60, bg: '#2f8a35', fg: '#ffffff' }), side: THREE.DoubleSide }));
   flag.position.set(bx + w / 2 + 2.85, 7.4, z1 - 1.5);
+  flag.userData.dynamic = true; // waves
   group.add(flag);
   const base = flag.geometry.attributes.position.array.slice();
   animated.push({ update: (t) => {

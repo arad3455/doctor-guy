@@ -206,9 +206,9 @@ export function buildWorld(scene) {
   colliders.length = 0;
   platforms.length = 0;
   cameraBlockers.length = 0;
-  const world = new THREE.Group(); // park props (hidden when far away, see main.js)
+  const world = new THREE.Group(); world.name = 'park'; // park props (hidden when far away, see main.js)
   scene.add(world);
-  const base = new THREE.Group(); // always visible: sky and ground
+  const base = new THREE.Group(); base.name = 'base'; // always visible: sky and ground
   scene.add(base);
   const animated = []; // { update(t, dt) }
 
@@ -457,6 +457,7 @@ function buildSwings(world, animated) {
   const seats = [];
   [-2, 0, 2].forEach((sx, i) => {
     const pivot = new THREE.Group();
+    pivot.userData.dynamic = true; // swings (kids sit on it)
     pivot.position.set(sx, H, 0);
     g.add(pivot);
     for (const cx of [-0.3, 0.3]) {
@@ -519,6 +520,7 @@ function buildPond(world, animated) {
   beak.rotation.z = -Math.PI / 2;
   beak.position.set(0.52, 0.28, 0);
   duck.add(beak);
+  duck.userData.dynamic = true;
   world.add(duck);
   animated.push({ update: (t) => {
     const a = t * 0.25;
@@ -828,6 +830,7 @@ function buildSkyline(world) {
 
 function buildClouds(world, animated) {
   const clouds = new THREE.Group();
+  clouds.userData.dynamic = true; // drifting
   world.add(clouds);
   for (let i = 0; i < 14; i++) {
     const c = new THREE.Group();

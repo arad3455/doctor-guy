@@ -3,8 +3,8 @@
 import puppeteer from 'puppeteer-core';
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'], protocolTimeout: 240000 });
 const page = await browser.newPage();
-await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
-await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'domcontentloaded', timeout: 180000 });
+await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 300000, polling: 1000 });
 const res = await page.evaluate(() => {
   const { ambulance: a, input } = __game;
   const out = {};

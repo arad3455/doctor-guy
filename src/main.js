@@ -17,6 +17,7 @@ import { buildPier, FAIR } from './pier.js';
 import { buildCamp } from './camp.js';
 import { buildHarbor, HARBOR } from './harbor.js';
 import { GPS } from './gps.js';
+import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
 import { CAMP } from './camp.js';
@@ -303,6 +304,24 @@ const ui = {
   swingSeats,
   minigame,
   toast: (h, ms) => hud.toast(h, ms),
+  zoneEntered: (zone) => {
+    const names = { park: ['WOLFSON PARK', 'Where it all began'], beach: ['SUNNY BEACH', 'Sun, sand and sea'], zoo: ['WOLFSON CITY ZOO', 'Mind the monkeys'],
+      downtown: ['DOWNTOWN WOLFSON', 'The big city'], suburbs: ['MAPLE HEIGHTS', 'Nice and quiet… usually'], pier: ['SUNSET PIER', 'Rides by the sea'],
+      camp: ['PINEWOOD CAMP', 'Deep in the woods'], harbor: ['WOLFSON HARBOR', 'Ships and cranes'], hospital: ['WOLFSON MEDICAL CENTER', 'Your second home'] };
+    const [name, sub] = names[zone] ?? [];
+    if (name) {
+      const el = document.getElementById('district');
+      el.querySelector('.d-name').textContent = name;
+      el.querySelector('.d-sub').textContent = sub;
+      el.classList.remove('hidden');
+      for (const s of el.children) { s.style.animation = 'none'; void s.offsetWidth; s.style.animation = ''; }
+      clearTimeout(ui.districtTimer);
+      ui.districtTimer = setTimeout(() => el.classList.add('hidden'), 3900);
+    }
+    // remember every area ever visited (the Explorer achievement)
+    progress.data.visited = { ...(progress.data.visited ?? {}), [zone]: true };
+    progress.dirty = true;
+  },
   prompt: (l) => hud.prompt(l),
   onFinished: () => {
     // let the last PATIENT SAVED banner finish first
@@ -355,6 +374,7 @@ function start() {
   hud.show(true);
   started = true;
   updateRotate();
+  progress.data.visited = { ...(progress.data.visited ?? {}), park: true };
   hud.toast(`Your shift begins!<br><small>${isTouch ? 'Tap the radar for the map 🗺️' : 'Press H for controls · M for the map'}</small>`, 3200);
 }
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
@@ -427,7 +447,29 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) progr
 
 const clock = new THREE.Clock();
 let t = 0;
+// Whole zones drop out when they're behind the camera or deep in the fog (their instanced meshes span the whole
+// zone, so three.js's per-object culling rarely helps). Boxes are measured once, a little padded for shadows.
+const zoneBoxes = new Map(), viewFrustum = new THREE.Frustum(), viewMatrix = new THREE.Matrix4();
+let viewFrame = -1;
+function inView(group) {
+  if (!zoneBoxes.has(group)) {
+    const was = group.visible;
+    group.visible = true;
+    zoneBoxes.set(group, new THREE.Box3().setFromObject(group).expandByScalar(6));
+    group.visible = was;
+  }
+  if (viewFrame !== frameNo) {
+    viewFrame = frameNo;
+    camera.updateMatrixWorld();
+    viewFrustum.setFromProjectionMatrix(viewMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  }
+  const box = zoneBoxes.get(group);
+  return box.distanceToPoint(camera.position) < (scene.fog?.far ?? 220) && viewFrustum.intersectsBox(box);
+}
+let frameNo = 0;
+
 function frame() {
+  frameNo++;
   const rawDt = Math.min(clock.getDelta(), 1 / 20);
   const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden') || !rotateEl.classList.contains('hidden');
   if (bigMap.open || (menuOpen && started)) { // paused: keep the map fresh, don't advance the world
@@ -510,13 +552,13 @@ function frame() {
   beach.group.visible = !inside && player.pos.z > 25 && player.pos.x < 110;
   beach.sea.visible = !inside;
   if (road) road.group.visible = !inside;
-  if (zoo) zoo.group.visible = !inside && player.pos.x > 70;
-  if (downtown) downtown.group.visible = !inside && player.pos.x < 60 && !window.__hide?.downtown;
-  if (suburbs) suburbs.group.visible = !inside && player.pos.x > -10 && player.pos.z > -80 && !window.__hide?.suburbs;
-  if (camp) camp.group.visible = !inside && player.pos.z < 0 && player.pos.x > -60 && !window.__hide?.camp;
-  if (harbor) harbor.group.visible = !inside && player.pos.x < 20 && player.pos.z > -40 && !window.__hide?.harbor;
+  if (zoo) zoo.group.visible = !inside && player.pos.x > 70 && inView(zoo.group);
+  if (downtown) downtown.group.visible = !inside && player.pos.x < 60 && !window.__hide?.downtown && inView(downtown.group);
+  if (suburbs) suburbs.group.visible = !inside && player.pos.x > -10 && player.pos.z > -80 && !window.__hide?.suburbs && inView(suburbs.group);
+  if (camp) camp.group.visible = !inside && player.pos.z < 0 && player.pos.x > -60 && !window.__hide?.camp && inView(camp.group);
+  if (harbor) harbor.group.visible = !inside && player.pos.x < 20 && player.pos.z > -40 && !window.__hide?.harbor && inView(harbor.group);
   if (pier) {
-    pier.group.visible = !inside && player.pos.x > -40 && player.pos.z > -20 && !window.__hide?.pier;
+    pier.group.visible = !inside && player.pos.x > -40 && player.pos.z > -20 && !window.__hide?.pier && inView(pier.group);
     FAIR.beam.material.opacity = Math.max(0, dayNight.night - 0.2) * 0.3; // the lighthouse sweeps at night
   }
   base.visible = !inside;
@@ -606,6 +648,8 @@ window.__game.suburbs = suburbs;
 window.__game.pier = pier;
 window.__game.camp = camp;
 window.__game.harbor = harbor;
+for (const g of [park, beach.group, beach.sea, zoo.group, road.group]) bakeStatic(g); // the park and beach: hundreds of small parts → a few batches
+for (const g of [downtown.group, suburbs.group, pier.group, camp.group, harbor.group, zoo.group, park, beach.group, road.group]) { g.updateMatrixWorld(true); trimShadows(g); } // lighter shadow pass
 // GPS routes prefer roads: every street tile of every zone, plus Zoo Road
 {
   const tileRects = [...DT_MAP.streets, ...MH_MAP.streets, ...(CAMP.streets ?? []), ...(HARBOR.streets ?? [])].map((t) => ({ x0: t.x - 3.6, x1: t.x + 3.6, z0: t.z - 3.6, z1: t.z + 3.6 }));

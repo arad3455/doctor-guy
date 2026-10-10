@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.js';
 import { addBox, addCircle } from './world.js';
 import { scatter, kit } from './kit.js';
-import { seeded, slab, streetLamps, parkedCars, signBoard } from './cityprops.js';
+import { seeded, slab, streetLamps, parkedCars, signBoard, bakeStatic } from './cityprops.js';
 
 export const FAIR = {
   x0: 92, x1: 150, z0: 64.5, z1: 113, // the fairground
@@ -93,6 +93,7 @@ export function buildPier(scene) {
   // lamps in the car park
   const lamps = [{ x: 70, z: 66, rot: Math.PI }, { x: 86, z: 66, rot: Math.PI }];
   const bulbs = [...streetLamps(group, lamps, { height: 4.8 }), ...lampPts];
+  bakeStatic(group);
   return { group, animated, bulbs };
 }
 
@@ -154,6 +155,7 @@ function buildFerrisWheel(group, animated, lampPts) {
   base.add(axle);
   // the wheel
   const wheel = new THREE.Group();
+  wheel.userData.dynamic = true; // turns
   wheel.position.y = hub;
   base.add(wheel);
   for (const side of [-1.1, 1.1]) {
@@ -189,6 +191,7 @@ function buildFerrisWheel(group, animated, lampPts) {
   const gondolas = [];
   for (let i = 0; i < N; i++) {
     const g = new THREE.Group();
+    g.userData.dynamic = true; // swings level as the wheel turns
     const cab = part(new THREE.CylinderGeometry(0.9, 0.8, 1.3, 10), colors[i % colors.length], { outline: 0.02 });
     cab.position.y = -1.5;
     g.add(cab);
@@ -222,6 +225,7 @@ function buildCarousel(group, animated) {
   base.position.set(x, 0.25, z);
   group.add(base);
   const spin = new THREE.Group();
+  spin.userData.dynamic = true;
   spin.position.set(x, 0.5, z);
   group.add(spin);
   const floor = part(new THREE.CylinderGeometry(r, r, 0.15, 32), 0xffe3ef, { outline: 0.015 });
@@ -249,6 +253,7 @@ function buildCarousel(group, animated) {
     pole.position.set(Math.cos(a) * (r - 1.2), 1.8, Math.sin(a) * (r - 1.2));
     spin.add(pole);
     const horse = makeHorse(hc[i]);
+    horse.userData.dynamic = true; // bobs
     horse.position.set(Math.cos(a) * (r - 1.2), 1.1, Math.sin(a) * (r - 1.2));
     horse.rotation.y = -a; // facing along the turn
     spin.add(horse);
@@ -304,8 +309,10 @@ function buildDropTower(group, animated) {
   group.add(top);
   const star = part(new THREE.OctahedronGeometry(0.9), 0xffd23f, { outline: 0.02 });
   star.position.set(x, h + 2, z);
+  star.userData.dynamic = true;
   group.add(star);
   const ring = new THREE.Group();
+  ring.userData.dynamic = true;
   ring.position.set(x, 2, z);
   group.add(ring);
   const collar = part(new THREE.TorusGeometry(1.6, 0.3, 8, 24), 0xffd23f, { outline: 0.02 });
@@ -363,6 +370,7 @@ function buildStalls(group, animated) {
   // the balloon seller's bunch
   const bx = 116, bz = 80;
   const bunch = new THREE.Group();
+  bunch.userData.dynamic = true;
   bunch.position.set(bx, 0, bz);
   group.add(bunch);
   const cols = [0xe0453a, 0xffd23f, 0x2f7fc1, 0x4cc35a, 0xff8ac0, 0xb27bff, 0xff7a3a];
@@ -372,6 +380,7 @@ function buildStalls(group, animated) {
     b.scale.y = 1.2;
     const a = (i / 7) * Math.PI * 2;
     b.position.set(Math.cos(a) * 0.6, 3.6 + (i % 3) * 0.4, Math.sin(a) * 0.6);
+    b.userData.dynamic = true;
     bunch.add(b);
     const str = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, b.position.y - 1.3, 3), toon(0xffffff));
     str.position.set(b.position.x / 2, (b.position.y + 1.3) / 2, b.position.z / 2);
@@ -475,6 +484,7 @@ function buildPierDeck(group, animated, lampPts) {
   beam.geometry.translate(0, -13, 0);
   beam.rotation.z = Math.PI / 2;
   const pivot = new THREE.Group();
+  pivot.userData.dynamic = true;
   pivot.position.set(x, 12.2, z);
   pivot.add(beam);
   group.add(pivot);
@@ -542,7 +552,9 @@ function buildBumperCars(group, animated) {
     g.add(pole);
     const spark = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), new THREE.MeshBasicMaterial({ color: 0xfff3b0 }));
     spark.position.set(0, 3.85, -0.8);
+    spark.userData.dynamic = true;
     g.add(spark);
+    g.userData.dynamic = true;
     g.position.set(x0 + 2.5 + i * 3, 0, (z0 + z1) / 2 + (i % 2 ? 2 : -2));
     group.add(g);
     return { g, spark, vx: Math.cos(i * 1.7) * 3, vz: Math.sin(i * 1.7) * 3 };

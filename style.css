@@ -579,3 +579,13 @@ html.touch #frenzy-hud .fz-time { font-size: 24px; }
 #rotate.ios .rot-ios { display: block; }
 #rotate button { margin-top: 22px; background: none; border: 1.5px solid rgba(255,255,255,0.6); color: #fff; border-radius: 999px; padding: 9px 18px; font: inherit; font-size: 13px; }
 @keyframes rotPhone { 0%, 20% { transform: rotate(0deg); } 50%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+
+/* GTA-style district title, the first time you enter an area */
+#district { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); text-align: center; pointer-events: none; z-index: 7; }
+#district.hidden { display: none; }
+#district .d-name { display: block; font-family: 'Anton', 'Impact', sans-serif; font-size: clamp(34px, 6vw, 64px); letter-spacing: 3px; color: #fff;
+  text-shadow: 3px 3px 0 #1b1b1b, -2px 2px 0 #1b1b1b, 2px -2px 0 #1b1b1b, -2px -2px 0 #1b1b1b, 0 8px 24px rgba(0,0,0,0.35);
+  background: linear-gradient(180deg, #fff 30%, #ffd23f 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-stroke: 1.5px #1b1b1b;
+  animation: dIn 3.6s ease forwards; }
+#district .d-sub { display: block; margin-top: 4px; font-weight: 700; font-size: clamp(13px, 2vw, 18px); color: #fff; text-shadow: 1px 1px 0 #1b1b1b, -1px 1px 0 #1b1b1b; animation: dIn 3.6s 0.15s ease forwards; opacity: 0; }
+@keyframes dIn { 0% { opacity: 0; transform: translateY(14px) scale(0.96); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }

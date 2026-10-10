@@ -6,7 +6,7 @@ import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.
 import { addBox, addCircle } from './world.js';
 import { scatter, KIT_SIZES, WALL_TINTS } from './kit.js';
 import { buildStreets, street, gx, gz } from './streets.js';
-import { seeded, slab, streetLamps, buildings, addCameraBlocker, signBoard } from './cityprops.js';
+import { seeded, slab, streetLamps, buildings, addCameraBlocker, signBoard, bakeStatic } from './cityprops.js';
 
 const ROAD_I = -13; // Harbor Road continues Downtown's avenue at x = -111.5
 export const HARBOR = {
@@ -116,6 +116,7 @@ export function buildHarbor(scene) {
     addCircle(H.roadX + dx, H.z0 + 0.6, 0.3);
   }
   addCameraBlocker(group, blockers);
+  bakeStatic(group);
   return { group, animated, bulbs: lampPts };
 }
 
@@ -144,6 +145,7 @@ function buildContainerYard(group, animated, blockers) {
   for (const [name, ts] of Object.entries(by)) group.add(scatter(name, ts, { outline: 0.012 }));
   // gantry crane straddling the middle row
   const crane = new THREE.Group();
+  crane.userData.dynamic = true; // rolls along the yard
   const cz = z0 + 10;
   crane.position.set(x0 + 10, 0, cz);
   group.add(crane);
@@ -165,13 +167,16 @@ function buildContainerYard(group, animated, blockers) {
   cab.position.set(2.6, hgt - 1.4, -span / 2 + 2);
   crane.add(cab);
   const trolley = new THREE.Group();
+  trolley.userData.dynamic = true;
   trolley.position.y = hgt - 0.8;
   crane.add(trolley);
   const tb = part(new THREE.BoxGeometry(2.4, 0.6, 2.4), 0x2b2f38, { outline: 0.015 });
   trolley.add(tb);
   const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 4), toon(0x1b1b1b));
+  cable.userData.dynamic = true;
   trolley.add(cable);
   const spreader = new THREE.Group();
+  spreader.userData.dynamic = true;
   trolley.add(spreader);
   const sp = part(new THREE.BoxGeometry(2.3, 0.3, L * 0.9), 0xffd23f, { outline: 0.015 });
   spreader.add(sp);
@@ -244,6 +249,7 @@ function buildMarket(group) {
 function buildShip(group, animated, blockers) {
   const { x, z, len, beam } = HARBOR.ship;
   const ship = new THREE.Group();
+  ship.userData.dynamic = true; // rocks on the water
   ship.position.set(x, 0, z);
   group.add(ship);
   const hullShape = new THREE.Shape();
@@ -320,6 +326,7 @@ function buildJetty(group, animated, lampPts) {
   for (let i = 0; i < 4; i++) {
     const side = i % 2 ? 1 : -1;
     const b = new THREE.Group();
+    b.userData.dynamic = true;
     b.position.set((side > 0 ? x1 : x0) + side * 2.4, 0, z0 + 6 + i * 5.5);
     const hull = part(new THREE.CylinderGeometry(1.1, 0.7, 4.6, 12, 1, false, 0, Math.PI), cols[i], { outline: 0.02 });
     hull.rotation.z = Math.PI / 2; hull.rotation.y = Math.PI / 2;
@@ -359,6 +366,7 @@ function buildGulls(group, animated) {
     for (const sx of [-1, 1]) {
       const w = part(new THREE.BoxGeometry(1.1, 0.04, 0.35), 0xf2f2f2, { outline: 0.008 });
       w.geometry.translate(sx * 0.55, 0, 0);
+      w.userData.dynamic = true;
       g.add(w);
       wings.push(w);
     }
@@ -366,6 +374,7 @@ function buildGulls(group, animated) {
     beak.rotation.x = Math.PI / 2;
     beak.position.z = 0.5;
     g.add(beak);
+    g.userData.dynamic = true;
     group.add(g);
     gulls.push({ g, wings, r: 8 + i * 3, h: 10 + (i % 3) * 3, speed: 0.25 + (i % 2) * 0.1, phase: i * 1.1, cx: -150 + (i % 3) * 18, cz: 105 });
   }

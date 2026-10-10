@@ -7,7 +7,7 @@ import { addBox, addCircle } from './world.js';
 import { scatter, kit, WALL_TINTS, KIT_SIZES } from './kit.js';
 import { buildStreets, street, gx, gz, TILE } from './streets.js';
 import { RAMPS } from './stunts.js';
-import { seeded, slab, kerb, streetLamps, buildings, addCameraBlocker, parkedCars, trees, hedgeLine, pavingTexture, signBoard } from './cityprops.js';
+import { seeded, slab, kerb, streetLamps, buildings, addCameraBlocker, parkedCars, trees, hedgeLine, pavingTexture, signBoard, bakeStatic } from './cityprops.js';
 
 const XS = [-7, -13, -19, -25]; // north–south avenues (grid columns), east → west
 const ZS = [-6, 0, 6, 12]; // east–west streets (grid rows), north → south
@@ -179,6 +179,7 @@ export function buildDowntown(scene) {
 
   const bulbs = streetLamps(group, lamps);
   addCameraBlocker(group, blockers);
+  bakeStatic(group);
   return { group, animated, bulbs };
 }
 
@@ -374,6 +375,7 @@ function buildIceCreamTruck(group, animated, x, z) {
     cone.add(s);
   }
   cone.position.set(x, 3.1, z);
+  cone.userData.dynamic = true; // spins
   group.add(cone);
   animated.push({ update: (t) => { cone.rotation.y = t * 0.8; } });
   const sign = signBoard(new THREE.PlaneGeometry(3.2, 0.8), signTexture(['ICE CREAM'], { w: 512, h: 128, size: 82, bg: '#ff8ac0', fg: '#ffffff' }));
@@ -425,6 +427,7 @@ function buildPigeons(group, animated, x, z) {
     b.add(body);
     const head = part(new THREE.SphereGeometry(0.12, 8, 6), 0x6a7385, { outline: 0.01 });
     head.position.set(0, 0.42, 0.24);
+    head.userData.dynamic = true;
     b.add(head);
     const neck = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), toon(0x5aa58a));
     neck.position.set(0, 0.35, 0.17);
@@ -433,6 +436,7 @@ function buildPigeons(group, animated, x, z) {
     beak.rotation.x = Math.PI / 2;
     beak.position.set(0, 0.42, 0.37);
     b.add(beak);
+    b.userData.dynamic = true; // pecks and hops
     b.position.set(x + Math.cos(i * 2.4) * (1 + i * 0.35), 0.03, z + Math.sin(i * 2.4) * (1 + i * 0.35));
     b.rotation.y = i * 1.3;
     group.add(b);

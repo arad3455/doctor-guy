@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer-core';
 const [, , prefix = 'carry', look = 'capKid'] = process.argv;
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'], defaultViewport: { width: 600, height: 600 } });
 const page = await browser.newPage();
-await page.goto((process.env.BASE ?? 'http://localhost:8765/') + (process.env.Q ? `?${process.env.Q}` : ''), { waitUntil: 'networkidle0', timeout: 180000 });
+await page.goto((process.env.BASE ?? 'http://localhost:8765/') + (process.env.Q ? `?${process.env.Q}` : ''), { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 60000 });
 await page.click('#start');
 await page.evaluate(async (look) => {

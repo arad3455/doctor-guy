@@ -13,7 +13,7 @@ const page = await browser.newPage();
 page.on('pageerror', (e) => console.log('PAGEERROR', String(e)));
 page.on('console', (m) => m.type() === 'error' && console.log('CONSOLE', m.text()));
 for (const [i, q] of queries.entries()) {
-  await page.goto(`http://localhost:8765/tools/viewer.html?${q}`, { waitUntil: 'networkidle0', timeout: 180000 });
+  await page.goto(`http://localhost:8765/tools/viewer.html?${q}`, { waitUntil: 'domcontentloaded', timeout: 180000 });
   await new Promise((r) => setTimeout(r, 700));
   await page.screenshot({ path: `${OUT}${prefix}-${i}.png` });
 }

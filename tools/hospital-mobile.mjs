@@ -5,7 +5,7 @@ const page = await browser.newPage();
 await page.emulate(KnownDevices['iPhone 13 landscape']);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
-await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 90000 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const g = (fn, a) => page.evaluate(fn, a);

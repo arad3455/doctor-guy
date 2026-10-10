@@ -21,9 +21,9 @@ export const BEACH = {
 };
 
 export function buildBeach(scene) {
-  const group = new THREE.Group();
+  const group = new THREE.Group(); group.name = 'beach';
   scene.add(group);
-  const sea = new THREE.Group(); // always visible from the park side too (horizon)
+  const sea = new THREE.Group(); sea.name = 'sea'; // always visible from the park side too (horizon)
   scene.add(sea);
   const animated = [];
   const { shoreline, wadeLimit } = WORLD;
@@ -89,6 +89,7 @@ export function buildBeach(scene) {
   sail2.scale.set(-0.7, 0.85, 1);
   boat.add(sail2);
   boat.position.set(0, 0, 210);
+  boat.userData.dynamic = true;
   sea.add(boat);
   animated.push({ update: (t) => {
     boat.position.x = Math.sin(t * 0.02) * 120;
@@ -236,6 +237,7 @@ export function buildBeach(scene) {
   }
   for (let i = 0; i < 3; i++) {
     const crab = makeCrab();
+    crab.userData.dynamic = true;
     const home = new THREE.Vector3((rand() * 2 - 1) * 45, 0, 108 + rand() * 7);
     group.add(crab);
     const phase = rand() * 10;
@@ -326,6 +328,7 @@ function buildLifeguardTower(group, animated) {
   g.add(pole);
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.55), new THREE.MeshBasicMaterial({ color: 0xe0323a, side: THREE.DoubleSide }));
   flag.position.set(1.65, top + 3.75, 1.2);
+  flag.userData.dynamic = true;
   g.add(flag);
   animated.push({ update: (t) => { flag.rotation.y = Math.sin(t * 3) * 0.3; } });
   addBox(x, z - 0.4, 2.8, 3.6);

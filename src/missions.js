@@ -940,17 +940,10 @@ export class MissionSystem {
     const zone = zoneAt(p.z, p.x);
     if (!this.zonesSeen.has(zone)) {
       this.zonesSeen.add(zone);
-      this.ui.toast({
-        beach: '🏖️ Zone 2 — The Beach<br><small>Kids are splashing around… keep an eye on them!</small>',
-        zoo: '🦁 Zone 3 — Wolfson City Zoo<br><small>Lions, elephants, giraffes, penguins… and cheeky monkeys!</small>',
-        downtown: '🏙️ Zone 4 — Downtown Wolfson<br><small>Skaters, hoops and ice cream in the big city!</small>',
-        suburbs: '🏡 Zone 5 — Maple Heights<br><small>Trampolines, treehouses and the school — what could go wrong?</small>',
-        pier: '🎡 Zone 6 — Sunset Pier<br><small>Rides, cotton candy and a pier out over the sea!</small>',
-        camp: '🌲 Zone 7 — Pinewood Camp<br><small>Campfires, canoes and a waterfall deep in the woods</small>',
-        harbor: '⚓ Zone 8 — Wolfson Harbor<br><small>Ships, cranes, containers and the fish market</small>',
-        hospital: '🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>',
-      }[zone] ?? '🌳 The Park', 3000);
+      // (the district title card announces every area — see ui.zoneEntered; the hospital also gets a hint)
+      if (zone === 'hospital') this.ui.toast('🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>', 3000);
       this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
+      this.ui.zoneEntered?.(zone);
     }
 
     // Spawn schedule: next emergency after a delay, sooner if the player is idle.

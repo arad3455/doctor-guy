@@ -3,7 +3,7 @@ import puppeteer, { KnownDevices } from 'puppeteer-core';
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 const page = await browser.newPage();
 await page.emulate(KnownDevices['iPhone 13 landscape']);
-await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 180000 });
+await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 60000 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const tap = async (sel) => { const b = await (await page.$(sel)).boundingBox(); await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2); };

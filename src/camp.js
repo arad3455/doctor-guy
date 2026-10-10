@@ -6,7 +6,7 @@ import { part, toon, instanced, canvasTexture, signTexture } from './toon.js';
 import { addBox, addCircle } from './world.js';
 import { scatter } from './kit.js';
 import { buildStreets, street, gx, gz } from './streets.js';
-import { seeded, slab, streetLamps, signBoard } from './cityprops.js';
+import { seeded, slab, streetLamps, signBoard, bakeStatic } from './cityprops.js';
 
 const PINE_I = 12; // Pine Road's grid column (x = 63.5)
 export const CAMP = {
@@ -123,6 +123,7 @@ export function buildCamp(scene) {
   const lamps = [];
   for (let j = -2; j >= C.roadTopJ + 1; j -= 2) if (Math.abs(gz(j) + 66) > 6) lamps.push({ x: C.roadX + 4.3, z: gz(j), rot: -Math.PI / 2 });
   lampPts.push(...streetLamps(group, lamps, { height: 4.8 }));
+  bakeStatic(group);
   return { group, animated, bulbs: lampPts };
 }
 
@@ -190,12 +191,14 @@ function buildFalls(group, animated) {
   const pool = new THREE.Mesh(new THREE.CircleGeometry(3.4, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }));
   pool.rotation.x = -Math.PI / 2;
   pool.position.set(x, 0.07, z + 0.6);
+  pool.userData.dynamic = true;
   group.add(pool);
   const mist = [];
   for (let i = 0; i < 5; i++) {
     const m = part(new THREE.SphereGeometry(0.9, 10, 8), 0xffffff, { outline: 0, cast: false });
     m.material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     m.position.set(x - 2 + i, 0.6, z + 0.4);
+    m.userData.dynamic = true;
     group.add(m);
     mist.push(m);
   }
@@ -223,6 +226,7 @@ function buildCampsite(group, animated, lampPts) {
   for (const [c, s, dx] of [[0xff7a1a, 1, 0], [0xffb000, 0.7, 0.18], [0xfff27a, 0.45, -0.12]]) {
     const f = new THREE.Mesh(new THREE.ConeGeometry(0.35 * s, 1.3 * s, 8), new THREE.MeshBasicMaterial({ color: c }));
     f.position.set(x + dx, 0.6 + 0.3 * s, z);
+    f.userData.dynamic = true;
     group.add(f);
     flames.push(f);
   }
@@ -328,6 +332,7 @@ function buildDeer(group, animated) {
     body.position.y = 1.35;
     d.add(body);
     const neck = new THREE.Group();
+    neck.userData.dynamic = true;
     neck.position.set(0, 1.6, 0.65);
     d.add(neck);
     const n = part(new THREE.CylinderGeometry(0.15, 0.22, 0.9, 8), col, { outline: 0.015 });
@@ -355,6 +360,7 @@ function buildDeer(group, animated) {
     tail.position.set(0, 1.55, -0.95);
     d.add(tail);
     d.scale.setScalar(s);
+    d.userData.dynamic = true; // grazes
     d.position.set(x + Math.cos(i * 2.2) * 4, 0, z + Math.sin(i * 2.2) * 4);
     d.rotation.y = i * 2.1;
     group.add(d);

@@ -5,7 +5,7 @@ const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.
 const p = await b.newPage();
 p.on('pageerror', (e) => console.log('ERR', e.message));
 await p.goto('http://localhost:8765/', { waitUntil: 'networkidle0', timeout: 120000 });
-await p.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 120000 });
+await p.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 300000, polling: 1000 });
 await p.click('#start');
 const info = await p.evaluate(async ([look, state]) => {
   const { buildKid, animateRig } = await import('/src/characters.js');
