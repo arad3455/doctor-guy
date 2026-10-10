@@ -353,3 +353,63 @@ html.touch #waypoint-info { top: calc(112px + env(safe-area-inset-top)); right: 
 .bm-tools { position: absolute; left: 14px; top: 14px; display: flex; flex-direction: column; gap: 8px; }
 .bm-tools button { width: 44px; height: 44px; padding: 0; font-size: 22px; border-radius: 12px; background: #fff; color: var(--ink); }
 .bm-legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; color: #fff; font-size: 13px; margin-top: 8px; }
+
+/* ---------- Title: GTA-style key art ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+#title { padding: 0; background: #2a1440; overflow: hidden; display: block; }
+#title::before { display: none; }
+.poster {
+  position: absolute; inset: 0;
+  background: url('assets/title/key-art-wide.webp') center 35% / cover no-repeat, linear-gradient(180deg, #5b2d8c 0%, #d9488f 55%, #ff9a4d 100%);
+  animation: posterIn 1.6s ease-out both, kenburns 24s ease-in-out 1.6s infinite alternate;
+}
+@media (max-aspect-ratio: 4/5) { .poster { background-image: url('assets/title/key-art-tall.webp'), linear-gradient(180deg, #5b2d8c 0%, #d9488f 55%, #ff9a4d 100%); background-position: center top; } }
+@keyframes posterIn { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: scale(1.02); } }
+@keyframes kenburns { from { transform: scale(1.02); } to { transform: scale(1.07) translate(-1%, -1%); } }
+.poster-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,8,40,0) 45%, rgba(20,8,40,0.55) 78%, rgba(15,5,30,0.85) 100%); }
+.title-ui {
+  position: absolute; left: 0; right: 0; bottom: max(4vh, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;
+}
+/* wide screens (computers and phones held sideways): logo on the right, over the hospital and street */
+@media (min-aspect-ratio: 4/5) {
+  .title-ui { left: auto; right: 5vw; bottom: 8vh; width: min(42vw, 560px); gap: 1.6vh; }
+  .logo-doctor { font-size: min(8vw, 13vh); }
+  .logo-guy { font-size: min(15vw, 24vh); }
+  .logo-tag { font-size: min(1.6vw, 2.6vh); }
+  #start { font-size: min(2.6vw, 4.4vh); padding: 1.4vh 4vw; }
+  .title-zones { font-size: min(14px, 2.4vh); }
+}
+.logo { display: flex; flex-direction: column; align-items: center; line-height: 0.82; filter: drop-shadow(0 6px 0 rgba(0,0,0,0.35)); animation: logoIn 0.9s 0.5s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes logoIn { from { opacity: 0; transform: translateY(30px) scale(0.9); } to { opacity: 1; transform: none; } }
+.logo-doctor, .logo-guy {
+  font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 2px;
+  background: linear-gradient(180deg, #ffd23f 0%, #ff8a3d 35%, #ff3c8e 70%, #8a3cff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 3px #1b0b2e; paint-order: stroke fill;
+}
+.logo-doctor { font-size: clamp(44px, 8vw, 104px); }
+.logo-guy { font-size: clamp(76px, 15vw, 196px); margin-top: -0.04em; }
+.logo-tag {
+  margin-top: 10px; padding: 4px 14px; border-radius: 6px;
+  background: #fff; color: #1d4f9a; border: 3px solid #1b0b2e;
+  font: 700 clamp(13px, 1.6vw, 18px) 'Fredoka', sans-serif; transform: rotate(-3deg);
+}
+#start {
+  font: 400 clamp(22px, 2.6vw, 30px) 'Anton', 'Impact', sans-serif; letter-spacing: 2px;
+  padding: 12px 46px; border-radius: 999px;
+  background: linear-gradient(90deg, #ff3c8e, #ff8a3d); color: #fff;
+  border: 3px solid #fff; box-shadow: 0 0 0 3px #1b0b2e, 0 10px 30px rgba(255,60,142,0.5);
+  animation: logoIn 0.9s 0.9s cubic-bezier(.2,1.4,.4,1) both, pulseBtn 1.8s 2s ease-in-out infinite;
+}
+#start:disabled { animation: logoIn 0.9s 0.9s both; opacity: 0.8; }
+@keyframes pulseBtn { 50% { transform: scale(1.06); } }
+.title-zones { margin: 0; color: #ffe6f2; font-weight: 600; font-size: 14px; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+.help-btn {
+  position: absolute; top: 18px; right: 18px; width: 48px; height: 48px; padding: 0;
+  border-radius: 50%; font-size: 24px; background: rgba(20,8,40,0.6); border: 3px solid #fff; box-shadow: none;
+}
+#help { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(15,5,30,0.7); padding: 16px; }
+.help-card { width: min(560px, 100%); background: var(--paper); border: 4px solid var(--ink); border-radius: 20px; padding: 22px 26px; box-shadow: 0 8px 0 var(--ink); }
+.help-card h2 { margin: 0 0 10px; font-size: 30px; }
+.help-card ul { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 10px; font-size: 16px; }

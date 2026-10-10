@@ -204,9 +204,18 @@ function start() {
   document.getElementById('end').classList.add('hidden');
   hud.show(true);
   started = true;
-  hud.toast('Your shift begins!<br><small>The beach is through the park’s south gate 🏖️</small>', 3000);
+  hud.toast(`Your shift begins!<br><small>${isTouch ? 'Tap the radar for the map 🗺️' : 'Press H for controls · M for the map'}</small>`, 3200);
 }
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
+// Controls help (computers): ? on the title, H in game
+const help = document.getElementById('help');
+const showHelp = (v) => help.classList.toggle('hidden', !v);
+document.getElementById('help-open').addEventListener('click', () => showHelp(true));
+document.getElementById('help-close').addEventListener('click', () => showHelp(false));
+addEventListener('keydown', (e) => {
+  if (e.code === 'KeyH' || e.key === '?') showHelp(help.classList.contains('hidden'));
+  if (e.code === 'Escape') showHelp(false);
+});
 document.getElementById('restart').addEventListener('click', () => {
   resetAmbulance();
   nurses?.reset();

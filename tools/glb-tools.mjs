@@ -53,6 +53,9 @@ if (mode === 'rig-input') {
   await MeshoptSimplifier.ready;
   await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: 0.2, error: 0.02 }), prune(), dedup(),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 80 }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+} else if (mode === 'shrink') {
+  // re-encode textures at a smaller size (default 1024px), keeping meshopt compression
+  await doc.transform(textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [SIZE === 2048 && !sizeArg ? 1024 : SIZE, SIZE === 2048 && !sizeArg ? 1024 : SIZE], quality: 82 }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
 } else if (mode === 'compress') {
   await MeshoptEncoder.ready;
   await doc.transform(resample(), dedup(), prune({ keepLeaves: true }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
