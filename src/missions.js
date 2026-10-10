@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { buildKid, animateRig, makeBubble, makeAlertIcon } from './characters.js';
 import { WORLD, getColliders, zoneAt } from './world.js';
 import { perch } from './hospital.js';
+import { ZOO } from './zoo.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
 import { toon, part } from './toon.js';
@@ -156,6 +157,52 @@ export const MISSIONS = [
     treatment: { title: 'Find Ben’s coin', speed: 1.05, zone: 0.2, steps: [{ icon: '🧍', label: 'Stand against the panel' }, { icon: '📸', label: 'Take the X-ray — hold still', mode: 'hold' }, { icon: '🔍', label: 'Spot the coin' }, { icon: '🍌', label: 'Banana and lots of water' }] },
     deliver: null, reward: 5, bonusTime: 55,
   },
+
+  // ---------------- Zone 3: Wolfson City Zoo (east along Zoo Road) ----------------
+  {
+    id: 'monkey', zone: 'zoo', name: 'Momo', title: 'Monkey Business!', look: 'animal:monkey',
+    at: [ZOO.pens.monkey.x + 13, ZOO.pens.monkey.z], pose: 'run', bubble: 'Ooh ooh! 🩺', range: 2.4,
+    chase: { x: ZOO.pens.monkey.x, z: ZOO.pens.monkey.z, r: 13 }, thanks: 'Ooh ooh! 🍌',
+    blurb: 'A monkey snatched your stethoscope! Chase him around Monkey Island.',
+    done: 'Stethoscope back around your neck! 🩺',
+    treatment: { title: 'Get your stethoscope back', speed: 1.1, zone: 0.2, steps: [{ icon: '🍌', label: 'Offer a banana' }, { icon: '🤲', label: 'Swap it for the stethoscope' }] },
+    deliver: null, reward: 6, bonusTime: 60,
+  },
+  {
+    id: 'lion', zone: 'zoo', name: 'Gil', title: 'Too Close to the Lions!', look: 'capKid',
+    at: [ZOO.pens.lion.x - 12.6, ZOO.pens.lion.z + 2.5], pose: 'cry', bubble: 'It roared at me!', range: 2.4,
+    blurb: 'Gil climbed the railing at the lion pen and got a scare.',
+    treatment: { title: 'Calm Gil down', speed: 1.05, zone: 0.2, steps: [{ icon: '🫱', label: 'Reach out calmly' }, { icon: '🙌', label: 'Lift him off the railing' }, { icon: '🤗', label: 'Big hug' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'giraffe', zone: 'zoo', name: 'Lia', title: 'Giraffe Kiss', look: 'ponytail',
+    at: [ZOO.pens.giraffe.x + 12, ZOO.pens.giraffe.z - 6.5], pose: 'cry', bubble: 'Eww, slobber!', range: 2.4,
+    blurb: 'A giraffe gave Lia a big slobbery lick.',
+    treatment: { title: 'Clean up Lia', speed: 0.95, zone: 0.22, steps: [{ icon: '🧻', label: 'Wipe off the slobber' }, { icon: '🧼', label: 'Wash her hands' }, { icon: '🤳', label: 'Giraffe selfie!' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'penguin', zone: 'zoo', name: 'Tom', title: 'Slipped on the Ice', look: 'redShirt',
+    at: [ZOO.pens.penguin.x + 10, ZOO.pens.penguin.z + 4], pose: 'sit', bubble: 'My ankle!', range: 2.4,
+    blurb: 'Tom slipped by the penguin pool. Wrap his ankle, then get him to the hospital — Zoo Road is quickest by ambulance!',
+    treatment: { title: 'Tom’s ankle', speed: 1.1, zone: 0.18, steps: [{ icon: '🧊', label: 'Ice pack' }, { icon: '🦶', label: 'Wrap the ankle' }] },
+    deliver: 'hospital', reward: 8, bonusTime: 90,
+  },
+  {
+    id: 'elephant', zone: 'zoo', name: 'Adi', title: 'Elephant Shower', look: 'bandageBoy',
+    at: [ZOO.pens.elephant.x - 15.5, ZOO.pens.elephant.z - 6], pose: 'cry', bubble: 'Brrr… so cold!', range: 2.4, tint: 0xbfd8ff,
+    blurb: 'An elephant sprayed Adi with its trunk. He’s soaked and shivering!',
+    treatment: { title: 'Warm Adi up', speed: 1.0, zone: 0.22, steps: [{ icon: '🧺', label: 'Big fluffy towel' }, { icon: '☕', label: 'Warm cocoa' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'peanuts', zone: 'zoo', name: 'Yarden', title: 'Peanut Allergy!', look: 'glassesKid',
+    at: [151.5, -26.5], pose: 'cry', bubble: 'My throat feels funny…', range: 2.4, tint: 0xffc8c8,
+    blurb: 'Yarden ate the elephant’s peanuts by the ice-cream kiosk — he’s allergic! Treat him and rush him to the hospital.',
+    treatment: { title: 'Allergy emergency', speed: 1.15, zone: 0.18, steps: [{ icon: '💉', label: 'EpiPen — press and hold', mode: 'hold' }, { icon: '🫁', label: 'Check his breathing' }] },
+    deliver: 'hospital', reward: 9, bonusTime: 90,
+  },
 ];
 
 const BEACON_MAT = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 0.22, depthWrite: false });
@@ -252,6 +299,13 @@ export class MissionSystem {
     const ball = makeBeachBall();
     this.group.add(ball);
     this.ambient.push({ kid: baller, mode: 'ball', ball });
+    // ---- Zoo: visitors strolling the ring path
+    ['ponytail', 'redShirt', 'pinkHat', 'capKid'].forEach((look, i) => {
+      const kid = buildKid(look);
+      this.group.add(kid.root);
+      this.ambient.push({ kid, mode: 'stroll', a: i * 1.5, r: ZOO.ring + (i % 2 ? 0.8 : -0.8), speed: (i % 2 ? 1 : -1) * 0.045, cx: ZOO.center.x, cz: ZOO.center.z });
+    });
+
     const builder = buildKid('gownKid');
     builder.root.position.set(BEACH.castles.x - 2.4, 0, BEACH.castles.z - 1.2);
     builder.root.rotation.y = 1.2;
@@ -307,7 +361,7 @@ export class MissionSystem {
   }
 
   spawnMission(def) {
-    const kid = buildKid(def.look);
+    const kid = def.look.startsWith('animal:') ? this.ui.zoo.makeMonkey() : buildKid(def.look);
     const spot = def.spot ? this.ui.hospital?.spots[def.spot] : null;
     if (spot) {
       def.at = [spot.pos.x, spot.pos.z];
@@ -332,6 +386,7 @@ export class MissionSystem {
     if (def.hidden) { bubble.visible = false; icon.visible = false; }
     const m = { def, kid, bubble, icon, beacon: bc, state: 'active', spawnedAt: this.time, found: !def.hidden };
     if (def.tint) m.untint = tintKid(kid, def.tint);
+    if (def.chase) { m.chaseA = 0; this.ui.toast('🐒 A monkey grabbed your stethoscope! Chase him!', 2800); }
     if (def.prop) m.prop = this.makeProp(def.prop, kid);
     this.missions.push(m);
     sfx.alert();
@@ -366,11 +421,12 @@ export class MissionSystem {
     const p = this.player.pos;
 
     // Entering a zone for the first time
-    const zone = zoneAt(p.z);
+    const zone = zoneAt(p.z, p.x);
     if (!this.zonesSeen.has(zone)) {
       this.zonesSeen.add(zone);
       this.ui.toast({
         beach: '🏖️ Zone 2 — The Beach<br><small>Kids are splashing around… keep an eye on them!</small>',
+        zoo: '🦁 Zone 3 — Wolfson City Zoo<br><small>Lions, elephants, giraffes, penguins… and cheeky monkeys!</small>',
         hospital: '🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>',
       }[zone] ?? '🌳 The Park', 3000);
       this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
@@ -397,7 +453,7 @@ export class MissionSystem {
       else if (a.mode === 'wave') animateRig(a.kid, Math.sin(t * 0.7) > 0.3 ? 'wave' : 'idle', t, dt);
       else if (a.mode === 'stroll') {
         a.a += a.speed * dt;
-        const x = Math.cos(a.a) * a.r, z = Math.sin(a.a) * a.r;
+        const x = (a.cx ?? 0) + Math.cos(a.a) * a.r, z = (a.cz ?? 0) + Math.sin(a.a) * a.r;
         a.kid.root.position.set(x, 0, z);
         a.kid.root.rotation.y = Math.atan2(-Math.sin(a.a) * a.speed, Math.cos(a.a) * a.speed);
         animateRig(a.kid, 'walk', t + a.r, dt);
@@ -438,15 +494,26 @@ export class MissionSystem {
         m.icon.position.y = m.kid.height + 1.9 + Math.sin(t * 4) * 0.12;
         if (m.def.id === 'pond') kp.y = -0.55 + Math.sin(t * 3) * 0.08;
         if (m.def.water && m.def.id !== 'pond') kp.y = (m.def.y ?? 0) + Math.sin(t * 2.5) * 0.06;
+        if (m.def.chase) {
+          // the monkey runs laps around Monkey Island — faster when you're close behind
+          const c = m.def.chase;
+          const near = Math.hypot(p.x - kp.x, p.z - kp.z);
+          const speed = near < 7 ? 5.6 : 3.2;
+          m.chaseA += (speed / c.r) * dt;
+          kp.set(c.x + Math.cos(m.chaseA) * c.r, 0, c.z + Math.sin(m.chaseA) * c.r);
+          m.kid.root.rotation.y = Math.atan2(-Math.sin(m.chaseA), Math.cos(m.chaseA)); // facing along the lap
+          m.beacon.position.set(kp.x, 20, kp.z);
+          m.def.at = [kp.x, kp.z];
+        }
         if (m.def.drift && kp.x < m.def.at[0] + 16) {
           kp.x += m.def.drift[0] * dt * 0.35; // the current pulls the float along the shore
           m.beacon.position.x = kp.x;
         }
         if (m.def.prop === 'jelly' && m.prop) m.prop.position.y = 0.05 + Math.sin(t * 2) * 0.05;
         if (m.def.prop === 'crab' && m.prop) m.prop.userData.legs.forEach((l, j) => { l.rotation.z = Math.sin(t * 18 + j) * 0.3; });
-        // face the player (patients on beds/chairs/scales keep still)
+        // face the player (patients on beds/chairs/scales keep still; the monkey keeps running)
         const target = Math.atan2(p.x - kp.x, p.z - kp.z);
-        if (!m.def.spot) m.kid.root.rotation.y += (Math.atan2(Math.sin(target - m.kid.root.rotation.y), Math.cos(target - m.kid.root.rotation.y))) * Math.min(1, dt * 3);
+        if (!m.def.spot && !m.def.chase) m.kid.root.rotation.y += (Math.atan2(Math.sin(target - m.kid.root.rotation.y), Math.cos(target - m.kid.root.rotation.y))) * Math.min(1, dt * 3);
         if (!m.found && Math.hypot(kp.x - p.x, kp.z - p.z) < 14) {
           m.found = true;
           m.bubble.visible = m.icon.visible = m.beacon.visible = true;
@@ -467,6 +534,13 @@ export class MissionSystem {
         kp.y += Math.sin(k * Math.PI) * 1.6;
         animateRig(m.kid, 'air', t, dt);
         if (k >= 1) this.complete(m);
+      } else if (m.state === 'done' && m.def.chase) {
+        // back to the island
+        const c = m.def.chase;
+        const to = new THREE.Vector3(c.x - kp.x, 0, c.z - kp.z);
+        if (to.length() < ZOO.pens.monkey.r + 1) m.kid.root.visible = false;
+        else { to.normalize(); kp.addScaledVector(to, 4 * dt); m.kid.root.rotation.y = Math.atan2(to.x, to.z); }
+        animateRig(m.kid, 'run', t, dt);
       } else if (m.state === 'done') {
         const seated = m.def.spot && this.ui.hospital?.spots[m.def.spot]?.sit;
         animateRig(m.kid, seated ? 'sit' : m.celebrate > 0 ? 'cheer' : 'idle', t, dt);
@@ -571,7 +645,7 @@ export class MissionSystem {
     const kp = m.kid.root.position;
     this.player.facing = Math.atan2(kp.x - this.player.pos.x, kp.z - this.player.pos.z);
     const rig = this.player.rig;
-    const kneels = m.def.special !== 'catch' && m.def.zone !== 'hospital'; // stand for catches and indoor check-ups
+    const kneels = m.def.special !== 'catch' && m.def.zone !== 'hospital' && !m.def.chase; // stand for catches and indoor check-ups
     if (kneels) await sleep(rig.kneel?.() ?? 0);
     const res = await this.ui.minigame.start(m.def.treatment);
     if (kneels) await sleep((rig.standUp?.() ?? 0) * 0.8);
@@ -684,7 +758,7 @@ export class MissionSystem {
     if (m.byAmbulance) { reward += 1; bonuses.push('🚑 ambulance'); }
     this.lollipops += reward;
     if (m.def.film) this.ui.hospital?.showFilm(m.def.film); // the scan lights up on the lightbox
-    const thanks = makeBubble('Thanks Dr. Guy!', { w: 380, bg: '#fffbe0' });
+    const thanks = makeBubble(m.def.thanks ?? 'Thanks Dr. Guy!', { w: 380, bg: '#fffbe0' });
     thanks.scale.multiplyScalar(1.3);
     thanks.position.y = m.kid.height + 0.9;
     m.kid.root.add(thanks);

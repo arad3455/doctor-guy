@@ -69,6 +69,17 @@ for (const [label, device] of [['landscape', KnownDevices['iPhone 13 landscape']
   await wait(400);
   await shot('5-rescued');
   results[label].rescued = await page.evaluate(() => __game.missions.rescued);
+  // tap the radar → the map opens; tap ✕ → closes
+  await page.evaluate(() => { __game.minigame.active = false; });
+  const mm = await (await page.$('#minimap')).boundingBox();
+  await page.touchscreen.tap(mm.x + mm.width / 2, mm.y + mm.height / 2);
+  await wait(700);
+  results[label].mapOpens = await page.evaluate(() => __game.bigMap.open);
+  await page.screenshot({ path: `${OUT}mobile-${label}-6-map.png` });
+  const cl = await (await page.$('#bigmap-close')).boundingBox();
+  await page.touchscreen.tap(cl.x + cl.width / 2, cl.y + cl.height / 2);
+  await wait(400);
+  results[label].mapCloses = await page.evaluate(() => !__game.bigMap.open);
   results[label].fps = await page.evaluate(() => new Promise((r) => { let n = 0; const t0 = performance.now(); const f = () => { n++; performance.now() - t0 < 1000 ? requestAnimationFrame(f) : r(n); }; requestAnimationFrame(f); }));
   await page.close();
 }

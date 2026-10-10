@@ -43,7 +43,10 @@
       <div class="stat"><span class="icon">⛑️</span><span id="rescued">0</span>/<span id="total">0</span></div>
     </div>
     <div id="missions"></div>
-    <canvas id="minimap" width="180" height="180"></canvas>
+    <canvas id="minimap" width="200" height="200" title="Open the map (M)"></canvas>
+    <div id="map-hint">M · map</div>
+    <div id="waypoint-info" class="hidden"></div>
+    <div id="location"></div>
     <div id="stamina"><div id="stamina-fill"></div></div>
     <div id="prompt" class="hidden"></div>
     <div id="toast" class="hidden"></div>
@@ -54,6 +57,19 @@
       <button id="btn-jump" class="touch-btn" aria-label="Jump">⤒</button>
       <button id="btn-action" class="touch-btn" aria-label="Help">✋</button>
     </div>
+  </div>
+
+  <!-- Full-screen world map (M / tap the radar) -->
+  <div id="bigmap" class="hidden">
+    <div class="bm-head">
+      <span class="bm-title">🗺️ Map</span>
+      <span class="bm-help key-hint">Click an emergency or anywhere to set a waypoint · click it again to clear · <kbd>M</kbd> close</span>
+      <span class="bm-help touch-hint">Tap an emergency or anywhere to set a waypoint · tap it again to clear</span>
+      <span id="bigmap-where"></span>
+      <button id="bigmap-close" aria-label="Close map">✕</button>
+    </div>
+    <canvas id="bigmap-canvas"></canvas>
+    <div class="bm-legend"><span>🔴 Emergency</span><span>🟢 Drop-off</span><span>⭐ Waypoint</span><span>🚑 Ambulance</span><span>🏥 Hospital</span><span>🟡 You</span></div>
   </div>
 
   <!-- Fade for entering / leaving buildings -->
@@ -77,17 +93,19 @@
       <div class="badge">Not a<br />Real<br />Doctor<span>✚</span></div>
       <h1>Doctor Guy</h1>
       <p class="subtitle">Small Patients · Big Dreams</p>
-      <p class="zone">The Park · The Beach</p>
+      <p class="zone">The Park · The Beach · The Hospital · The Zoo</p>
       <ul class="controls touch-hint">
         <li>🕹️ Left thumb: move (push far to run)</li>
         <li>👆 Drag the right side: look around</li>
         <li>✋ help / pick up / hand over · ⤒ jump</li>
+        <li>🗺️ Tap the radar for the map</li>
       </ul>
       <ul class="controls key-hint">
         <li><kbd>W A S D</kbd> move</li>
         <li><kbd>SHIFT</kbd> run</li>
         <li><kbd>SPACE</kbd> jump</li>
-        <li><kbd>E</kbd> help / pick up / drop</li>
+        <li><kbd>E</kbd> help / pick up / drop · drive the ambulance</li>
+        <li><kbd>M</kbd> map &amp; waypoints</li>
         <li><kbd>Mouse drag</kbd> look around · <kbd>wheel</kbd> zoom</li>
       </ul>
       <button id="start" disabled>Loading…</button>
@@ -98,7 +116,7 @@
   <div id="end" class="hidden">
     <div class="title-card">
       <h1>Shift complete!</h1>
-      <p class="subtitle">Every kid in the park and on the beach is safe.</p>
+      <p class="subtitle">Every kid in Wolfson City is safe and sound.</p>
       <p id="end-stats"></p>
       <p class="zone">“Smiles make healing easier.”</p>
       <button id="restart">Play again</button>

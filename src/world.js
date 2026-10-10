@@ -42,7 +42,18 @@ export function inWater(x, z) {
 }
 
 /** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
-export const zoneAt = (z) => (z < -300 ? 'hospital' : z > 62 ? 'beach' : 'park');
+export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
+
+/** GTA-style location name for the corner label. */
+export function locationName(p) {
+  if (p.z < -300) return p.z < -413.5 ? 'X-Ray · Wolfson Medical Center' : 'Wolfson Medical Center';
+  if (p.x > 137) return 'Wolfson City Zoo';
+  if (p.x > 56) return 'Zoo Road';
+  if (p.z > 82) return 'Sunny Beach';
+  if (p.z > 56) return 'The Boardwalk';
+  if (p.z < -30) return 'Hospital Plaza';
+  return 'Wolfson Park';
+}
 
 // Walkable areas: the park, the boardwalk through the south gate, and the beach up to wading depth
 const WALKABLE = [
@@ -51,6 +62,8 @@ const WALKABLE = [
   { minX: -57, maxX: 57, minZ: 79, maxZ: 127 },
   { minX: -17.6, maxX: 17.6, minZ: -413.6, maxZ: -386.6 }, // inside the hospital (see hospital.js)
   { minX: -5.6, maxX: 5.6, minZ: -425.6, maxZ: -413.0 }, // its X-ray room
+  { minX: 50, maxX: 140, minZ: -40.4, maxZ: -33.6 }, // Zoo Road, through the park's east gate (see zoo.js)
+  { minX: 137.5, maxX: 232.5, minZ: -45.5, maxZ: 45.5 }, // the zoo
 ];
 
 /** Keeps a position inside the walkable areas (moves it to the nearest one if it left them all). */
@@ -99,6 +112,7 @@ function keepClear(x, z) {
   if (Math.abs(x) < 3.5 && z < -20) return false; // hospital path
   if (z < -34) return false; // hospital plaza
   if (Math.abs(x) < 6 && z > 44) return false; // path to the south gate
+  if (Math.abs(z + 37) < 6) return false; // Zoo Road
   return true;
 }
 
@@ -687,12 +701,15 @@ function buildFence(world) {
     for (const [x, z] of [[i, -H], [i, H], [-H, i], [H, i]]) {
       if (z === -H && Math.abs(x) < 20) continue; // hospital side open
       if (z === H && Math.abs(x) < 3) continue; // south gate to the beach
+      if (x === H && Math.abs(z + 37) < 4) continue; // east gate: Zoo Road
       pickets.push(new THREE.Matrix4().compose(new THREE.Vector3(x, 0.55, z), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)));
     }
   }
   world.add(instanced(new THREE.BoxGeometry(0.14, 1.1, 0.14), 0xffffff, pickets, { outline: 0.025 }));
   const halfRail = (H - 3) / 2;
-  for (const [x, z, w, d] of [[-(3 + halfRail), H, 2 * halfRail, 0.08], [3 + halfRail, H, 2 * halfRail, 0.08], [-H, 0, 0.08, 2 * H], [H, 0, 0.08, 2 * H]]) {
+  // east rail is split by the road (z = -37 ± 4)
+  const eastN = (-H + (-41)) / 2, eastS = (-33 + H) / 2;
+  for (const [x, z, w, d] of [[-(3 + halfRail), H, 2 * halfRail, 0.08], [3 + halfRail, H, 2 * halfRail, 0.08], [-H, 0, 0.08, 2 * H], [H, eastN, 0.08, -41 + H], [H, eastS, 0.08, H + 33]]) {
     const rail = part(new THREE.BoxGeometry(w, 0.1, d), 0xffffff, { outline: 0.02 });
     rail.position.set(x, 0.8, z);
     world.add(rail);
@@ -705,6 +722,7 @@ function buildSkyline(world) {
     const a = (i / 60) * Math.PI * 2;
     if (Math.sin(a) < -0.6) continue; // keep the hospital backdrop clean
     if (Math.sin(a) > 0.05) continue; // the south is open sea
+    if (Math.cos(a) > 0.35) continue; // the east is Zoo Road and the zoo
     const d = 95 + rand() * 30;
     const h = 10 + rand() * 30;
     const w = 6 + rand() * 8;

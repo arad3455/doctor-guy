@@ -11,6 +11,7 @@ import { buildDoctor, buildKid, animateRig } from '../src/characters.js';
 import { loadDoctorModel } from '../src/doctorModel.js';
 import { preloadKids } from '../src/kidModels.js';
 import { Ambulance } from '../src/vehicle.js';
+import { loadAnimalModel } from '../src/zoo.js';
 await preloadKids();
 const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -30,7 +31,11 @@ ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 const ch = q.get('char') ?? 'doctor';
 let rig;
-if (ch === 'ambulance') {
+if (ch.startsWith('animal:')) {
+  const holder = await loadAnimalModel(ch.slice(7));
+  const root = new THREE.Group(); root.add(holder);
+  rig = { root, animate() {} };
+} else if (ch === 'ambulance') {
   const amb = new Ambulance(scene);
   amb.pos.set(0, 0, 0); amb.heading = 0; amb.syncTransform();
   await amb.loadModel();
@@ -39,6 +44,7 @@ if (ch === 'ambulance') {
   scene.remove(ground);
 } else rig = ch === 'generated' ? await loadDoctorModel() : ch === 'doctor' ? buildDoctor() : buildKid(ch);
 if (ch !== 'ambulance') scene.add(rig.root);
+if (ch.startsWith('animal:')) { const a = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0.2, 0), 3, 0xff0000); scene.add(a); }
 if (q.has('tears') && rig.tears) rig.tears.visible = true;
 if (q.has('cast') && rig.cast) rig.cast.visible = true;
 if (q.has('nohair')) rig.root.traverse((o) => { if (o.geometry?.type === 'ConeGeometry') o.visible = false; });
@@ -49,7 +55,7 @@ const H = box.max.y;
 rig.root.updateMatrixWorld(true);
 const headPos = rig.head ? rig.head.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
 const target = new THREE.Vector3(0, head ? (ch === 'generated' ? H * 0.82 : rig.generated ? H * 0.75 : headPos.y + (ch === 'doctor' ? 0.52 : 0.3)) : H * 0.5, 0);
-const dist = ch === 'ambulance' ? 13 : head ? (ch === 'doctor' || ch === 'generated' ? 2.1 : 1.1) : H * 1.45;
+const dist = ch.startsWith('animal:') ? H * 2.6 + 3 : ch === 'ambulance' ? 13 : head ? (ch === 'doctor' || ch === 'generated' ? 2.1 : 1.1) : H * 1.45;
 const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.01, 100);
 cam.position.set(Math.sin(yaw) * dist, target.y + (head ? 0.02 : 0.1), Math.cos(yaw) * dist);
 cam.lookAt(target);

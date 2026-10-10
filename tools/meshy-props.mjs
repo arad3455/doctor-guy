@@ -18,6 +18,31 @@ const KEY = process.env.MESHY_API_KEY ?? dotenv.match(/^MESHY_API_KEY=(.+)$/m)?.
 if (!KEY) { console.error('Set MESHY_API_KEY in .env'); process.exit(1); }
 
 export const PROPS = {
+  lion: {
+    polycount: 12000,
+    prompt: 'An adult male lion with a big fluffy golden-brown mane, tawny fur, long tail with a dark tuft, standing on all four legs. High-quality stylised 3D animal in the look of a modern animated family film: appealing, friendly, expressive eyes, clean readable shapes, rich natural colours. Full body visible, standing on the ground in a calm neutral pose, side three-quarter view, centred, plain white background, soft even lighting, no shadows, no text, no other animals or objects.',
+    texture: 'Tawny lion with a golden-brown mane, dark tail tuft.',
+  },
+  elephant: {
+    polycount: 12000,
+    prompt: 'An adult African elephant with big ears, long trunk hanging down, small white tusks, wrinkled grey skin, standing on all four legs. High-quality stylised 3D animal in the look of a modern animated family film: appealing, friendly, expressive eyes, clean readable shapes, rich natural colours. Full body visible, standing on the ground in a calm neutral pose, side three-quarter view, centred, plain white background, soft even lighting, no shadows, no text, no other animals or objects.',
+    texture: 'Grey wrinkled elephant, white tusks, pink inner ears.',
+  },
+  giraffe: {
+    polycount: 12000,
+    prompt: 'An adult giraffe with a long neck held up high, orange-brown patches on cream fur, small ossicone horns, standing on all four legs. High-quality stylised 3D animal in the look of a modern animated family film: appealing, friendly, expressive eyes, clean readable shapes, rich natural colours. Full body visible, standing on the ground in a calm neutral pose, side three-quarter view, centred, plain white background, soft even lighting, no shadows, no text, no other animals or objects.',
+    texture: 'Giraffe with orange-brown patches on cream fur, dark hooves.',
+  },
+  monkey: {
+    polycount: 8000,
+    prompt: 'A playful little brown monkey with a cream face and belly, long curly tail, standing on its two back legs, arms slightly out. High-quality stylised 3D animal in the look of a modern animated family film: appealing, friendly, expressive eyes, clean readable shapes, rich natural colours. Full body visible, standing on the ground in a calm neutral pose, side three-quarter view, centred, plain white background, soft even lighting, no shadows, no text, no other animals or objects.',
+    texture: 'Brown monkey with a cream face and belly.',
+  },
+  penguin: {
+    polycount: 6000,
+    prompt: 'A cute emperor penguin chick-adult hybrid style penguin: black back, white belly, yellow-orange patches on the neck, standing upright with flippers slightly out. High-quality stylised 3D animal in the look of a modern animated family film: appealing, friendly, expressive eyes, clean readable shapes, rich natural colours. Full body visible, standing on the ground in a calm neutral pose, side three-quarter view, centred, plain white background, soft even lighting, no shadows, no text, no other animals or objects.',
+    texture: 'Black and white penguin with yellow-orange neck patches, orange beak and feet.',
+  },
   xray: {
     polycount: 8000,
     prompt: 'A hospital X-ray machine: a flat padded examination table on a white base, with a big X-ray tube head on an arm reaching over the table from a tall column at one end, a small control panel. White and light-grey with yellow radiation warning stickers. Clean, slightly stylised game-art look with realistic proportions. Three-quarter view from slightly above, the whole object visible, centred, plain white background, soft even lighting, no people, no text, no shadows, no other objects.',

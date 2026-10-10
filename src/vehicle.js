@@ -7,8 +7,11 @@ import { getColliders, clampWalkable, inPond, WORLD } from './world.js';
 
 const LENGTH = 7; // game units (Doctor Guy is 2.45 tall)
 const MAX_FWD = 17;
+const MAX_ROAD = 30; // on Zoo Road
+const onOpenRoad = (p) => p.x > -24 && p.x < 137 && Math.abs(p.z + 37) < 3.6; // all of Zoo Road
 const MAX_REV = 6;
 const ACCEL = 9;
+const ACCEL_ROAD = 15;
 const BRAKE = 22;
 const DRAG = 3.2;
 const STEER = 1.9; // rad/s at full lock and speed
@@ -18,7 +21,7 @@ const MODEL_YAW = Math.PI / 2; // generated ambulance's nose points -x
 // No black outline: the realistic van has thin panels the outline hull pokes through (dark shards)
 const OUTLINE = Number(new URLSearchParams(location.search).get('carOutline') ?? 0);
 
-export const PARKING = { x: -11, z: -38, heading: 0.3 }; // by the hospital entrance, nose towards the park
+export const PARKING = { x: -12, z: -37, heading: Math.PI / 2 }; // at the start of Zoo Road by the hospital, nose east
 
 export class Ambulance {
   constructor(scene) {
@@ -141,7 +144,8 @@ export class Ambulance {
   update(dt, t, { throttle = 0, steer = 0 } = {}) {
     if (this.driving) {
       // throttle forward/back; pressing against the motion brakes first
-      if (throttle > 0) this.speed += (this.speed < 0 ? BRAKE : ACCEL) * throttle * dt;
+      const road = onOpenRoad(this.pos);
+      if (throttle > 0) this.speed += (this.speed < 0 ? BRAKE : road ? ACCEL_ROAD : ACCEL) * throttle * dt;
       else if (throttle < 0) this.speed += (this.speed > 0 ? BRAKE : ACCEL * 0.7) * throttle * dt;
       this.steer += (steer - this.steer) * Math.min(1, dt * 8);
     } else {
@@ -150,10 +154,12 @@ export class Ambulance {
     // rolling resistance
     const drag = (throttle === 0 || !this.driving ? DRAG * 2.2 : DRAG) * dt;
     this.speed = Math.abs(this.speed) <= drag ? 0 : this.speed - Math.sign(this.speed) * drag;
-    this.speed = THREE.MathUtils.clamp(this.speed, -MAX_REV, MAX_FWD);
+    const top = onOpenRoad(this.pos) ? MAX_ROAD : MAX_FWD;
+    // leaving the road: ease down to the normal top speed instead of snapping
+    this.speed = THREE.MathUtils.clamp(this.speed, -MAX_REV, Math.max(top, this.speed - 12 * dt));
 
     // turning: needs some speed, tighter at low speed, reversed when backing up
-    const grip = THREE.MathUtils.clamp(Math.abs(this.speed) / 5, 0, 1) * (1 - Math.abs(this.speed) / (MAX_FWD * 2.4));
+    const grip = THREE.MathUtils.clamp(Math.abs(this.speed) / 5, 0, 1) * Math.max(0.25, 1 - Math.abs(this.speed) / (MAX_FWD * 2.4));
     this.heading -= this.steer * STEER * grip * Math.sign(this.speed) * dt;
 
     const prev = this.pos.clone();

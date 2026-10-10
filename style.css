@@ -81,6 +81,7 @@ kbd {
 #minimap {
   position: absolute; top: 16px; right: 16px;
   width: 180px; height: 180px;
+  pointer-events: auto; cursor: pointer;
   border-radius: 50%;
   border: 4px solid var(--ink);
   background: #6cc24a;
@@ -269,7 +270,7 @@ html.touch #mg-bar { height: 44px; }
   .mission { padding: 5px 9px; font-size: 12px; }
   .mission .m-step { display: none; }
   .mission.active .m-step { display: block; }
-  #minimap { width: 96px; height: 96px; }
+  #minimap { width: 124px; height: 124px; }
   #toast { font-size: 17px; padding: 8px 14px; top: 16%; }
   .title-card { padding: 18px 18px 16px; max-height: calc(100vh - 24px); overflow: auto; }
   .badge { display: none; }
@@ -306,3 +307,46 @@ html.driving #stamina { display: none; }
 /* fade to black when entering/leaving a building */
 #fade { position: fixed; inset: 0; background: #0d1622; opacity: 0; pointer-events: none; transition: opacity 0.35s ease; z-index: 50; }
 #fade.on { opacity: 1; }
+
+/* ---------- GTA-style navigation ---------- */
+#map-hint {
+  position: absolute; top: 202px; right: 72px;
+  background: var(--ink); color: #fff; font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 8px;
+}
+html.touch #map-hint { display: none; }
+#waypoint-info {
+  position: absolute; top: 228px; right: 16px; max-width: 220px;
+  background: #ffd23f; color: var(--ink); font-weight: 700; font-size: 14px;
+  padding: 4px 10px; border-radius: 10px; border: 3px solid var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#location {
+  position: absolute; right: 22px; bottom: 26px;
+  font-size: 28px; font-weight: 700; color: #fff; letter-spacing: 0.5px;
+  text-shadow: 2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink);
+  opacity: 0; transform: translateY(8px); transition: opacity 0.5s, transform 0.5s;
+}
+#location.show { opacity: 1; transform: none; }
+#location.show.fade { opacity: 0; }
+html.touch #location { bottom: auto; top: calc(208px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); font-size: 18px; }
+html.touch #waypoint-info { top: calc(112px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); font-size: 12px; }
+@media (max-height: 500px), (max-width: 640px) {
+  #map-hint { display: none; }
+  html.touch #location { top: calc(140px + env(safe-area-inset-top)); }
+}
+
+#bigmap {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(10, 20, 32, 0.92);
+  display: flex; flex-direction: column;
+  padding: 10px calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left));
+}
+.bm-head { display: flex; align-items: center; gap: 14px; color: #fff; flex-wrap: wrap; }
+.bm-title { font-size: 26px; font-weight: 700; }
+.bm-help { font-size: 14px; opacity: 0.85; flex: 1; }
+.bm-help kbd { color: var(--ink); }
+#bigmap-where { font-weight: 700; color: #ffd23f; }
+#bigmap-close { font-size: 20px; padding: 6px 16px; margin-left: auto; }
+#bigmap-canvas { flex: 1; width: 100%; min-height: 0; margin-top: 8px; border-radius: 16px; border: 4px solid var(--ink); background: #58ad3f; touch-action: none; }
+.bm-legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; color: #fff; font-size: 13px; margin-top: 8px; }

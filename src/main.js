@@ -9,6 +9,8 @@ import { initAudio, sfx, engine, siren } from './audio.js';
 import { Ambulance, PARKING } from './vehicle.js';
 import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
 import { DoorNurses } from './nurses.js';
+import { buildRoad, buildZoo, inZoo, ZOO } from './zoo.js';
+import { BigMap } from './map.js';
 import { loadDoctorModel } from './doctorModel.js';
 import { preloadKids } from './kidModels.js';
 
@@ -50,6 +52,8 @@ entryGate.group.position.set(0, 0, -46.75);
 park.add(entryGate.group);
 animated.push(entryGate);
 const beach = buildBeach(scene);
+const road = buildRoad(scene);
+let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
 const input = new Input(canvas);
 if (isTouch) input.distance = 9.5; // a bit further out on small screens
@@ -174,6 +178,7 @@ const ui = {
   vehicleAction,
   extraAction,
   get hospital() { return hospital; },
+  get zoo() { return zoo; },
   onHospitalHandover: () => nurses?.escort(),
   swingSeats,
   minigame,
@@ -183,7 +188,7 @@ const ui = {
     sfx.fanfare();
     const mins = Math.floor(missions.time / 60), secs = Math.floor(missions.time % 60);
     document.getElementById('end-stats').innerHTML =
-      `🍭 <b>${missions.lollipops}</b> lollipops · ⏱️ ${mins}:${String(secs).padStart(2, '0')}<br><small>Next zone: The Zoo 🦁 (coming soon)</small>`;
+      `🍭 <b>${missions.lollipops}</b> lollipops · ⏱️ ${mins}:${String(secs).padStart(2, '0')}<br><small>More of Wolfson City coming soon…</small>`;
     document.getElementById('end').classList.remove('hidden');
     hud.show(false);
     started = false;
@@ -221,10 +226,31 @@ addEventListener('resize', () => {
 window.__game = { player, missions, input, scene, minigame, follow, renderer, ui, ambulance };
 
 const TITLE_VIEW = { pos: new THREE.Vector3(0, 0, 4) }; // fountain area
+// GTA-style map (M / tap the radar) — the game pauses while it's open
+const bigMap = new BigMap(hud.radar, () => ({ player, missions, ambulance }));
+bigMap.enabled = () => started && !minigame.active && !transitioning;
+// waypoint marker in the world: a tall yellow beam with a ring
+const wpBeam = new THREE.Group();
+wpBeam.add(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 30, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false })));
+wpBeam.children[0].position.y = 15;
+const wpRing = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.9, 32), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.8, depthWrite: false }));
+wpRing.rotation.x = -Math.PI / 2;
+wpRing.position.y = 0.05;
+wpBeam.add(wpRing);
+wpBeam.visible = false;
+scene.add(wpBeam);
+
 const clock = new THREE.Clock();
 let t = 0;
 function frame() {
-  const dt = Math.min(clock.getDelta(), 1 / 20);
+  const rawDt = Math.min(clock.getDelta(), 1 / 20);
+  if (bigMap.open) { // paused: keep the map fresh, don't advance the world
+    bigMap.draw();
+    input.endFrame();
+    requestAnimationFrame(frame);
+    return;
+  }
+  const dt = rawDt;
   t += dt;
   for (const a of animated) a.update(t, dt);
 
@@ -243,7 +269,7 @@ function frame() {
     player.vel.set(0, 0, 0);
     player.facing = ambulance.heading;
     missions.update(dt, t, input);
-    hud.update(missions, player, ambulance);
+    hud.update(missions, player, ambulance, input.yaw);
   } else if (started) {
     ambulance.update(dt, t, {});
     input.enabled = !minigame.active;
@@ -252,7 +278,7 @@ function frame() {
     if (wasGround && !player.onGround && player.vel.y > 0) sfx.jump();
     missions.update(dt, t, input);
     minigame.update(dt);
-    hud.update(missions, player, ambulance);
+    hud.update(missions, player, ambulance, input.yaw);
   } else {
     // Title screen: slow orbit around the park
     input.yaw += dt * 0.08;
@@ -279,11 +305,21 @@ function frame() {
   park.visible = !inside && player.pos.z < 105;
   beach.group.visible = !inside && player.pos.z > 25;
   beach.sea.visible = !inside;
+  road.group.visible = !inside;
+  if (zoo) zoo.group.visible = !inside && player.pos.x > 70;
   base.visible = !inside;
   ambulance.root.visible = !inside;
   if (hospital) hospital.group.visible = inside;
   scene.background = inside ? INDOOR_BG : OUTDOOR_BG;
   scene.fog = inside ? null : outdoorFog;
+
+  // waypoint beam (mission waypoints follow the patient; hospital ones show at the doors)
+  const wp = hud.radar.waypointPos();
+  wpBeam.visible = !!wp && started && (isInside(player.pos) === (wp.z < -300));
+  if (wp) {
+    wpBeam.position.set(wp.x, 0, wp.z);
+    wpRing.scale.setScalar(1 + Math.sin(t * 4) * 0.08);
+  }
 
   // Keep shadows centred on the player
   sun.position.set(player.pos.x + 30, 50, player.pos.z + 20);
@@ -299,6 +335,8 @@ frame();
 // Characters load in parallel; the Start button unlocks when they're in
 await Promise.all([doctorReady, preloadKids(), ambulanceReady]); // kids fall back to procedural ones per look
 hospital = await buildHospital(scene);
+zoo = await buildZoo(scene);
+animated.push(...zoo.animated);
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
 nurses = new DoorNurses(scene, ambulance, {
@@ -308,6 +346,9 @@ missions = new MissionSystem(scene, player, ui);
 window.__game.missions = missions;
 window.__game.hospital = hospital;
 window.__game.nurses = nurses;
+window.__game.zoo = zoo;
+window.__game.bigMap = bigMap;
+window.__game.hud = hud;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades
