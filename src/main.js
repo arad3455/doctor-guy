@@ -16,6 +16,7 @@ import { buildSuburbs } from './suburbs.js';
 import { buildPier, FAIR } from './pier.js';
 import { buildCamp } from './camp.js';
 import { buildHarbor, HARBOR } from './harbor.js';
+import { buildAirport, AIR_MAP } from './airport.js';
 import { GPS } from './gps.js';
 import { Bandages, BANDAGE_SPOTS } from './collectibles.js';
 import { Weather } from './weather.js';
@@ -80,6 +81,7 @@ let suburbs = null; // Zone 5, Maple Heights (south of Zoo Road)
 let pier = null; // Zone 6, Sunset Pier
 let camp = null; // Zone 7, Pinewood Camp
 let harbor = null; // Zone 8, Wolfson Harbor
+let airport = null; // Zone 10, Wolfson Airport
 let road = null; // Zoo Road, built from Kenney's road kit once the kits have loaded
 let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
@@ -313,7 +315,7 @@ const ui = {
   zoneEntered: (zone) => {
     const names = { park: ['WOLFSON PARK', 'Where it all began'], beach: ['SUNNY BEACH', 'Sun, sand and sea'], zoo: ['WOLFSON CITY ZOO', 'Mind the monkeys'],
       downtown: ['DOWNTOWN WOLFSON', 'The big city'], suburbs: ['MAPLE HEIGHTS', 'Nice and quiet… usually'], pier: ['SUNSET PIER', 'Rides by the sea'],
-      camp: ['PINEWOOD CAMP', 'Deep in the woods'], harbor: ['WOLFSON HARBOR', 'Ships and cranes'], hospital: ['WOLFSON MEDICAL CENTER', 'Your second home'] };
+      camp: ['PINEWOOD CAMP', 'Deep in the woods'], harbor: ['WOLFSON HARBOR', 'Ships and cranes'], airport: ['WOLFSON AIRPORT', 'Now boarding…'], hospital: ['WOLFSON MEDICAL CENTER', 'Your second home'] };
     const [name, sub] = names[zone] ?? [];
     if (name) {
       const el = document.getElementById('district');
@@ -574,6 +576,7 @@ function frame() {
   if (suburbs) suburbs.group.visible = !inside && player.pos.x > -10 && player.pos.z > -80 && !window.__hide?.suburbs && inView(suburbs.group);
   if (camp) camp.group.visible = !inside && player.pos.z < 0 && player.pos.x > -60 && !window.__hide?.camp && inView(camp.group);
   if (harbor) harbor.group.visible = !inside && player.pos.x < 20 && player.pos.z > -40 && !window.__hide?.harbor && inView(harbor.group);
+  if (airport) airport.group.visible = !inside && player.pos.x < 60 && player.pos.z < 20 && !window.__hide?.airport && inView(airport.group);
   if (pier) {
     pier.group.visible = !inside && player.pos.x > -40 && player.pos.z > -20 && !window.__hide?.pier && inView(pier.group);
     FAIR.beam.material.opacity = Math.max(0, dayNight.night - 0.2) * 0.3; // the lighthouse sweeps at night
@@ -660,8 +663,10 @@ camp = buildCamp(scene);
 animated.push(...camp.animated);
 harbor = buildHarbor(scene);
 animated.push(...harbor.animated);
+airport = buildAirport(scene);
+animated.push(...airport.animated);
 animated.push(...zoo.animated);
-dayNight.addLampHalos([...downtown.bulbs.map((b) => ({ ...b, parent: downtown.group })), ...suburbs.bulbs.map((b) => ({ ...b, parent: suburbs.group })), ...pier.bulbs.map((b) => ({ ...b, parent: pier.group })), ...camp.bulbs.map((b) => ({ ...b, parent: camp.group })), ...harbor.bulbs.map((b) => ({ ...b, parent: harbor.group }))]);
+dayNight.addLampHalos([...downtown.bulbs.map((b) => ({ ...b, parent: downtown.group })), ...suburbs.bulbs.map((b) => ({ ...b, parent: suburbs.group })), ...pier.bulbs.map((b) => ({ ...b, parent: pier.group })), ...camp.bulbs.map((b) => ({ ...b, parent: camp.group })), ...harbor.bulbs.map((b) => ({ ...b, parent: harbor.group })), ...airport.bulbs.map((b) => ({ ...b, parent: airport.group }))]);
 animated.push(...hospital.animated);
 hud.plan = hospital.plan;
 applyCosmetics(); // saved hats, paint, siren…
@@ -681,6 +686,7 @@ window.__game.suburbs = suburbs;
 window.__game.pier = pier;
 window.__game.camp = camp;
 window.__game.harbor = harbor;
+window.__game.airport = airport;
 // 30 Golden Bandages hidden around the city (+5 🍭 each; found ones are saved)
 bandages = new Bandages(scene, progress, {
   isOpen: () => started && !isInside(player.pos),
@@ -702,7 +708,7 @@ for (const g of [park, beach.group, beach.sea, zoo.group, road.group]) bakeStati
 for (const g of [downtown.group, suburbs.group, pier.group, camp.group, harbor.group, zoo.group, park, beach.group, road.group]) { g.updateMatrixWorld(true); trimShadows(g); } // lighter shadow pass
 // GPS routes prefer roads: every street tile of every zone, plus Zoo Road
 {
-  const tileRects = [...DT_MAP.streets, ...MH_MAP.streets, ...(CAMP.streets ?? []), ...(HARBOR.streets ?? [])].map((t) => ({ x0: t.x - 3.6, x1: t.x + 3.6, z0: t.z - 3.6, z1: t.z + 3.6 }));
+  const tileRects = [...DT_MAP.streets, ...MH_MAP.streets, ...(CAMP.streets ?? []), ...(HARBOR.streets ?? []), ...AIR_MAP.streets].map((t) => ({ x0: t.x - 3.6, x1: t.x + 3.6, z0: t.z - 3.6, z1: t.z + 3.6 }));
   hud.radar.gps = new GPS([...tileRects, { x0: ZOO.road.x0, x1: ZOO.road.x1, z0: ZOO.road.z - 3.6, z1: ZOO.road.z + 3.6 }]);
   window.__game.gps = hud.radar.gps;
 }

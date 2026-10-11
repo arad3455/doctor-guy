@@ -1,4 +1,4 @@
-// Golden Bandages: 30 hidden collectibles all over Wolfson (GTA's hidden packages). Each one spins and sparkles;
+// Golden Bandages: 33 hidden collectibles all over Wolfson (GTA's hidden packages). Each one spins and sparkles;
 // grab it on foot or in the ambulance for 🍭 and a counter toast. Found ones are remembered between visits.
 import * as THREE from 'three';
 import { toon, canvasTexture } from './toon.js';
@@ -19,11 +19,13 @@ export const BANDAGE_SPOTS = [
   // Sunset Pier
   [125.5, 176, 'the very end of the pier'], [148, 66, 'behind the drop tower'], [94, 111, 'by the bumper cars'],
   // Pinewood Camp
-  [12, -214, 'deep in the NW forest'], [148, -214, 'deep in the NE forest'], [122, -181, 'beside the waterfall'], [30, -104, 'camp gate'], [146, -104, 'deer meadow edge'],
+  [12, -214, 'deep in the NW forest'], [148, -214, 'deep in the NE forest'], [127, -175, 'beside the waterfall'], [30, -104, 'camp gate'], [146, -104, 'deer meadow edge'],
   // Wolfson Harbor
   [-197, 113, 'harbor west quay'], [-101, 138.5, 'end of the jetty'], [-194, 84, 'container yard corner'],
   // roads
   [63.5, -88, 'Pine Road'], [130, -50, 'zoo car park'],
+  // Wolfson Airport
+  [-196, -221, 'airport far corner'], [-20, -205, 'by the windsock'], [-186, -126, 'behind the control tower'],
 ];
 
 export class Bandages {

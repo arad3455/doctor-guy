@@ -51,7 +51,7 @@ async function treat(name) {
     await page.keyboard.press('Space');
     await wait(150);
   }
-  await page.waitForFunction(() => !__game.missions.busy, { timeout: 10000 }); // stand up + pick-up animations
+  await page.waitForFunction(() => !__game.missions.busy, { timeout: 30000 }); // stand up + pick-up animations (game time: slow under software GL)
   await wait(200);
   return open;
 }

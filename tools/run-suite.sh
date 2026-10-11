@@ -3,8 +3,8 @@
 # usage: tools/run-suite.sh [test names…]   (logs in $LOGDIR, default /tmp/doctorguy-tests)
 cd "$(dirname "$0")/.."
 LOGDIR=${LOGDIR:-/tmp/doctorguy-tests}; mkdir -p $LOGDIR
-TESTS=(${@:-playtest mobile-test drive-test stunt-test pier-test downtown-test camp-test harbor-test gps-test spots-test weather-test checkup-test frenzy-test zoo-test hospital-test career-test progress-test daynight-test})
-for t in $TESTS; do
+[ $# -eq 0 ] && set -- playtest mobile-test drive-test stunt-test pier-test downtown-test camp-test harbor-test airport-test gps-test spots-test weather-test photo-test checkup-test frenzy-test zoo-test hospital-test career-test progress-test daynight-test
+for t in "$@"; do
   for attempt in 1 2; do
     node tools/$t.mjs > $LOGDIR/$t.log 2>&1; code=$?
     if grep -q "ProtocolError\|TimeoutError\|Navigation timeout" $LOGDIR/$t.log && [ $attempt = 1 ]; then echo "$t: harness timeout, retrying"; continue; fi

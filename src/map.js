@@ -11,6 +11,7 @@ import { MH, MH_MAP } from './suburbs.js';
 import { FAIR } from './pier.js';
 import { CAMP } from './camp.js';
 import { HARBOR, HB_MAP } from './harbor.js';
+import { AIRPORT, AIR_MAP } from './airport.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -25,6 +26,7 @@ const ZONE_BLIPS = [
   { x: FAIR.gate.x + 4, z: FAIR.gate.z, icon: '🎡', name: 'Sunset Pier' },
   { x: CAMP.site.x, z: CAMP.site.z, icon: '🏕️', name: 'Pinewood Camp' },
   { x: HARBOR.roadX, z: 80, icon: '⚓', name: 'Wolfson Harbor' },
+  { x: -120, z: -118, icon: '✈️', name: 'Wolfson Airport' },
 ];
 export const ZONE_LABELS = [
   { x: 0, z: 12, text: 'WOLFSON PARK' },
@@ -38,6 +40,7 @@ export const ZONE_LABELS = [
   { x: 121, z: 60.5, text: 'SUNSET PIER' },
   { x: 80, z: -208, text: 'PINEWOOD CAMP' },
   { x: -146, z: 60, text: 'WOLFSON HARBOR' },
+  { x: -108, z: -214, text: 'WOLFSON AIRPORT' },
 ];
 const isInterior = (z) => z < -300;
 /** A wall tint → a slightly darker roof colour for the map. */
@@ -237,6 +240,25 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   poly([[sh.x - sh.len / 2, sh.z - sh.beam / 2], [sh.x + sh.len / 2 - 6, sh.z - sh.beam / 2], [sh.x + sh.len / 2 + 2, sh.z], [sh.x + sh.len / 2 - 6, sh.z + sh.beam / 2], [sh.x - sh.len / 2, sh.z + sh.beam / 2]], '#c0392b', '#1b1b1b', Math.max(1, 0.3 * s));
   rect(sh.x - sh.len / 2 + 1, sh.z - sh.beam / 2 + 1, sh.x - sh.len / 2 + 7, sh.z + sh.beam / 2 - 1, '#ffffff');
   if (s > 0.8) { text(-171, 92, '🏗️', Math.max(10, 3.5 * s)); text(Hb.market.x, Hb.market.z, '🐟', Math.max(10, 3 * s)); }
+
+  // ---- Wolfson Airport: grass airfield, runway + taxiway, apron, terminal, hangars, tower, the jets
+  const Ap = AIRPORT;
+  rect(Ap.x0, Ap.z0, Ap.x1, Ap.z1, '#7ccf55', '#9aa3ad', Math.max(1, 0.3 * s));
+  rect(Ap.runway.x0, Ap.runwayZ - Ap.runwayW / 2, Ap.runway.x1, Ap.runwayZ + Ap.runwayW / 2, '#4a5058');
+  if (detail) line(Ap.runway.x0 + 12, Ap.runwayZ, Ap.runway.x1 - 12, Ap.runwayZ, '#ffffff', Math.max(1, 0.35 * s), [Math.max(3, 3 * s), Math.max(3, 2 * s)]);
+  rect(Ap.runway.x0 + 4, Ap.taxiZ - 5, Ap.runway.x1 - 2, Ap.taxiZ + 5, '#6a7078');
+  for (const x of [Ap.runway.x0 + 8, -100, Ap.runway.x1 - 8]) rect(x - 5, Ap.runwayZ + Ap.runwayW / 2, x + 5, Ap.taxiZ - 5, '#6a7078');
+  rect(Ap.apron.x0, Ap.apron.z0, Ap.apron.x1, Ap.terminal.z0, '#c9ced4');
+  rect(Ap.forecourt.x0, Ap.forecourt.z0, Ap.forecourt.x1, Ap.forecourt.z1, '#8f98a2');
+  rect(Ap.roadX - 3.55, -96.5, Ap.roadX + 3.55, -82.5, '#4a5058');
+  rect(Ap.terminal.x0, Ap.terminal.z0, Ap.terminal.x1, Ap.terminal.z1, '#e8edf2', '#5b6573', Math.max(1, 0.4 * s));
+  for (const h of Ap.hangars) rect(h.x - 10, h.z - 10, h.x + 10, h.z + 10, '#b8c0c9', '#5b6573', 1);
+  circle(Ap.tower.x, Ap.tower.z, 3, '#6fb7e8', '#2b2f38', 1);
+  for (const p of [...AIR_MAP.planes, { x: Ap.gates[1], z: Ap.terminal.z0 - 14 }]) {
+    rect(p.x - 1.6, p.z - 9, p.x + 1.6, p.z + 9, '#ffffff', '#2b2f38', 0.8);
+    rect(p.x - 11, p.z - 1.5, p.x + 11, p.z + 2.5, '#dfe6ee', '#2b2f38', 0.8);
+  }
+  if (s > 0.8) text(-108, -175, '✈️', Math.max(12, 4 * s));
 
   // ---- the hospital (with a soft shadow)
   shadow((c) => rect(-17, -57, 17, -47, c));

@@ -9,6 +9,7 @@ import { MH, MH_SPOTS, MH_MAP } from './suburbs.js';
 import { FAIR, PIER_SPOTS } from './pier.js';
 import { CAMP, CAMP_SPOTS } from './camp.js';
 import { HARBOR, HARBOR_SPOTS } from './harbor.js';
+import { AIRPORT, AIR_SPOTS } from './airport.js';
 import { kit } from './kit.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
@@ -437,6 +438,50 @@ export const MISSIONS = [
     treatment: { title: 'Clean-up time', speed: 0.9, zone: 0.24, steps: [{ icon: '🧻', label: 'Wipe it off' }, { icon: '🧼', label: 'Wash the hair' }, { icon: '🍀', label: '"That’s good luck!"' }] },
     deliver: null, reward: 3, bonusTime: 40,
   },
+
+  // ---------------- Zone 10: Wolfson Airport (north of Downtown, up Airport Road) ----------------
+  {
+    id: 'earache', zone: 'airport', name: 'Lihi', title: 'Popping Ears', look: 'ponytail',
+    get at() { const e = AIR_SPOTS.entrance; return [e.x + 4, e.z]; }, pose: 'cry', bubble: 'My ears hurt!', range: 2.4,
+    blurb: 'Lihi just landed and her ears won’t pop.',
+    treatment: { title: 'Pop those ears', speed: 0.95, zone: 0.22, steps: [{ icon: '🥱', label: 'Big yawn' }, { icon: '🍬', label: 'Chew a sweet' }, { icon: '🤏', label: 'Gentle nose-pinch blow — hold', mode: 'hold' }] },
+    deliver: null, reward: 3, bonusTime: 45,
+  },
+  {
+    id: 'luggage', zone: 'airport', name: 'Ofek', title: 'Luggage Cart Crash', look: 'capKid',
+    at: [-163, -132], pose: 'sit', bubble: 'The cart ran into me!', range: 2.4,
+    blurb: 'Ofek rode a baggage cart down the apron… straight into a bollard.',
+    treatment: { title: 'Bruised shin', speed: 1.0, zone: 0.2, steps: [{ icon: '🧊', label: 'Ice pack' }, { icon: '🩹', label: 'Bandage' }, { icon: '🧳', label: 'Carts are for bags!' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'airstairs', zone: 'airport', name: 'Yahav', title: 'Up the Airstairs', look: 'glassesKid',
+    get at() { const s = AIR_SPOTS.stairsTop; return [s.x, s.z]; }, get y() { return AIR_SPOTS.stairsTop.y; }, pose: 'cry', bubble: 'The stairs are moving!', range: 3.6,
+    blurb: 'Yahav climbed the airstairs truck to “fly the plane” and got scared at the top. Catch him!',
+    treatment: { title: 'Catch Yahav!', speed: 1.45, zone: 0.15, steps: [{ icon: '🫶', label: '"Jump, I got you!"' }, { icon: '🙌', label: 'Catch!' }] },
+    deliver: null, reward: 5, bonusTime: 50, special: 'catch',
+  },
+  {
+    id: 'jetlag', zone: 'airport', name: 'Bar', title: 'Jet Lag Faint', look: 'gownKid',
+    at: [AIRPORT.tower.x + 6, AIRPORT.tower.z + 2], pose: 'sit', bubble: 'So… sleepy…', range: 2.4, tint: 0xe6e6ff,
+    blurb: 'Bar flew all night and fainted by the control tower. Check her, then drive her to the hospital — Airport Road leads straight back through Downtown.',
+    treatment: { title: 'Fainting first aid', speed: 1.1, zone: 0.18, steps: [{ icon: '🦵', label: 'Legs up' }, { icon: '💧', label: 'Sips of water' }, { icon: '🍌', label: 'A snack' }] },
+    deliver: 'hospital', reward: 10, bonusTime: 120,
+  },
+  {
+    id: 'drynose', zone: 'airport', name: 'Kfir', title: 'Dry-Air Nosebleed', look: 'redShirt',
+    at: [-90, -100], pose: 'sit', bubble: 'My nose is bleeding!', range: 2.4,
+    blurb: 'The dry cabin air gave Kfir a nosebleed on the way out of Departures.',
+    treatment: { title: 'Nosebleed first aid', speed: 1.05, zone: 0.2, steps: [{ icon: '🙇', label: 'Lean forward' }, { icon: '🤏', label: 'Pinch the soft part — hold', mode: 'hold' }, { icon: '💦', label: 'Saline spray' }] },
+    deliver: null, reward: 4, bonusTime: 50,
+  },
+  {
+    id: 'lostair', zone: 'airport', name: 'Neta', title: 'Lost Traveller', look: 'pinkHat',
+    at: [-22, -100], pose: 'cry', bubble: 'Where’s my family?', range: 2.4, hidden: true,
+    blurb: 'Little Neta wandered away from her gate. Search the airport’s quiet east end and bring her back.',
+    treatment: { title: 'Comfort Neta', speed: 0.85, zone: 0.24, steps: [{ icon: '🤗', label: 'Big hug' }, { icon: '📢', label: 'Announce it at the desk' }] },
+    deliver: null, reward: 6, bonusTime: 90,
+  },
 ];
 
 /** Something a grown-up carries: a shopping bag or a briefcase (held at the right hand). */
@@ -846,7 +891,9 @@ export class MissionSystem {
       // Pine Road and Pinewood Camp
       [63.5, -55], [63.5, -75], [63.5, -95], [52, -126], [46, -140], [70, -158], [80, -136], [104, -134], [130, -160], [90, -176], [80, -184], [128, -140],
       // Harbor Road and the quay
-      [-111.5, 60], [-111.5, 80], [-111.5, 98], [-125, 110], [-160, 110], [-185, 110], [-101, 125], [-170, 78], [-135, 88]];
+      [-111.5, 60], [-111.5, 80], [-111.5, 98], [-125, 110], [-160, 110], [-185, 110], [-101, 125], [-170, 78], [-135, 88],
+      // Airport Road and the airport
+      [-111.5, -88], [-130, -102], [-75, -102], [-150, -192], [-110, -192], [-70, -192], [-40, -192], [-120, -160], [-60, -160], [-190, -140]];
     spots.forEach(([x, z], i) => {
       const g = new THREE.Group();
       const candy = part(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 20), colors[i % colors.length], { outline: 0.03 });

@@ -14,8 +14,9 @@ A browser 3D open-world rescue game (Three.js, no build step). Play it at https:
 | 🎡 Sunset Pier | the bottom of Maple Lane, east of the beach | Ferris wheel, carousel, drop tower, bumper cars, stalls, a pier with a lighthouse |
 | 🌲 Pinewood Camp | north, up Pine Road | pine forest, lake with canoes and a dock, waterfall, campsite, ranger station, deer |
 | ⚓ Wolfson Harbor | south of Downtown, down Harbor Road | warehouses, container yard with a gantry crane, fish market, cargo ship, jetty and fishing boats |
+| ✈️ Wolfson Airport | north of Downtown, up Airport Road | runway with lights, terminal with jet bridges, control tower, hangars, a jet that takes off and lands |
 
-Stunt ramps, the Check-up Frenzy token, a day/night cycle, 30 hidden Golden Bandages and 29 achievements are scattered around it all.
+Stunt ramps, the Check-up Frenzy token, a day/night cycle, 33 hidden Golden Bandages and 30 achievements are scattered around it all.
 
 ## Run
 ```
@@ -28,7 +29,7 @@ WASD move · Shift run · Space jump · E help / pick up / hand over · mouse dr
 
 ## Structure
 - `src/world.js` — park layout, hospital, props, colliders, walkable areas, zone names
-- `src/downtown.js`, `src/suburbs.js`, `src/pier.js`, `src/camp.js`, `src/harbor.js` — the newer zones; `src/streets.js` (road grid tiles) and
+- `src/downtown.js`, `src/suburbs.js`, `src/pier.js`, `src/camp.js`, `src/harbor.js`, `src/airport.js` — the newer zones; `src/streets.js` (road grid tiles) and
   `src/cityprops.js` (buildings, lamps, cars, trees, hedges) are shared by them
 - `src/characters.js` — procedural Doctor Guy + kids, animation, bubbles
 - `src/player.js` — input, third-person controller, camera
@@ -36,6 +37,17 @@ WASD move · Shift run · Space jump · E help / pick up / hand over · mouse dr
 - `src/minigame.js` — timing-bar treatment mini-game
 - `src/hud.js` — HUD + minimap
 - `tools/playtest.mjs` — automated play-through (`npm run playtest`, screenshots in `.shots/`)
+
+## Tests
+Headless Chrome (software WebGL) drives the real game. With the dev server running (`npm start`):
+```
+tools/run-suite.sh                 # everything (retries a test once if the harness, not the game, times out)
+tools/run-suite.sh airport-test    # one test
+BASE=https://arad3455.github.io/doctor-guy/ tools/run-suite.sh pier-test   # against the live site
+```
+`playtest` completes every mission; `spots-test` checks every mission spot, lollipop and Golden Bandage is
+reachable; the zone tests drive the ambulance through each district. Helpers: `tools/view.mjs` (free camera
+screenshot), `tools/topdown.mjs`, `tools/perf.mjs` (draw calls), `tools/mesh-count.mjs`.
 
 ## Generated 3D model (Meshy)
 The game uses `assets/doctor-guy/doctor-guy.glb` (rigged) when `manifest.json` points to it, and falls back to the
