@@ -23,6 +23,7 @@ import { Weather } from './weather.js';
 import { Ambience } from './ambience.js';
 import { PhotoMode } from './photomode.js';
 import { buildBusStops, Buses, STOPS } from './bus.js';
+import { Radio } from './radio.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -98,6 +99,8 @@ const ramps = buildRamps(scene);
 let skyMat = null;
 base.traverse((o) => { if (o.material?.uniforms?.top) skyMat = o.material; });
 const weather = new Weather(scene); // rain showers now and then, a rainbow after
+const radioBtn = document.getElementById('radio-btn');
+const radio = new Radio({ onChange: (name) => hud.toast(`📻 ${name}`, 1600) }); // R / 📻 while driving
 const ambience = new Ambience(audioCtx); // gulls, music box, campfire, birds, city hum, rain
 const dayNight = new DayNight({ scene, sun, hemi, sky: skyMat, fog: outdoorFog, ambulance, startHour: 15.5 });
 const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
@@ -626,6 +629,8 @@ function frame() {
     dayNight.update(dt, { outside: true, playerPos: player.pos });
     weather.update(dt, { camera, dayNight, outside: true, sun, hemi, sky: skyMat, fog: outdoorFog }); // after day/night: it greys what that just set
   } else weather.lines.visible = weather.rainbow.visible = false;
+  radio.update(started && ambulance.driving && !photo?.active && !bigMap.open);
+  radioBtn.style.display = started && ambulance.driving ? '' : 'none';
   if (started) {
     const p = player.pos, near = (x, z, r) => Math.max(0, 1 - Math.hypot(p.x - x, p.z - z) / r);
     const inRect = (x0, z0, x1, z1, fade) => Math.max(0, 1 - Math.hypot(Math.max(x0 - p.x, 0, p.x - x1), Math.max(z0 - p.z, 0, p.z - z1)) / fade);
@@ -738,6 +743,9 @@ window.__game.progress = progress;
 window.__game.openShop = openShop;
 window.__game.dayNight = dayNight;
 window.__game.weather = weather;
+window.__game.radio = radio;
+radioBtn.addEventListener('click', () => { initAudio(); radio.cycle(); });
+addEventListener('keydown', (e) => { if (e.code === 'KeyR' && !e.repeat && started && ambulance.driving) radio.cycle(); });
 window.__game.ambience = ambience;
 window.__game.ramps = RAMPS;
 window.__game.enterHospital = enterHospital;

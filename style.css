@@ -627,3 +627,7 @@ html.touch #hud #photo-btn { width: 44px; height: 44px; }
 #bus-fade { position: fixed; inset: 0; z-index: 58; background: #1b1b2e; display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity 0.35s; }
 #bus-fade.on { opacity: 1; }
 #bus-fade span { color: #ffd23f; font: 400 clamp(26px, 5vw, 46px) 'Anton', 'Impact', sans-serif; letter-spacing: 2px; }
+
+#radio-btn { position: absolute; top: 290px; right: 22px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ink);
+  background: #fff; font-size: 20px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); pointer-events: auto; padding: 0; display: grid; place-items: center; line-height: 1; }
+html.touch #hud #radio-btn { top: auto; bottom: calc(200px + env(safe-area-inset-bottom)); right: calc(18px + env(safe-area-inset-right)); width: 44px; height: 44px; font-size: 18px; }
