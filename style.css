@@ -589,3 +589,26 @@ html.touch #frenzy-hud .fz-time { font-size: 24px; }
   animation: dIn 3.6s ease forwards; }
 #district .d-sub { display: block; margin-top: 4px; font-weight: 700; font-size: clamp(13px, 2vw, 18px); color: #fff; text-shadow: 1px 1px 0 #1b1b1b, -1px 1px 0 #1b1b1b; animation: dIn 3.6s 0.15s ease forwards; opacity: 0; }
 @keyframes dIn { 0% { opacity: 0; transform: translateY(14px) scale(0.96); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+
+/* Photo mode */
+#photo-btn { position: absolute; top: 236px; right: 22px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ink);
+  background: #fff; font-size: 20px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); pointer-events: auto; }
+html.touch #photo-btn { top: auto; bottom: calc(150px + env(safe-area-inset-bottom)); right: calc(18px + env(safe-area-inset-right)); width: 40px; height: 40px; font-size: 18px; }
+#photo { position: fixed; inset: 0; z-index: 45; pointer-events: none; }
+#photo.hidden { display: none; }
+#photo .ph-frame { position: absolute; inset: 0; pointer-events: auto; touch-action: none; cursor: grab;
+  box-shadow: inset 0 0 0 10px rgba(255,255,255,0.85), inset 0 0 0 13px rgba(20,20,30,0.6); }
+#photo .ph-top { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; pointer-events: auto;
+  background: rgba(20,20,30,0.75); color: #fff; padding: 8px 10px 8px 16px; border-radius: 999px; font-weight: 700; }
+#photo button { font: inherit; border: none; border-radius: 999px; cursor: pointer; }
+#photo .ph-close { background: #e0453a; color: #fff; width: 32px; height: 32px; }
+#photo .ph-bottom { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto; }
+#photo .ph-filters { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; background: rgba(20,20,30,0.7); padding: 6px; border-radius: 999px; }
+#photo .ph-filters button { background: rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; font-size: 13px; }
+#photo .ph-filters button.on { background: #ffd23f; color: #1b1b1b; }
+#photo .ph-snap { background: #ffd23f; color: #1b1b1b; padding: 12px 26px; font-size: 18px; font-weight: 700; box-shadow: 0 4px 0 #1b1b1b; }
+#photo .ph-hint { position: absolute; top: 66px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 13px; text-shadow: 1px 1px 0 #000; }
+.ph-flash { position: fixed; inset: 0; background: #fff; z-index: 60; pointer-events: none; animation: phFlash 0.45s ease-out forwards; }
+@keyframes phFlash { from { opacity: 0.9; } to { opacity: 0; } }
+#hud #photo-btn { padding: 0; display: grid; place-items: center; line-height: 1; aspect-ratio: 1; min-width: 0; min-height: 0; }
+html.touch #hud #photo-btn { width: 44px; height: 44px; }

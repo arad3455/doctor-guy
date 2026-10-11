@@ -1,6 +1,9 @@
 // Tiny WebAudio synth for game feedback — no asset files needed.
 let ctx = null;
 
+/** The shared AudioContext (null until the first tap/click started audio). */
+export const audioCtx = () => ctx;
+
 export function initAudio() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (ctx.state === 'suspended') ctx.resume();

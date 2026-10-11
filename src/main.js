@@ -6,7 +6,7 @@ import { Player, Input, FollowCamera } from './player.js';
 import { MissionSystem } from './missions.js';
 import { MiniGame } from './minigame.js';
 import { HUD } from './hud.js';
-import { initAudio, sfx, engine, siren } from './audio.js';
+import { initAudio, sfx, engine, siren, audioCtx } from './audio.js';
 import { Ambulance, PARKING } from './vehicle.js';
 import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
 import { DoorNurses } from './nurses.js';
@@ -19,6 +19,8 @@ import { buildHarbor, HARBOR } from './harbor.js';
 import { GPS } from './gps.js';
 import { Bandages, BANDAGE_SPOTS } from './collectibles.js';
 import { Weather } from './weather.js';
+import { Ambience } from './ambience.js';
+import { PhotoMode } from './photomode.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -93,6 +95,7 @@ const ramps = buildRamps(scene);
 let skyMat = null;
 base.traverse((o) => { if (o.material?.uniforms?.top) skyMat = o.material; });
 const weather = new Weather(scene); // rain showers now and then, a rainbow after
+const ambience = new Ambience(audioCtx); // gulls, music box, campfire, birds, city hum, rain
 const dayNight = new DayNight({ scene, sun, hemi, sky: skyMat, fog: outdoorFog, ambulance, startHour: 15.5 });
 const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
 const follow = new FollowCamera(camera);
@@ -344,6 +347,7 @@ const ui = {
   },
 };
 let frenzy = null;
+let photo = null; // photo mode (P / 📷)
 let bandages = null; // Golden Bandages (created once the world is built)
 let missions = null; // created once the kids have loaded (see bottom)
 
@@ -476,6 +480,13 @@ function frame() {
   frameNo++;
   const rawDt = Math.min(clock.getDelta(), 1 / 20);
   const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden') || !rotateEl.classList.contains('hidden');
+  if (photo?.active) { // photo mode: the world is frozen, the camera orbits
+    photo.update();
+    renderer.render(scene, camera);
+    input.endFrame();
+    requestAnimationFrame(frame);
+    return;
+  }
   if (bigMap.open || (menuOpen && started)) { // paused: keep the map fresh, don't advance the world
     if (bigMap.open) bigMap.draw();
     else renderer.render(scene, camera);
@@ -608,6 +619,19 @@ function frame() {
     dayNight.update(dt, { outside: true, playerPos: player.pos });
     weather.update(dt, { camera, dayNight, outside: true, sun, hemi, sky: skyMat, fog: outdoorFog }); // after day/night: it greys what that just set
   } else weather.lines.visible = weather.rainbow.visible = false;
+  if (started) {
+    const p = player.pos, near = (x, z, r) => Math.max(0, 1 - Math.hypot(p.x - x, p.z - z) / r);
+    const inRect = (x0, z0, x1, z1, fade) => Math.max(0, 1 - Math.hypot(Math.max(x0 - p.x, 0, p.x - x1), Math.max(z0 - p.z, 0, p.z - z1)) / fade);
+    ambience.update(rawDt, {
+      outside: !isInside(p),
+      rain: weather.rain,
+      sea: Math.max(Math.min(1, Math.max(0, (p.z - 70) / 45)), inRect(-200, 52, -92, 116, 30)),
+      city: inRect(-200, -83, -64, 51, 50),
+      fair: inRect(92, 64, 150, 113, 45),
+      camp: Math.max(inRect(8, -218, 152, -98, 40), near(0, 0, 60) * 0.35),
+      fire: near(40, -152, 20),
+    });
+  }
   const so = dayNight.sunOffset ?? new THREE.Vector3(30, 50, 20);
   sun.position.set(player.pos.x + so.x, so.y, player.pos.z + so.z);
   const clockEl = document.getElementById('clock');
@@ -666,6 +690,14 @@ bandages = new Bandages(scene, progress, {
   },
 });
 window.__game.bandages = bandages;
+photo = new PhotoMode({
+  renderer, camera, scene,
+  target: () => (ambulance.driving ? ambulance.pos : player.pos),
+  onToggle: (on) => { hud.show(!on); document.getElementById('photo-btn').style.display = on ? 'none' : ''; },
+});
+window.__game.photo = photo;
+document.getElementById('photo-btn').addEventListener('click', () => { if (started && !bigMap.open) photo.toggle(true); });
+addEventListener('keydown', (e) => { if (e.code === 'KeyP' && !e.repeat && started && !bigMap.open) photo.toggle(); });
 for (const g of [park, beach.group, beach.sea, zoo.group, road.group]) bakeStatic(g); // the park and beach: hundreds of small parts → a few batches
 for (const g of [downtown.group, suburbs.group, pier.group, camp.group, harbor.group, zoo.group, park, beach.group, road.group]) { g.updateMatrixWorld(true); trimShadows(g); } // lighter shadow pass
 // GPS routes prefer roads: every street tile of every zone, plus Zoo Road
@@ -682,6 +714,7 @@ window.__game.progress = progress;
 window.__game.openShop = openShop;
 window.__game.dayNight = dayNight;
 window.__game.weather = weather;
+window.__game.ambience = ambience;
 window.__game.ramps = RAMPS;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;
