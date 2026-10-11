@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.js';
 import { addBox, addCircle } from './world.js';
-import { buildStreets, street, gx, gz } from './streets.js';
+import { buildStreets, street, gx, gz, FAST_RECTS } from './streets.js';
 import { seeded, slab, streetLamps, signBoard, addCameraBlocker, bakeStatic, parkedCars } from './cityprops.js';
 
 const ROAD_I = -13; // Airport Road continues Downtown's avenue at x = -111.5
@@ -51,6 +51,9 @@ export function buildAirport(scene) {
     }
     ctx.fillStyle = '#ffd23f'; ctx.fillRect(400, h / 2 + 30, 300, 6); ctx.fillRect(w - 700, h / 2 - 36, 300, 6); // touchdown marks (yellow, kid-friendly)
   });
+  // the runway and the taxiway are fast tarmac for the ambulance
+  FAST_RECTS.push({ x0: A.runway.x0, x1: A.runway.x1, z0: A.runwayZ - A.runwayW / 2, z1: A.runwayZ + A.runwayW / 2 },
+    { x0: A.runway.x0 + 4, x1: A.runway.x1 - 2, z0: A.taxiZ - 5, z1: A.taxiZ + 5 });
   const rw = new THREE.Mesh(new THREE.PlaneGeometry(A.runway.x1 - A.runway.x0, A.runwayW), new THREE.MeshToonMaterial({ map: rwTex }));
   rw.rotation.x = -Math.PI / 2;
   rw.position.set((A.runway.x0 + A.runway.x1) / 2, 0.026, A.runwayZ);
@@ -74,7 +77,7 @@ export function buildAirport(scene) {
   group.add(sg);
   AIR_MAP.streets = tiles;
   const cars = [];
-  for (let x = A.forecourt.x0 + 4; x < A.forecourt.x1 - 4; x += 3.4) if (Math.abs(x - A.roadX) > 7 && Math.round(x) % 2) cars.push({ x, z: A.forecourt.z0 + 3, rot: 0, name: ['sedan', 'taxi', 'suv', 'taxi', 'van'][Math.abs(Math.round(x)) % 5] });
+  for (let x = A.forecourt.x0 + 4; x < A.forecourt.x1 - 4; x += 3.4) if (Math.abs(x - A.roadX) > 7 && x < -86 && Math.round(x) % 2) cars.push({ x, z: A.forecourt.z0 + 3, rot: 0, name: ['sedan', 'taxi', 'suv', 'taxi', 'van'][Math.abs(Math.round(x)) % 5] });
   parkedCars(group, cars);
 
   buildTerminal(group, blockers);

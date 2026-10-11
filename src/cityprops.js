@@ -111,8 +111,8 @@ export function parkedCars(group, cars, { scale = 2.3 } = {}) {
   for (const c of cars) {
     (by[c.name] ??= []).push({ x: c.x, z: c.z, rot: c.rot, scale });
     const dx = Math.sin(c.rot) * 1.4, dz = Math.cos(c.rot) * 1.4;
-    addCircle(c.x + dx, c.z + dz, 1.35);
-    addCircle(c.x - dx, c.z - dz, 1.35);
+    addCircle(c.x + dx, c.z + dz, 1.2);
+    addCircle(c.x - dx, c.z - dz, 1.2);
   }
   for (const [name, ts] of Object.entries(by)) group.add(scatter(name, ts, { outline: 0.012 }));
 }

@@ -5,6 +5,7 @@ import { gltfLoader, toonify } from './skinned.js';
 import { part, toon } from './toon.js';
 import { getColliders, collidersNear, clampWalkable, inPond, WORLD } from './world.js';
 import { onPier } from './pier.js';
+import { onRoad as roadAt } from './streets.js';
 import { inLake } from './camp.js';
 import { rampAt } from './stunts.js';
 
@@ -13,8 +14,8 @@ const LAUNCH_MIN = 7; // speed needed to leave a ramp's lip
 
 const LENGTH = 7; // game units (Doctor Guy is 2.45 tall)
 const MAX_FWD = 12.5;
-const MAX_ROAD = 21; // on Zoo Road
-const onOpenRoad = (p) => p.x > -24 && p.x < 137 && Math.abs(p.z + 37) < 3.6; // all of Zoo Road
+const MAX_ROAD = 21; // on any road
+const onOpenRoad = (p) => roadAt(p.x, p.z); // Zoo Road and every city street (streets.js)
 const MAX_REV = 5;
 const ACCEL = 7;
 const ACCEL_ROAD = 10;

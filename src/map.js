@@ -450,7 +450,7 @@ export class Radar {
     const wp = this.waypointPos();
     let wpDist = null;
     // GPS route (along the roads) to the drop-off while carrying a kid, otherwise to the waypoint
-    const routeTo = carried ? missions.dropPos(carried.def) : wp;
+    const routeTo = carried ? missions.dropPos(carried.def) : this.raceTarget?.() ?? wp;
     const route = !inside && routeTo && this.gps && !isInterior(routeTo.z) ? this.gps.route(player.pos, routeTo) : null;
     if (route && route.length > 1) {
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';

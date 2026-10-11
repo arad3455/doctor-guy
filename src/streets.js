@@ -8,6 +8,17 @@ export const TILE = 7; // one road tile = the road's width (same as Zoo Road)
 export const gx = (i) => -20.5 + i * TILE;
 export const gz = (j) => -37 + j * TILE;
 export const cellOf = (x, z) => [Math.round((x + 20.5) / TILE), Math.round((z + 37) / TILE)];
+/** Every road tile in the city ("i,j"), for the ambulance's top speed. Zoo Road (row 0) is pre-registered. */
+export const ROAD_CELLS = new Set();
+for (let i = 0; i <= 22; i++) ROAD_CELLS.add(`${i},0`);
+/** Other fast tarmac (the runway, the taxiway): [{ x0, x1, z0, z1 }]. */
+export const FAST_RECTS = [];
+/** On a road tile (within the asphalt) or other fast tarmac? */
+export function onRoad(x, z) {
+  const [i, j] = cellOf(x, z);
+  if (ROAD_CELLS.has(`${i},${j}`) && Math.abs(x - gx(i)) < 3.4 && Math.abs(z - gz(j)) < 3.4) return true;
+  return FAST_RECTS.some((r) => x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1);
+}
 
 // Openings of each tile in its default orientation, as [E, S, W, N] (E = +x, S = +z), checked top-down
 const BASE = {
@@ -42,6 +53,7 @@ export function buildStreets(cells, { extra = new Set(), crossings = true } = {}
   const tiles = [];
   const has = (i, j) => cells.has(`${i},${j}`) || extra.has(`${i},${j}`);
   for (const key of cells) {
+    ROAD_CELLS.add(key);
     const [i, j] = key.split(',').map(Number);
     const open = [has(i + 1, j), has(i, j + 1), has(i - 1, j), has(i, j - 1)].map(Number);
     let { name, rot } = pick(open);

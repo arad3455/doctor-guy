@@ -46,7 +46,7 @@ async function treat(name) {
   await wait(150);
   const open = await g(() => __game.minigame.active);
   if (name) await shot(name);
-  for (let i = 0; i < 4 && (await g(() => __game.minigame.active)); i++) {
+  for (let i = 0; i < 12 && (await g(() => __game.minigame.active)); i++) { // (retry misses: a slow frame can push a hold past the zone)
     await g(() => { const m = __game.minigame; m.pos = m.zoneX + m.zoneW / 2; m.dir = 0; });
     await page.keyboard.press('Space');
     await wait(150);

@@ -1297,7 +1297,9 @@ export class MissionSystem {
           a = { label: `🚑 ${fill(DROPS[carried.def.deliver].action, carried.def.name)}`, run: () => { carried.byAmbulance = true; this.ui.exitVehicle(true); this.deliver(carried); } };
         }
       }
-      // only show a card for the hand-over; "get out" stays on the 🚪 button / E without covering the van
+      // parked at a race start flag: offer the race
+      a = a ?? this.ui.raceAction?.() ?? null;
+      // only show a card for the hand-over / race; "get out" stays on the 🚪 button / E without covering the van
       this.ui.prompt(a?.label ?? null);
       a = a ?? this.ui.vehicleAction();
       if (a && input.hit('KeyE')) a.run();

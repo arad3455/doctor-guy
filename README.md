@@ -16,7 +16,7 @@ A browser 3D open-world rescue game (Three.js, no build step). Play it at https:
 | ⚓ Wolfson Harbor | south of Downtown, down Harbor Road | warehouses, container yard with a gantry crane, fish market, cargo ship, jetty and fishing boats |
 | ✈️ Wolfson Airport | north of Downtown, up Airport Road | runway with lights, terminal with jet bridges, control tower, hangars, a jet that takes off and lands |
 
-A 🚌 bus stop in every area gives fast travel (2 🍭, to areas you've visited). The ambulance has a radio (R / 📻) with three stations. Stunt ramps, the Check-up Frenzy token, a day/night cycle, 33 hidden Golden Bandages and 31 achievements are scattered around it all.
+A 🚌 bus stop in every area gives fast travel (2 🍭, to areas you've visited). The ambulance has a radio (R / 📻) with three stations. Stunt ramps, the Check-up Frenzy token, a day/night cycle, 33 hidden Golden Bandages, 3 ambulance time trials (🏁) and 35 achievements are scattered around it all.
 
 ## Run
 ```

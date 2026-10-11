@@ -631,3 +631,19 @@ html.touch #hud #photo-btn { width: 44px; height: 44px; }
 #radio-btn { position: absolute; top: 290px; right: 22px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ink);
   background: #fff; font-size: 20px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); pointer-events: auto; padding: 0; display: grid; place-items: center; line-height: 1; }
 html.touch #hud #radio-btn { top: auto; bottom: calc(200px + env(safe-area-inset-bottom)); right: calc(18px + env(safe-area-inset-right)); width: 44px; height: 44px; font-size: 18px; }
+
+/* Race timer (same look as the Frenzy one) */
+#race-hud { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 14px;
+  padding: 8px 18px; border-radius: 16px; background: linear-gradient(135deg, rgba(120, 20, 90, 0.88), rgba(255, 60, 142, 0.85)); color: #fff;
+  font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 1px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); pointer-events: none; z-index: 6; }
+#race-hud.hidden { display: none; }
+#race-hud .fz-title { font-size: 16px; opacity: 0.9; }
+#race-hud .fz-time { font-size: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+#race-hud .fz-time.hurry { color: #ffe066; animation: fzPulse 0.5s ease-in-out infinite alternate; }
+#race-hud .fz-score { font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0; }
+#race-hud .fz-combo { font-size: 24px; text-align: right; opacity: 0.45; }
+#race-hud .fz-combo.on { opacity: 1; color: #ffe066; text-shadow: 0 0 10px #ff9a3c; }
+@keyframes fzPulse { to { transform: scale(1.15); } }
+html.touch #race-hud { top: calc(56px + env(safe-area-inset-top)); padding: 5px 12px; }
+html.touch #race-hud .fz-time { font-size: 24px; }
+#race-hud { background: linear-gradient(135deg, rgba(20,40,110,0.9), rgba(47,127,193,0.88)); }

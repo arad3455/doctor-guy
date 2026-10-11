@@ -19,7 +19,7 @@ export const STOPS = [
   { zone: 'pier', name: 'Sunset Pier', icon: '🎡', x: 72, z: 68 },
   { zone: 'camp', name: 'Pinewood Camp', icon: '🌲', x: CAMP.roadX - 6, z: -108 },
   { zone: 'harbor', name: 'Wolfson Harbor', icon: '⚓', x: -122, z: 108 },
-  { zone: 'airport', name: 'Airport', icon: '✈️', x: -100, z: -100 },
+  { zone: 'airport', name: 'Airport', icon: '✈️', x: -144, z: -98.5 }, // west end of the forecourt (the east end is the way through to the apron)
 ];
 
 const free = (x, z) => {

@@ -158,7 +158,7 @@ export function buildDowntown(scene) {
     for (let i = XS[3] + 1; i < XS[0]; i++) {
       if (XS.includes(i) || XS.includes(i - 1) || XS.includes(i + 1) || rand() < 0.45) continue;
       if (RAMPS.some((r) => Math.abs(gz(j) - r.z) < 5 && Math.abs(gx(i) - r.x) < 34)) continue; // keep the stunt run-ups clear
-      cars.push({ x: gx(i), z: gz(j) - 2.1, rot: Math.PI / 2 + (rand() < 0.5 ? 0 : Math.PI), name: rand.pick(carNames) });
+      cars.push({ x: gx(i), z: gz(j) - 2.6, rot: Math.PI / 2 + (rand() < 0.5 ? 0 : Math.PI), name: rand.pick(carNames) });
     }
   }
   parkedCars(group, cars);

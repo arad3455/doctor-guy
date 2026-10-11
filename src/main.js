@@ -25,6 +25,7 @@ import { PhotoMode } from './photomode.js';
 import { buildBusStops, Buses, STOPS } from './bus.js';
 import { Radio } from './radio.js';
 import { Caspi } from './caspi.js';
+import { Races, RACES } from './races.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -313,6 +314,7 @@ const ui = {
   vehicle: () => ambulance,
   exitVehicle: (force) => exitAmbulance(force),
   vehicleAction,
+  raceAction: () => races?.action(ambulance.pos) ?? null,
   extraAction,
   get hospital() { return hospital; },
   get zoo() { return zoo; },
@@ -361,6 +363,7 @@ let frenzy = null;
 let photo = null; // photo mode (P / 📷)
 let buses = null; // bus stops in every area (fast travel)
 let caspi = null; // Doctor Guy's friend (and Gorge the cat)
+let races = null; // ambulance time trials
 let bandages = null; // Golden Bandages (created once the world is built)
 let missions = null; // created once the kids have loaded (see bottom)
 
@@ -634,6 +637,7 @@ function frame() {
     weather.update(dt, { camera, dayNight, outside: true, sun, hemi, sky: skyMat, fog: outdoorFog }); // after day/night: it greys what that just set
   } else weather.lines.visible = weather.rainbow.visible = false;
   radio.update(started && ambulance.driving && !photo?.active && !bigMap.open);
+  if (races && started) races.update(dt, t);
   if (caspi && started) {
     caspi.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
     minigame.slow = caspi.calming(player.pos) ? 0.6 : 1; // his calm makes treatments easier
@@ -757,7 +761,11 @@ caspi = new Caspi({
     },
   },
 });
-hud.radar.extraBlips = () => caspi.blips();
+races = new Races({ scene, progress, ambulance, ui: { toast: (h, ms) => hud.toast(h, ms), reward: (n) => { missions.lollipops += n; } } });
+hud.radar.raceTarget = () => races.target;
+hud.radar.extraBlips = () => [...caspi.blips(), ...(races.active ? [] : races.blips())];
+window.__game.races = races;
+window.__game.raceDefs = { RACES };
 window.__game.caspi = caspi;
 window.__game.world = worldApi;
 window.__game.bigMap = bigMap;
