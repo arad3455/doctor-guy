@@ -423,6 +423,12 @@ export class Radar {
         if (z.icon === '🌳' && off) continue;
         this.icon(a, b, z.icon, off ? 12 : 15, off);
       }
+      // moving characters (Caspi, a lost Gorge) — Gorge sticks to the rim so you can always find him
+      for (const z of this.extraBlips?.() ?? []) {
+        const [a, b, off] = rim(z.x, z.z, 11);
+        if (off && z.icon === '😎') continue;
+        this.icon(a, b, z.icon, off ? 12 : 15, off);
+      }
     }
     const pulse = 1 + Math.sin(time * 6) * 0.25;
     for (const m of missions.missions) {
@@ -632,6 +638,7 @@ export class BigMap {
     }
     const carried = missions.missions.find((m) => m.state === 'carried');
     if (carried) { const t = missions.dropPos(carried.def); pin(t.x, t.z, '#4cc35a', 'Drop-off'); }
+    for (const z of this.radar.extraBlips?.() ?? []) { const [a, b] = this.toScreen(z.x, z.z); this.radar.icon.call({ ctx }, a, b, z.icon, 18); }
     // waypoint
     const wp = this.radar.waypointPos();
     if (wp) {

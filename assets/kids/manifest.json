@@ -9,7 +9,8 @@
     "capKid": "capKid.glb",
     "pinkHat": "pinkHat.glb",
     "nurse": "nurse.glb",
-    "teddyToddler": "teddyToddler.glb"
+    "teddyToddler": "teddyToddler.glb",
+    "caspi": "caspi.glb"
   },
   "clips": {
     "walk": "anims/walk.glb",

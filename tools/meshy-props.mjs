@@ -18,6 +18,11 @@ const KEY = process.env.MESHY_API_KEY ?? dotenv.match(/^MESHY_API_KEY=(.+)$/m)?.
 if (!KEY) { console.error('Set MESHY_API_KEY in .env'); process.exit(1); }
 
 export const PROPS = {
+  gorge: {
+    polycount: 8000,
+    prompt: 'Gorge, a cute brown tabby cat with dark stripes, amber-green eyes and a red-and-black check collar with a small bell, standing on all four legs.',
+    texture: 'Brown-grey tabby cat with dark stripes, white chin, pink nose, amber-green eyes, red and black buffalo-check collar, small silver bell.',
+  },
   lion: {
     polycount: 12000,
     prompt: 'An adult male lion with a big fluffy golden-brown mane, tawny fur, long tail with a dark tuft, standing on all four legs. High-quality stylised 3D animal in the look of a modern animated family film: appealing, friendly, expressive eyes, clean readable shapes, rich natural colours. Full body visible, standing on the ground in a calm neutral pose, side three-quarter view, centred, plain white background, soft even lighting, no shadows, no text, no other animals or objects.',

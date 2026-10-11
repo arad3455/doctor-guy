@@ -24,6 +24,7 @@ import { Ambience } from './ambience.js';
 import { PhotoMode } from './photomode.js';
 import { buildBusStops, Buses, STOPS } from './bus.js';
 import { Radio } from './radio.js';
+import { Caspi } from './caspi.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -284,6 +285,8 @@ function extraAction() {
   if (frenzy?.available && Math.hypot(p.x - FRENZY_TOKEN.x, p.z - FRENZY_TOKEN.z) < 2.2) {
     return { label: `⚡ Start Check-up Frenzy${progress.data.frenzyBest ? ` (best ${progress.data.frenzyBest})` : ''}`, run: () => frenzy.start() };
   }
+  const chat = caspi?.chatAction(p);
+  if (chat) return chat;
   const stop = buses?.nearStop(p);
   if (stop) return { label: '🚌 Take the bus', run: () => buses.show(stop) };
   if (Math.hypot(p.x - WORLD.stand.x, p.z - WORLD.stand.z) < 3.4) {
@@ -357,6 +360,7 @@ const ui = {
 let frenzy = null;
 let photo = null; // photo mode (P / 📷)
 let buses = null; // bus stops in every area (fast travel)
+let caspi = null; // Doctor Guy's friend (and Gorge the cat)
 let bandages = null; // Golden Bandages (created once the world is built)
 let missions = null; // created once the kids have loaded (see bottom)
 
@@ -630,6 +634,10 @@ function frame() {
     weather.update(dt, { camera, dayNight, outside: true, sun, hemi, sky: skyMat, fog: outdoorFog }); // after day/night: it greys what that just set
   } else weather.lines.visible = weather.rainbow.visible = false;
   radio.update(started && ambulance.driving && !photo?.active && !bigMap.open);
+  if (caspi && started) {
+    caspi.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
+    minigame.slow = caspi.calming(player.pos) ? 0.6 : 1; // his calm makes treatments easier
+  }
   radioBtn.style.display = started && ambulance.driving ? '' : 'none';
   if (started) {
     const p = player.pos, near = (x, z, r) => Math.max(0, 1 - Math.hypot(p.x - x, p.z - z) / r);
@@ -735,6 +743,22 @@ for (const g of [downtown.group, suburbs.group, pier.group, camp.group, harbor.g
   hud.radar.gps = new GPS([...tileRects, { x0: ZOO.road.x0, x1: ZOO.road.x1, z0: ZOO.road.z - 3.6, z1: ZOO.road.z + 3.6 }]);
   window.__game.gps = hud.radar.gps;
 }
+caspi = new Caspi({
+  scene, player, gps: hud.radar.gps, progress,
+  ui: {
+    hour: () => dayNight.hour,
+    toast: (h, ms) => hud.toast(h, ms),
+    gorgeLost: (h) => hud.toast(`🐱 <b>Gorge is missing!</b><br><small>Caspi doesn’t look worried… last seen ${h.hint}</small>`, 3600),
+    gorgeHome: () => {
+      missions.lollipops += 10;
+      progress.data.caspiSmiled = (progress.data.caspiSmiled ?? 0) + 1;
+      progress.dirty = true;
+      hud.toast('😎 <b>Caspi smiled!</b><br><small>Gorge is home · +10 🍭</small>', 3000);
+    },
+  },
+});
+hud.radar.extraBlips = () => caspi.blips();
+window.__game.caspi = caspi;
 window.__game.world = worldApi;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;

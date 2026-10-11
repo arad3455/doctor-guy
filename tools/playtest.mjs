@@ -51,7 +51,7 @@ async function treat(name) {
     await page.keyboard.press('Space');
     await wait(150);
   }
-  await page.waitForFunction(() => !__game.missions.busy, { timeout: 30000 }); // stand up + pick-up animations (game time: slow under software GL)
+  await page.waitForFunction(() => !__game.missions.busy, { timeout: 90000 }); // stand up + pick-up animations (game time: slow under software GL)
   await wait(200);
   return open;
 }
@@ -98,9 +98,10 @@ for (const id of ids) {
       const t = ms.dropPos(m.def);
       __game.player.pos.set(t.x + 1.2, 0, t.z + 0.6);
     }, id);
-    await wait(300);
+    // wait for the hand-over prompt (frames are slow under software GL), then hand the kid over
+    await page.waitForFunction(() => /Reunite|Hand|Bring/.test(document.getElementById('prompt').textContent), { timeout: 30000, polling: 200 }).catch(() => {});
     await page.keyboard.press('KeyE');
-    await wait(900);
+    await page.waitForFunction((id) => __game.missions.missions.find((x) => x.def.id === id).state !== 'carried', { timeout: 30000, polling: 300 }, id).catch(() => {});
     if (id === 'heat') await shot('24-beach-firstaid');
   }
   const state = await g((id) => __game.missions.missions.find((x) => x.def.id === id).state, id);

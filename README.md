@@ -16,7 +16,7 @@ A browser 3D open-world rescue game (Three.js, no build step). Play it at https:
 | ⚓ Wolfson Harbor | south of Downtown, down Harbor Road | warehouses, container yard with a gantry crane, fish market, cargo ship, jetty and fishing boats |
 | ✈️ Wolfson Airport | north of Downtown, up Airport Road | runway with lights, terminal with jet bridges, control tower, hangars, a jet that takes off and lands |
 
-A 🚌 bus stop in every area gives fast travel (2 🍭, to areas you've visited). The ambulance has a radio (R / 📻) with three stations. Stunt ramps, the Check-up Frenzy token, a day/night cycle, 33 hidden Golden Bandages and 30 achievements are scattered around it all.
+A 🚌 bus stop in every area gives fast travel (2 🍭, to areas you've visited). The ambulance has a radio (R / 📻) with three stations. Stunt ramps, the Check-up Frenzy token, a day/night cycle, 33 hidden Golden Bandages and 31 achievements are scattered around it all.
 
 ## Run
 ```
@@ -37,6 +37,13 @@ WASD move · Shift run · Space jump · E help / pick up / hand over · mouse dr
 - `src/minigame.js` — timing-bar treatment mini-game
 - `src/hud.js` — HUD + minimap
 - `tools/playtest.mjs` — automated play-through (`npm run playtest`, screenshots in `.shots/`)
+
+## People
+- **Doctor Guy** — not a real doctor, a real hero. You.
+- **Caspi** — Doctor Guy's friend, the chillest guy in Wolfson. He drifts between the café on Market Row (mornings),
+  Wolfson Park (afternoons), the end of Sunset Pier (sunsets) and the Pinewood campfire (nights) with his cat
+  **Gorge** trotting behind. Say hi and you get "Later Later…". His calm slows the treatment bar when he's near.
+  Now and then Gorge goes missing — find him and bring him back, and Caspi (finally) smiles.
 
 ## Tests
 Headless Chrome (software WebGL) drives the real game. With the dev server running (`npm start`):

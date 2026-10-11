@@ -72,7 +72,7 @@ export class MiniGame {
 
   update(dt) {
     if (!this.active) return;
-    const speed = (this.t.speed ?? 1) * (1 + this.step * 0.15);
+    const speed = (this.t.speed ?? 1) * (1 + this.step * 0.15) * (this.slow ?? 1); // slow < 1: Caspi's chill aura
     if (this.mode === 'timing') {
       this.pos += this.dir * dt * speed;
       if (this.pos > 1) { this.pos = 1; this.dir = -1; }

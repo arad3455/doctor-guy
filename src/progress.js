@@ -44,6 +44,7 @@ export const ACHIEVEMENTS = [
   { id: 'golden-first', icon: '✨', name: 'Shiny!', desc: 'Find a Golden Bandage', test: (p) => Object.keys(p.data.bandages ?? {}).length >= 1 },
   { id: 'golden-all', icon: '🏅', name: 'Bandage Hunter', desc: 'Find all 33 Golden Bandages', test: (p) => Object.keys(p.data.bandages ?? {}).length >= 33 },
   { id: 'frequent-flyer', icon: '✈️', name: 'Frequent Flyer', desc: 'Save every kid at Wolfson Airport', test: (p) => p.zoneDone('airport', 6) },
+  { id: 'caspi-smile', icon: '😎', name: 'Made Caspi Smile', desc: 'Bring Gorge home to Caspi', test: (p) => !!p.data.caspiSmiled },
   { id: 'monkey', icon: '🐒', name: 'Monkey Business', desc: 'Get your stethoscope back from the monkey', test: (p) => !!p.life.missions.monkey },
   { id: 'lion-tamer', icon: '🦁', name: 'Lion Tamer', desc: 'Calm the kid at the lion pen', test: (p) => !!p.life.missions.lion },
   { id: 'perfectionist', icon: '🎯', name: 'Perfectionist', desc: '5 perfect treatments in a row', test: (p, c) => (c?.career.stats.bestStreak ?? 0) >= 5 },
