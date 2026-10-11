@@ -22,6 +22,7 @@ import { Bandages, BANDAGE_SPOTS } from './collectibles.js';
 import { Weather } from './weather.js';
 import { Ambience } from './ambience.js';
 import { PhotoMode } from './photomode.js';
+import { buildBusStops, Buses } from './bus.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -280,6 +281,8 @@ function extraAction() {
   if (frenzy?.available && Math.hypot(p.x - FRENZY_TOKEN.x, p.z - FRENZY_TOKEN.z) < 2.2) {
     return { label: `⚡ Start Check-up Frenzy${progress.data.frenzyBest ? ` (best ${progress.data.frenzyBest})` : ''}`, run: () => frenzy.start() };
   }
+  const stop = buses?.nearStop(p);
+  if (stop) return { label: '🚌 Take the bus', run: () => buses.show(stop) };
   if (Math.hypot(p.x - WORLD.stand.x, p.z - WORLD.stand.z) < 3.4) {
     return { label: '🛍️ Doctor Shop', run: () => openShop(true) };
   }
@@ -350,6 +353,7 @@ const ui = {
 };
 let frenzy = null;
 let photo = null; // photo mode (P / 📷)
+let buses = null; // bus stops in every area (fast travel)
 let bandages = null; // Golden Bandages (created once the world is built)
 let missions = null; // created once the kids have loaded (see bottom)
 
@@ -481,7 +485,7 @@ let frameNo = 0;
 function frame() {
   frameNo++;
   const rawDt = Math.min(clock.getDelta(), 1 / 20);
-  const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden') || !rotateEl.classList.contains('hidden');
+  const menuOpen = !shopEl.classList.contains('hidden') || !trophiesEl.classList.contains('hidden') || !rotateEl.classList.contains('hidden') || !!buses?.open;
   if (photo?.active) { // photo mode: the world is frozen, the camera orbits
     photo.update();
     renderer.render(scene, camera);
@@ -702,6 +706,19 @@ photo = new PhotoMode({
   onToggle: (on) => { hud.show(!on); document.getElementById('photo-btn').style.display = on ? 'none' : ''; },
 });
 window.__game.photo = photo;
+buildBusStops(scene);
+buses = new Buses({
+  progress,
+  wallet: { get: () => missions.lollipops, add: (n) => { missions.lollipops += n; } },
+  toast: (h, ms) => hud.toast(h, ms),
+  onTravel: (to) => {
+    player.pos.set(to.board.x, 0, to.board.z);
+    player.vel.set(0, 0, 0);
+    input.yaw = Math.atan2(player.pos.x - to.x, player.pos.z - to.z) + Math.PI;
+    sfx.success();
+  },
+});
+window.__game.buses = buses;
 document.getElementById('photo-btn').addEventListener('click', () => { if (started && !bigMap.open) photo.toggle(true); });
 addEventListener('keydown', (e) => { if (e.code === 'KeyP' && !e.repeat && started && !bigMap.open) photo.toggle(); });
 for (const g of [park, beach.group, beach.sea, zoo.group, road.group]) bakeStatic(g); // the park and beach: hundreds of small parts → a few batches

@@ -12,6 +12,7 @@ import { FAIR } from './pier.js';
 import { CAMP } from './camp.js';
 import { HARBOR, HB_MAP } from './harbor.js';
 import { AIRPORT, AIR_MAP } from './airport.js';
+import { STOPS } from './bus.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -259,6 +260,9 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
     rect(p.x - 11, p.z - 1.5, p.x + 11, p.z + 2.5, '#dfe6ee', '#2b2f38', 0.8);
   }
   if (s > 0.8) text(-108, -175, '✈️', Math.max(12, 4 * s));
+
+  // ---- bus stops
+  if (s > 0.9) for (const b of STOPS) if (near(b.x, b.z)) text(b.x, b.z, '🚌', Math.max(10, 2.6 * s));
 
   // ---- the hospital (with a soft shadow)
   shadow((c) => rect(-17, -57, 17, -47, c));

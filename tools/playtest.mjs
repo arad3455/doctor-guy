@@ -107,6 +107,9 @@ for (const id of ids) {
   console.log(`${id.padEnd(8)} minigame:${opened} → ${state}`);
   await g(() => { __game.input.yaw = Math.PI; __game.input.distance = 8; __game.input.pitch = 0.35; });
 }
+// catches land a moment later in game time (slow under software GL): let every mission settle
+await page.waitForFunction(() => __game.missions.rescued >= __game.missions.total, { timeout: 120000, polling: 1000 }).catch(() => {});
+console.log('unfinished:', await g(() => __game.missions.missions.filter((m) => m.state !== 'done').map((m) => `${m.def.id}:${m.state}`)));
 console.log('state:', await g(() => ({ rescued: __game.missions.rescued, total: __game.missions.total, pops: __game.missions.lollipops })));
 await wait(3500);
 await shot('13-end');
