@@ -13,12 +13,12 @@ const g = (fn, a) => page.evaluate(fn, a);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const r = {};
 r.stops = await g(async () => {
-  const { STOPS } = await import('/src/bus.js');
+
   const W = __game.world;
-  return STOPS.map((s) => { const p = { x: s.board.x, z: s.board.z }; W.clampWalkable(p); return `${s.zone}:${s.x.toFixed(1)},${s.z.toFixed(1)}${Math.hypot(p.x - s.board.x, p.z - s.board.z) > 0.01 ? ' ARRIVAL-NOT-WALKABLE' : ''}`; });
+  return __game.busStops.map((s) => { const p = { x: s.board.x, z: s.board.z }; W.clampWalkable(p); return `${s.zone}:${s.x.toFixed(1)},${s.z.toFixed(1)}${Math.hypot(p.x - s.board.x, p.z - s.board.z) > 0.01 ? ' ARRIVAL-NOT-WALKABLE' : ''}`; });
 });
 await g(() => { __game.missions.lollipops = 10; __game.progress.data.visited = { park: true, downtown: true }; });
-await g(async () => { const { STOPS } = await import('/src/bus.js'); const s = STOPS[0]; __game.player.pos.set(s.x - 1, 0, s.z + 1); });
+await g(async () => { const s = __game.busStops[0]; __game.player.pos.set(s.x - 1, 0, s.z + 1); });
 await wait(1200);
 r.prompt = await g(() => document.getElementById('prompt').textContent);
 await page.keyboard.press('KeyE');
@@ -32,7 +32,7 @@ await page.screenshot({ path: '.shots/bus-2-arrived.png' });
 // at every stop, E offers the bus (nothing else steals the action)
 r.promptAt = {};
 for (const zone of ['park', 'beach', 'zoo', 'downtown', 'suburbs', 'pier', 'camp', 'harbor', 'airport']) {
-  await g(async (zone) => { const { STOPS } = await import('/src/bus.js'); const s = STOPS.find((x) => x.zone === zone); __game.player.pos.set(s.board.x, 0, s.board.z); }, zone);
+  await g(async (zone) => { const s = __game.busStops.find((x) => x.zone === zone); __game.player.pos.set(s.board.x, 0, s.board.z); }, zone);
   await wait(900);
   r.promptAt[zone] = await g(() => document.getElementById('prompt').textContent);
 }

@@ -22,7 +22,7 @@ import { Bandages, BANDAGE_SPOTS } from './collectibles.js';
 import { Weather } from './weather.js';
 import { Ambience } from './ambience.js';
 import { PhotoMode } from './photomode.js';
-import { buildBusStops, Buses } from './bus.js';
+import { buildBusStops, Buses, STOPS } from './bus.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -719,6 +719,7 @@ buses = new Buses({
   },
 });
 window.__game.buses = buses;
+window.__game.busStops = STOPS;
 document.getElementById('photo-btn').addEventListener('click', () => { if (started && !bigMap.open) photo.toggle(true); });
 addEventListener('keydown', (e) => { if (e.code === 'KeyP' && !e.repeat && started && !bigMap.open) photo.toggle(); });
 for (const g of [park, beach.group, beach.sea, zoo.group, road.group]) bakeStatic(g); // the park and beach: hundreds of small parts → a few batches
