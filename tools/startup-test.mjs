@@ -1,7 +1,7 @@
 // Phone start-up check on a throttled connection: which controls show first, and is the title ever bare?
 import puppeteer, { KnownDevices } from 'puppeteer-core';
 const OUT = new URL('../.shots/', import.meta.url).pathname;
-const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', protocolTimeout: 600000, args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 const page = await browser.newPage();
 await page.emulate(KnownDevices['iPhone 13']);
 const cdp = await page.createCDPSession();

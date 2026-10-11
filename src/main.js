@@ -17,6 +17,8 @@ import { buildPier, FAIR } from './pier.js';
 import { buildCamp } from './camp.js';
 import { buildHarbor, HARBOR } from './harbor.js';
 import { GPS } from './gps.js';
+import { Bandages, BANDAGE_SPOTS } from './collectibles.js';
+import { Weather } from './weather.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -90,6 +92,7 @@ const ambulance = new Ambulance(scene);
 const ramps = buildRamps(scene);
 let skyMat = null;
 base.traverse((o) => { if (o.material?.uniforms?.top) skyMat = o.material; });
+const weather = new Weather(scene); // rain showers now and then, a rainbow after
 const dayNight = new DayNight({ scene, sun, hemi, sky: skyMat, fog: outdoorFog, ambulance, startHour: 15.5 });
 const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
 const follow = new FollowCamera(camera);
@@ -341,6 +344,7 @@ const ui = {
   },
 };
 let frenzy = null;
+let bandages = null; // Golden Bandages (created once the world is built)
 let missions = null; // created once the kids have loaded (see bottom)
 
 // Landscape on phones: Android can go fullscreen and lock it; iPhone can't, so a "turn sideways" card pauses the game
@@ -502,6 +506,7 @@ function frame() {
     player.facing = ambulance.heading;
     missions.update(dt, t, input);
     frenzy.update(dt, t);
+    bandages?.update(dt, t, ambulance.pos);
     hud.update(missions, player, ambulance, input.yaw);
   } else if (started) {
     ambulance.update(dt, t, {});
@@ -514,6 +519,7 @@ function frame() {
     if (wasGround && !player.onGround && player.vel.y > 0) sfx.jump();
     missions.update(dt, t, input);
     frenzy.update(dt, t);
+    bandages?.update(dt, t, player.pos);
     minigame.update(dt);
     hud.update(missions, player, ambulance, input.yaw);
   } else {
@@ -598,7 +604,10 @@ function frame() {
   }
 
   // Keep shadows centred on the player
-  if (started && !isInside(player.pos)) dayNight.update(dt, { outside: true, playerPos: player.pos });
+  if (started && !isInside(player.pos)) {
+    dayNight.update(dt, { outside: true, playerPos: player.pos });
+    weather.update(dt, { camera, dayNight, outside: true, sun, hemi, sky: skyMat, fog: outdoorFog }); // after day/night: it greys what that just set
+  } else weather.lines.visible = weather.rainbow.visible = false;
   const so = dayNight.sunOffset ?? new THREE.Vector3(30, 50, 20);
   sun.position.set(player.pos.x + so.x, so.y, player.pos.z + so.z);
   const clockEl = document.getElementById('clock');
@@ -648,6 +657,15 @@ window.__game.suburbs = suburbs;
 window.__game.pier = pier;
 window.__game.camp = camp;
 window.__game.harbor = harbor;
+// 30 Golden Bandages hidden around the city (+5 🍭 each; found ones are saved)
+bandages = new Bandages(scene, progress, {
+  isOpen: () => started && !isInside(player.pos),
+  onFind: (n, total, it) => {
+    missions.lollipops += 5;
+    hud.toast(`✨ <b>Golden Bandage ${n}/${total}</b><br><small>${it.hint} · +5 🍭</small>`, 2600);
+  },
+});
+window.__game.bandages = bandages;
 for (const g of [park, beach.group, beach.sea, zoo.group, road.group]) bakeStatic(g); // the park and beach: hundreds of small parts → a few batches
 for (const g of [downtown.group, suburbs.group, pier.group, camp.group, harbor.group, zoo.group, park, beach.group, road.group]) { g.updateMatrixWorld(true); trimShadows(g); } // lighter shadow pass
 // GPS routes prefer roads: every street tile of every zone, plus Zoo Road
@@ -663,6 +681,7 @@ window.__game.career = career;
 window.__game.progress = progress;
 window.__game.openShop = openShop;
 window.__game.dayNight = dayNight;
+window.__game.weather = weather;
 window.__game.ramps = RAMPS;
 window.__game.enterHospital = enterHospital;
 window.__game.leaveHospital = leaveHospital;

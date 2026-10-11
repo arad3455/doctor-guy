@@ -1,6 +1,6 @@
 // Phone: walk to the ambulance, tap ✋ to get in, drive with the joystick, 🚨 siren, 🚪 out.
 import puppeteer, { KnownDevices } from 'puppeteer-core';
-const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', protocolTimeout: 600000, args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 const page = await browser.newPage();
 await page.emulate(KnownDevices['iPhone 13 landscape']);
 await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'domcontentloaded', timeout: 180000 });

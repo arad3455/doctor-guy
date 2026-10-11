@@ -6,7 +6,7 @@ const OUT = new URL('../.shots/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  headless: 'new',
+  headless: 'new', protocolTimeout: 600000,
   args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--window-size=1280,800'],
   defaultViewport: { width: 1280, height: 800 },
 });

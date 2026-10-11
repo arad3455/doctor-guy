@@ -41,6 +41,8 @@ export const ACHIEVEMENTS = [
   { id: 'happy-camper', icon: '🏕️', name: 'Happy Camper', desc: 'Save every kid at Pinewood Camp', test: (p) => p.zoneDone('camp', 6) },
   { id: 'harbor-hero', icon: '⚓', name: 'Harbor Hero', desc: 'Save every kid at Wolfson Harbor', test: (p) => p.zoneDone('harbor', 6) },
   { id: 'explorer', icon: '🧭', name: 'Explorer', desc: 'Visit all 9 areas of Wolfson', test: (p) => Object.keys(p.data.visited ?? {}).length >= 9 },
+  { id: 'golden-first', icon: '✨', name: 'Shiny!', desc: 'Find a Golden Bandage', test: (p) => Object.keys(p.data.bandages ?? {}).length >= 1 },
+  { id: 'golden-all', icon: '🏅', name: 'Bandage Hunter', desc: 'Find all 30 Golden Bandages', test: (p) => Object.keys(p.data.bandages ?? {}).length >= 30 },
   { id: 'monkey', icon: '🐒', name: 'Monkey Business', desc: 'Get your stethoscope back from the monkey', test: (p) => !!p.life.missions.monkey },
   { id: 'lion-tamer', icon: '🦁', name: 'Lion Tamer', desc: 'Calm the kid at the lion pen', test: (p) => !!p.life.missions.lion },
   { id: 'perfectionist', icon: '🎯', name: 'Perfectionist', desc: '5 perfect treatments in a row', test: (p, c) => (c?.career.stats.bestStreak ?? 0) >= 5 },

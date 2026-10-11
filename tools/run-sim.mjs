@@ -1,6 +1,6 @@
 // Simulates holding "run" for 10s at 60fps and counts animation flips (run-glitch regression test)
 import puppeteer from 'puppeteer-core';
-const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'], defaultViewport: { width: 600, height: 400 } });
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', protocolTimeout: 600000, args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'], defaultViewport: { width: 600, height: 400 } });
 const page = await browser.newPage();
 await page.goto(process.env.BASE ?? 'http://localhost:8765/', { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => !document.getElementById('start').disabled, { timeout: 60000 });

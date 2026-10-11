@@ -26,6 +26,7 @@ const res = await page.evaluate(() => {
     const hit = inside(x, z, 0);
     if (hit.length || !walkable(x, z)) out.pops.push([+x.toFixed(1), +z.toFixed(1), hit.length, walkable(x, z)]);
   }
+  out.bandages = __game.bandages ? __game.bandages.items.map((it) => it.g.position).map((p, i) => ({ i, x: p.x, z: p.z, hits: inside(p.x, p.z, -0.2).length, walk: walkable(p.x, p.z) })).filter((b) => b.hits || !b.walk) : 'n/a';
   out.total = defs.filter((d) => !d.spot && d.zone !== 'hospital').length;
   out.popCount = __game.missions.pops.length;
   out.zones = [[-132, -16], [-90, -37], [84.5, 10], [100, -15], [100, 40]].map(([x, z]) => `${W.zoneAt(z, x)} · ${W.locationName({ x, z })}`);
