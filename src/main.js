@@ -26,6 +26,7 @@ import { buildBusStops, Buses, STOPS } from './bus.js';
 import { Radio } from './radio.js';
 import { Caspi } from './caspi.js';
 import { Races, RACES } from './races.js';
+import { Outbreak } from './outbreak.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { DT_MAP } from './downtown.js';
 import { MH_MAP } from './suburbs.js';
@@ -319,6 +320,7 @@ const ui = {
   get hospital() { return hospital; },
   get zoo() { return zoo; },
   get frenzy() { return frenzy; },
+  get outbreak() { return outbreak; },
   onHospitalHandover: () => nurses?.escort(),
   swingSeats,
   minigame,
@@ -364,6 +366,7 @@ let photo = null; // photo mode (P / 📷)
 let buses = null; // bus stops in every area (fast travel)
 let caspi = null; // Doctor Guy's friend (and Gorge the cat)
 let races = null; // ambulance time trials
+let outbreak = null; // flu outbreaks
 let bandages = null; // Golden Bandages (created once the world is built)
 let missions = null; // created once the kids have loaded (see bottom)
 
@@ -418,6 +421,7 @@ document.getElementById('restart').addEventListener('click', () => {
   nurses?.reset();
   dayNight.hour = 15.5;
   frenzy?.abort();
+  outbreak?.abort();
   hospital?.showFilm('off');
   if (isInside(player.pos)) player.pos.copy(INTERIOR.exitTo);
   player.reset();
@@ -638,6 +642,7 @@ function frame() {
   } else weather.lines.visible = weather.rainbow.visible = false;
   radio.update(started && ambulance.driving && !photo?.active && !bigMap.open);
   if (races && started) races.update(dt, t);
+  outbreak?.update(dt, started && !isInside(player.pos) && !frenzy?.active);
   if (caspi && started) {
     caspi.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
     minigame.slow = caspi.calming(player.pos) ? 0.6 : 1; // his calm makes treatments easier
@@ -763,7 +768,9 @@ caspi = new Caspi({
 });
 races = new Races({ scene, progress, ambulance, ui: { toast: (h, ms) => hud.toast(h, ms), reward: (n) => { missions.lollipops += n; } } });
 hud.radar.raceTarget = () => races.target;
-hud.radar.extraBlips = () => [...caspi.blips(), ...(races.active ? [] : races.blips())];
+outbreak = new Outbreak({ missions, progress, ui: { toast: (h, ms) => hud.toast(h, ms), reward: (n) => { missions.lollipops += n; } } });
+window.__game.outbreak = outbreak;
+hud.radar.extraBlips = () => [...caspi.blips(), ...outbreak.blips(), ...(races.active ? [] : races.blips())];
 window.__game.races = races;
 window.__game.raceDefs = { RACES };
 window.__game.caspi = caspi;

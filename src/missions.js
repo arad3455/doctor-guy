@@ -1214,6 +1214,7 @@ export class MissionSystem {
     if (!best) return null;
     best.name ??= KID_NAMES[this.ambient.indexOf(best) % KID_NAMES.length];
     if (best.frenzy) return { label: `⚡ Quick check: ${best.name}`, run: () => this.checkup(best, false) };
+    if (best.outbreak) return { label: `💊 Treat the flu: ${best.name}`, run: () => this.checkup(best, false) };
     const again = (best.checkedAt ?? -999) > this.time - 60;
     return { label: again ? `🩺 Check ${best.name} again` : `🩺 Check-up: ${best.name}`, run: () => this.checkup(best, again) };
   }
@@ -1264,6 +1265,7 @@ export class MissionSystem {
     this.busy = false;
     animateRig(a.kid, 'cheer', 0, 0);
     if (a.frenzy) { this.ui.frenzy?.scored(a); return; } // stays 'checking' until it runs off
+    if (a.outbreak) { this.ui.outbreak?.cured(a); return; } // heads home a moment later
     setTimeout(() => { a.checking = false; }, 1200);
     if (!again) {
       a.checkedAt = this.time;
