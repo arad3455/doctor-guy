@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { buildKid, animateRig, makeBubble } from './characters.js';
 import { gltfLoader } from './skinned.js';
+import { rigQuadruped } from './catrig.js';
 import { part, toon } from './toon.js';
 import { clampWalkable, collidersNear } from './world.js';
 import { DT_SPOTS, DOWNTOWN } from './downtown.js';
@@ -73,12 +74,13 @@ export class Caspi {
   async loadGorgeModel() {
     try {
       const gltf = await gltfLoader.loadAsync(new URL('../assets/props/gorge.glb', import.meta.url).href);
-      const m = gltf.scene;
-      const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
-      m.scale.setScalar(0.55 / size.y); // a cat about knee-high to Caspi
-      box.setFromObject(m);
-      m.position.y -= box.min.y;
-      m.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.material = new THREE.MeshToonMaterial({ map: o.material.map, color: 0xffffff }); } });
+      // Meshy can't rig animals: give the cat a little skeleton of our own (catrig.js) so his legs really walk
+      const src = [];
+      gltf.scene.traverse((o) => { if (o.isMesh) src.push(o); });
+      const mat = new THREE.MeshToonMaterial({ map: src[0].material.map, color: 0xffffff });
+      const rig = rigQuadruped(gltf.scene, 0.55, mat); // a cat about knee-high to Caspi
+      const m = rig.root;
+      this.gorge.rig = rig;
       this.gorge.body.clear();
       this.gorge.body.add(m);
       this.gorge.collar.visible = this.gorge.bell.visible = false; // the model wears its own collar and bell
@@ -178,6 +180,7 @@ export class Caspi {
     }
     if (this.gorgeState === 'found' && Math.hypot(this.pos.x - gp.x, this.pos.z - gp.z) < 4) this.reunite();
     let moving = false;
+    const before = gp.clone();
     if (leader) {
       const dx = leader.x - gp.x, dz = leader.z - gp.z, d = Math.hypot(dx, dz);
       if (d > 30) { gp.set(leader.x - 1.2, 0, leader.z - 1.2); } // got left behind (a bus ride): catch up
@@ -188,9 +191,13 @@ export class Caspi {
         moving = true;
       }
     }
-    // a little trot, a tail swish, a sit when everyone stops
-    g.body.position.y = moving ? Math.abs(Math.sin(t * 12)) * 0.05 : 0;
-    g.body.rotation.x = moving ? 0 : -0.08;
+    // the rigged cat walks with real legs; the hand-built stand-in just bobs
+    const speed = dt > 0 ? Math.hypot(gp.x - before.x, gp.z - before.z) / dt : 0;
+    if (g.rig) g.rig.animate(dt, t, moving ? speed : 0);
+    else {
+      g.body.position.y = moving ? Math.abs(Math.sin(t * 12)) * 0.05 : 0;
+      g.body.rotation.x = moving ? 0 : -0.08;
+    }
     if (g.tail) g.tail.rotation.y = Math.sin(t * (moving ? 7 : 2)) * 0.5;
     g.bell.rotation.z = Math.sin(t * (moving ? 14 : 1)) * 0.3;
     if (this.gorgeState === 'lost') g.root.rotation.y += dt * 0.4; // looking around, lost

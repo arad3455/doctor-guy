@@ -122,6 +122,12 @@ export function buildKid3D(look) {
   body.add(model);
   root.updateMatrixWorld(true);
   const anim = createAnimator(model, clips, STATE_CLIPS);
+  // the shared clips were made on kid-sized bodies: on grown-ups (Caspi, Mom, the nurses) they sink the feet into the
+  // ground, on toddlers they lift them. Each frame the lower foot is put back on the ground (not while sitting).
+  const feet = [];
+  model.traverse((o) => { if (o.isBone && /foot|toe/i.test(o.name)) feet.push(o); });
+  const baseY = model.position.y, fp = new THREE.Vector3(), rp = new THREE.Vector3();
+  const FOOT_REST = H * 0.03; // the foot bone sits a little above the sole
   let t = 0;
   const phase = Math.random() * 6;
 
@@ -178,6 +184,14 @@ export function buildKid3D(look) {
       t += dt;
       if (BIND_POSE) return; // debug: ?bind shows the raw rig
       anim.update(state, dt, speed);
+      if (feet.length && state !== 'sit' && state !== 'carried') {
+        model.updateMatrixWorld(true);
+        root.getWorldPosition(rp);
+        let low = Infinity;
+        for (const f of feet) low = Math.min(low, f.getWorldPosition(fp).y - rp.y);
+        const want = model.position.y + (FOOT_REST - low);
+        model.position.y += (want - model.position.y) * Math.min(1, dt * 12);
+      } else model.position.y += (baseY - model.position.y) * Math.min(1, dt * 12);
       body.position.y = anim.current === anim.actions.idle ? Math.sin(t * 2.6 + phase) * 0.01 : 0; // breathing
     },
   };
