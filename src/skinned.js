@@ -270,7 +270,9 @@ export function standingPoseFrom(walk, model) {
     if (!left || !right) break;
     left.getWorldPosition(a);
     right.getWorldPosition(b);
-    const d = Math.hypot(a.x - b.x, a.z - b.z);
+    // both feet level (on the ground) matters most — the passing frame, where the feet are closest, has one leg in
+    // the air; among the level frames, prefer the narrowest stance
+    const d = Math.abs(a.y - b.y) * 6 + Math.hypot(a.x - b.x, a.z - b.z);
     if (d < bestD) { bestD = d; best = time; }
   }
   action.stop();
