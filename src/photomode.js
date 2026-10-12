@@ -1,5 +1,6 @@
 // Photo mode (GTA's Snapmatic): freeze the world, orbit the camera freely around Doctor Guy, pick a filter and
-// save the shot as a PNG. Opened with P or the 📷 button; Esc / ✕ closes.
+// save the shot as a PNG. Opened with P or the camera button; Esc / ✕ closes.
+import { icon } from './icons.js';
 const FILTERS = [
   ['Normal', 'none'],
   ['Sunset', 'saturate(1.35) sepia(0.25) hue-rotate(-12deg) contrast(1.05)'],
@@ -20,10 +21,10 @@ export class PhotoMode {
     this.el.className = 'hidden';
     this.el.innerHTML = `
       <div class="ph-frame"></div>
-      <div class="ph-top"><span>📷 Photo mode</span><button class="ph-close" aria-label="Close">✕</button></div>
+      <div class="ph-top"><span class="ph-label">${icon('camera')}Photo mode</span><button class="ph-close" aria-label="Close">✕</button></div>
       <div class="ph-bottom">
         <div class="ph-filters">${FILTERS.map(([n], i) => `<button data-f="${i}">${n}</button>`).join('')}</div>
-        <button class="ph-snap">📸 Save photo</button>
+        <button class="ph-snap">${icon('camera')}Save photo</button>
       </div>
       <div class="ph-hint">drag to look around · scroll / pinch to zoom</div>`;
     document.body.appendChild(this.el);
@@ -98,9 +99,9 @@ export class PhotoMode {
     ctx.font = `700 ${Math.round(26 * s)}px "Fredoka", sans-serif`;
     ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     ctx.lineWidth = 5 * s; ctx.strokeStyle = 'rgba(20,20,30,0.85)';
-    ctx.strokeText('🩺 Doctor Guy', c.width - 18 * s, c.height - 14 * s);
+    ctx.strokeText('✚ Doctor Guy', c.width - 18 * s, c.height - 14 * s);
     ctx.fillStyle = '#ffd23f';
-    ctx.fillText('🩺 Doctor Guy', c.width - 18 * s, c.height - 14 * s);
+    ctx.fillText('✚ Doctor Guy', c.width - 18 * s, c.height - 14 * s);
     c.toBlob((blob) => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

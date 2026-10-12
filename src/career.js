@@ -2,6 +2,8 @@
 // medical ranks (XP), and the stats that feed the end-of-shift screen.
 import { sfx } from './audio.js';
 import { locationName } from './world.js';
+import { icon, iconize, rankBadge } from './icons.js';
+import { headline, notify, gate } from './notify.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +36,7 @@ export class Career {
     this.stats = { saved: 0, walked: 0, driven: 0, fastest: null, fastestName: '', bestStreak: 0, streak: 0, perfect: 0, byAmbulance: 0, lollipops: 0, startedAt: performance.now() };
     this.queue.length = 0;
     this.pendingCard = null;
+    gate.busy = () => this.showing;
     this.renderRank(false);
   }
 
@@ -52,13 +55,7 @@ export class Career {
     if (this.showing || this.queue.length) { this.pendingCard = [def, kidPos, playerPos]; return; }
     const where = locationName(kidPos);
     const dist = Math.round(Math.hypot(kidPos.x - playerPos.x, kidPos.z - playerPos.z) / UNITS_PER_M);
-    const el = $('mission-card');
-    el.innerHTML = `<div class="mc-kicker">🚨 NEW EMERGENCY</div><div class="mc-title">${def.title}</div><div class="mc-sub">${def.hidden ? 'Somewhere in ' + where : where} · ${def.hidden ? '???' : dist + ' m'}</div>`;
-    el.classList.remove('show');
-    void el.offsetWidth;
-    el.classList.add('show');
-    clearTimeout(this.cardTimer);
-    this.cardTimer = setTimeout(() => el.classList.remove('show'), 3600);
+    headline({ kicker: 'NEW EMERGENCY', icon: 'siren', tone: 'alert', title: def.title, sub: `${def.hidden ? 'Somewhere in ' + where : where} · ${def.hidden ? '???' : dist + ' m'}`, ms: 3600 });
     sfx.stinger();
   }
 
@@ -102,11 +99,11 @@ export class Career {
     return new Promise((resolve) => {
       const el = $('saved-banner');
       el.querySelector('.sb-title').textContent = title ?? (hospital ? 'CHECK-UP COMPLETE' : 'PATIENT SAVED');
-      el.querySelector('.sb-sub').textContent = `${name} · ${condition}`;
+      el.querySelector('.sb-sub').innerHTML = iconize(`${name} · ${condition}`).replace(/^·\s*/, '');
       const list = el.querySelector('.sb-lines');
-      list.innerHTML = lines.map((l) => `<div class="sb-line"><span>${l.label}</span><b>+${l.amount} 🍭</b></div>`).join('')
-        + `<div class="sb-total"><span>TOTAL</span><b><span class="sb-count">0</span> 🍭</b></div>`
-        + `<div class="sb-xp">+${xp} XP${streak >= 2 ? ` · 🔥 ${streak} perfect in a row` : ''}</div>`;
+      list.innerHTML = lines.map((l) => `<div class="sb-line"><span>${iconize(l.label)}</span><b>+${l.amount}${icon('lollipop')}</b></div>`).join('')
+        + `<div class="sb-total"><span>TOTAL</span><b><span class="sb-count">0</span>${icon('lollipop')}</b></div>`
+        + `<div class="sb-xp">+${xp} XP${streak >= 2 ? ` · ${icon('flame')} ${streak} perfect in a row` : ''}</div>`;
       el.classList.remove('hidden', 'out');
       void el.offsetWidth;
       el.classList.add('in');
@@ -142,7 +139,7 @@ export class Career {
   showRank({ rank }) {
     return new Promise((resolve) => {
       const el = $('rank-banner');
-      el.querySelector('.rb-icon').textContent = rank.icon;
+      el.querySelector('.rb-icon').innerHTML = rankBadge(RANKS.indexOf(rank));
       el.querySelector('.rb-name').textContent = rank.name;
       el.classList.remove('hidden', 'out');
       void el.offsetWidth;
@@ -161,7 +158,7 @@ export class Career {
     const i = this.rankIndex, r = RANKS[i], next = RANKS[i + 1];
     const chip = $('rank');
     if (!chip) return;
-    chip.querySelector('.rk-icon').textContent = r.icon;
+    chip.querySelector('.rk-icon').innerHTML = rankBadge(i);
     chip.querySelector('.rk-name').textContent = r.name;
     const pct = next ? ((this.xp - r.xp) / (next.xp - r.xp)) * 100 : 100;
     chip.querySelector('.rk-fill').style.width = `${Math.min(100, pct)}%`;
@@ -204,12 +201,7 @@ export class Career {
     const before = this.rankIndex;
     this.xp += 8;
     this.onLollipop(1);
-    const el = document.createElement('div');
-    el.className = 'feed-item';
-    el.innerHTML = `<b>🩺 Check-up · ${name}</b><span>${result}</span><em>+1 🍭 · +8 XP</em>`;
-    $('feed').prepend(el);
-    setTimeout(() => el.classList.add('out'), 3200);
-    setTimeout(() => el.remove(), 3700);
+    notify(`Check-up · ${name}`, { icon: 'steth', tone: 'success', sub: result, reward: '+1 🍭 · +8 XP', ms: 3200 });
     sfx.pickup();
     this.renderRank(true);
     if (this.rankIndex > before) { this.queue.push({ kind: 'rank', rank: RANKS[this.rankIndex] }); this.pump(); }
@@ -233,8 +225,8 @@ export class Career {
       ['🩺', 'Stethoscope check-ups', s.checkups ?? 0],
       ['🚑💨', 'Stunt jumps', s.stunts ?? 0],
     ];
-    $('end-rank').innerHTML = `<span class="er-icon">${r.icon}</span><span><small>Final rank</small><b>${r.name}</b><em>${this.xp} XP</em></span>`;
-    $('end-stats').innerHTML = cells.map(([i, l, v]) => `<div class="st"><span class="st-i">${i}</span><span class="st-l">${l}</span><b class="st-v">${v}</b></div>`).join('')
+    $('end-rank').innerHTML = `<span class="er-icon">${rankBadge(this.rankIndex)}</span><span><small>Final rank</small><b>${r.name}</b><em>${this.xp} XP</em></span>`;
+    $('end-stats').innerHTML = cells.map(([i, l, v]) => `<div class="st"><span class="st-i">${iconize(i)}</span><span class="st-l">${l}</span><b class="st-v">${v}</b></div>`).join('')
       + (s.fastestName ? `<div class="st-note">Fastest: ${s.fastestName}</div>` : '');
   }
 }
@@ -246,18 +238,19 @@ function bumpCounter() {
   el.parentElement.classList.add('bump');
 }
 
-/** GTA-style "achievement unlocked" pop-up at the top of the screen (queued). */
+/** "Achievement unlocked" card at the bottom centre (queued, and held back while a big banner is up). */
 const achQueue = [];
 let achBusy = false;
 export function achievementToast(a) {
   achQueue.push(a);
   if (achBusy) return;
+  achBusy = true;
   const next = () => {
+    if (gate.busy()) { setTimeout(next, 400); return; } // after the PATIENT SAVED / PROMOTED banner
     const item = achQueue.shift();
     if (!item) { achBusy = false; return; }
-    achBusy = true;
     const el = $('achievement');
-    el.innerHTML = `<span class="ach-icon">${item.icon}</span><span><small>🏆 ACHIEVEMENT UNLOCKED</small><b>${item.name}</b><em>${item.desc}</em></span>`;
+    el.innerHTML = `<span class="ach-icon">${icon('trophy')}</span><span><small>ACHIEVEMENT UNLOCKED</small><b>${item.name}</b><em>${iconize(item.desc)}</em></span>`;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
     sfx.achievement();
     setTimeout(() => { el.classList.remove('show'); setTimeout(next, 500); }, 3200);

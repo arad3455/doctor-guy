@@ -22,7 +22,7 @@ r.stations = [];
 for (let i = 0; i < 4; i++) {
   await page.keyboard.press('KeyR');
   await wait(1500);
-  r.stations.push(await g(() => ({ name: __game.radio.name, steps: __game.radio.step, toast: document.querySelector('#toast')?.innerText ?? '' })));
+  r.stations.push(await g(() => ({ name: __game.radio.name, steps: __game.radio.step, toast: (__game.notices ?? []).slice(-3).join(' | ') })));
 }
 await page.keyboard.press('KeyR'); // Pop FM on again, then get out → it stops
 await wait(800);

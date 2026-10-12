@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { buildKid } from './characters.js';
 import { canvasTexture } from './toon.js';
 import { sfx } from './audio.js';
+import { timerHTML } from './icons.js';
+import { headline } from './notify.js';
 import { getColliders, inPond, WORLD } from './world.js';
 
 const DURATION = 60;
@@ -39,7 +41,7 @@ export class Frenzy {
     this.kids = [];
     this.token.visible = false;
     for (let i = 0; i < ACTIVE_KIDS; i++) this.spawnKid();
-    this.ui.toast('⚡ <b>CHECK-UP FRENZY!</b><br><small>Check as many kids as you can in 60 s — quick ones build a combo</small>', 2800);
+    headline({ kicker: 'PARK CHALLENGE', icon: 'bolt', tone: 'frenzy', title: 'Check-up Frenzy', sub: 'Check as many kids as you can in 60 s — quick ones build a combo', ms: 3000, replace: true });
     sfx.stinger();
     this.hud.classList.remove('hidden');
   }
@@ -70,7 +72,6 @@ export class Frenzy {
     this.score += this.combo;
     this.count++;
     sfx.tick();
-    if (this.combo > 1) this.ui.toast(`🔥 COMBO ×${this.combo}`, 900);
     // the kid runs off happily, a new one shows up
     setTimeout(() => {
       entry.kid.root.removeFromParent();
@@ -91,8 +92,8 @@ export class Frenzy {
     const comboLeft = Math.max(0, COMBO_WINDOW - (this.time - this.lastCheck));
     if (comboLeft === 0) this.combo = 1;
     const s = Math.max(0, Math.ceil(this.left));
-    this.hud.innerHTML = `<span class="fz-title">⚡ CHECK-UP FRENZY</span><span class="fz-time ${s <= 10 ? 'hurry' : ''}">0:${String(s).padStart(2, '0')}</span>`
-      + `<span class="fz-score">🩺 ${this.count} · ${this.score} pts</span><span class="fz-combo ${this.combo > 1 ? 'on' : ''}">×${this.combo}</span>`;
+    this.hud.innerHTML = timerHTML({ icon: 'bolt', title: 'Check-up Frenzy', time: `0:${String(s).padStart(2, '0')}`, hurry: s <= 10,
+      sub: `${this.count} check-ups · ${this.score} pts`, badge: `×${this.combo}`, badgeOn: this.combo > 1 });
     if (this.left <= 0) this.finish();
   }
 

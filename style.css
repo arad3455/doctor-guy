@@ -107,19 +107,6 @@ kbd {
 }
 #prompt kbd { color: var(--ink); }
 
-#toast {
-  position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
-  background: var(--yellow);
-  border: 4px solid var(--ink);
-  border-radius: 16px;
-  padding: 12px 24px;
-  font-size: 24px; font-weight: 700;
-  text-align: center;
-  box-shadow: 0 5px 0 var(--ink);
-  animation: pop 0.25s ease-out;
-  max-width: calc(100vw - 32px);
-}
-@keyframes pop { from { transform: translateX(-50%) scale(0.6); } to { transform: translateX(-50%) scale(1); } }
 
 /* ---------- Mini-game ---------- */
 #minigame {
@@ -271,7 +258,6 @@ html.touch #mg-bar { height: 44px; }
   .mission .m-step { display: none; }
   .mission.active .m-step { display: block; }
   #minimap { width: 124px; height: 124px; }
-  #toast { font-size: 17px; padding: 8px 14px; top: 16%; }
   .title-card { padding: 18px 18px 16px; max-height: calc(100vh - 24px); overflow: auto; }
   .badge { display: none; }
   .zone { margin-bottom: 8px; }
@@ -552,20 +538,6 @@ html.touch .trophy-btn { right: 18px; }
 .stat.clock { font-size: 18px; font-variant-numeric: tabular-nums; }
 @media (max-height: 500px), (max-width: 640px) { .stat.clock { font-size: 14px; } }
 
-/* Check-up Frenzy timer */
-#frenzy-hud { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 14px;
-  padding: 8px 18px; border-radius: 16px; background: linear-gradient(135deg, rgba(120, 20, 90, 0.88), rgba(255, 60, 142, 0.85)); color: #fff;
-  font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 1px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); pointer-events: none; z-index: 6; }
-#frenzy-hud.hidden { display: none; }
-#frenzy-hud .fz-title { font-size: 16px; opacity: 0.9; }
-#frenzy-hud .fz-time { font-size: 30px; text-align: right; font-variant-numeric: tabular-nums; }
-#frenzy-hud .fz-time.hurry { color: #ffe066; animation: fzPulse 0.5s ease-in-out infinite alternate; }
-#frenzy-hud .fz-score { font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0; }
-#frenzy-hud .fz-combo { font-size: 24px; text-align: right; opacity: 0.45; }
-#frenzy-hud .fz-combo.on { opacity: 1; color: #ffe066; text-shadow: 0 0 10px #ff9a3c; }
-@keyframes fzPulse { to { transform: scale(1.15); } }
-html.touch #frenzy-hud { top: calc(56px + env(safe-area-inset-top)); padding: 5px 12px; }
-html.touch #frenzy-hud .fz-time { font-size: 24px; }
 
 /* "Turn your phone sideways" card (phones in portrait, after Start shift) */
 #rotate { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff;
@@ -632,35 +604,201 @@ html.touch #hud #photo-btn { width: 44px; height: 44px; }
   background: #fff; font-size: 20px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); pointer-events: auto; padding: 0; display: grid; place-items: center; line-height: 1; }
 html.touch #hud #radio-btn { top: auto; bottom: calc(200px + env(safe-area-inset-bottom)); right: calc(18px + env(safe-area-inset-right)); width: 44px; height: 44px; font-size: 18px; }
 
-/* Race timer (same look as the Frenzy one) */
-#race-hud { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 14px;
-  padding: 8px 18px; border-radius: 16px; background: linear-gradient(135deg, rgba(120, 20, 90, 0.88), rgba(255, 60, 142, 0.85)); color: #fff;
-  font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 1px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); pointer-events: none; z-index: 6; }
-#race-hud.hidden { display: none; }
-#race-hud .fz-title { font-size: 16px; opacity: 0.9; }
-#race-hud .fz-time { font-size: 30px; text-align: right; font-variant-numeric: tabular-nums; }
-#race-hud .fz-time.hurry { color: #ffe066; animation: fzPulse 0.5s ease-in-out infinite alternate; }
-#race-hud .fz-score { font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0; }
-#race-hud .fz-combo { font-size: 24px; text-align: right; opacity: 0.45; }
-#race-hud .fz-combo.on { opacity: 1; color: #ffe066; text-shadow: 0 0 10px #ff9a3c; }
-@keyframes fzPulse { to { transform: scale(1.15); } }
-html.touch #race-hud { top: calc(56px + env(safe-area-inset-top)); padding: 5px 12px; }
-html.touch #race-hud .fz-time { font-size: 24px; }
-#race-hud { background: linear-gradient(135deg, rgba(20,40,110,0.9), rgba(47,127,193,0.88)); }
 
 /* Outbreak timer */
-#outbreak-hud { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 14px;
-  padding: 8px 18px; border-radius: 16px; background: linear-gradient(135deg, rgba(120, 20, 90, 0.88), rgba(255, 60, 142, 0.85)); color: #fff;
-  font-family: 'Anton', 'Impact', sans-serif; letter-spacing: 1px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); pointer-events: none; z-index: 6; }
-#outbreak-hud.hidden { display: none; }
-#outbreak-hud .fz-title { font-size: 16px; opacity: 0.9; }
-#outbreak-hud .fz-time { font-size: 30px; text-align: right; font-variant-numeric: tabular-nums; }
-#outbreak-hud .fz-time.hurry { color: #ffe066; animation: fzPulse 0.5s ease-in-out infinite alternate; }
-#outbreak-hud .fz-score { font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0; }
-#outbreak-hud .fz-combo { font-size: 24px; text-align: right; opacity: 0.45; }
-#outbreak-hud .fz-combo.on { opacity: 1; color: #ffe066; text-shadow: 0 0 10px #ff9a3c; }
-@keyframes fzPulse { to { transform: scale(1.15); } }
-html.touch #outbreak-hud { top: calc(56px + env(safe-area-inset-top)); padding: 5px 12px; }
-html.touch #outbreak-hud .fz-time { font-size: 24px; }
-#outbreak-hud { top: 140px; background: linear-gradient(135deg, rgba(40,110,40,0.92), rgba(120,190,60,0.88)); }
-html.touch #outbreak-hud { top: calc(112px + env(safe-area-inset-top)); }
+
+/* =====================================================================================================
+   Design system v2: one HUD language
+   - HUD layer (on top of the game): dark glass chips, white text, line icons (src/icons.js), one accent per tone.
+   - Card layer (shop, bus, trophies, help, mini-game): paper cards with an ink header.
+   - Messages: headline (big white title, no box) · feed (side glass cards) · timers (one chip style).
+   ===================================================================================================== */
+:root {
+  --glass: rgba(16, 14, 32, 0.74);
+  --glass-strong: rgba(16, 14, 32, 0.88);
+  --glass-line: rgba(255, 255, 255, 0.16);
+  --muted: rgba(255, 255, 255, 0.72);
+  --hud-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  --t-alert: #ff5a5a; --t-outbreak: #a6e35f; --t-race: #ffd23f; --t-success: #5be08a;
+  --t-info: #7fd0ff; --t-caspi: #c9a0ff; --t-frenzy: #ff6fb1; --t-reward: #ffd23f;
+}
+.tone-alert { --tone: var(--t-alert); } .tone-outbreak { --tone: var(--t-outbreak); } .tone-race { --tone: var(--t-race); }
+.tone-success { --tone: var(--t-success); } .tone-info { --tone: var(--t-info); } .tone-caspi { --tone: var(--t-caspi); }
+.tone-frenzy { --tone: var(--t-frenzy); } .tone-reward { --tone: var(--t-reward); }
+
+.ic { width: 1em; height: 1em; flex: none; display: inline-block; vertical-align: -0.14em; }
+.medal-gold { color: #ffcf3a; } .medal-silver { color: #d9e2ec; } .medal-bronze { color: #e0965a; }
+.medal-gold, .medal-silver, .medal-bronze { fill: currentColor; fill-opacity: 0.25; }
+
+/* --- HUD chips --- */
+.stat, #rank, .mission, #waypoint-info, #map-hint, #prompt, .hud-btn, #hud #photo-btn, #hud #radio-btn {
+  background: var(--glass); color: #fff; border: 1.5px solid var(--glass-line); box-shadow: var(--hud-shadow);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.stat { border-radius: 12px; padding: 5px 12px; font-size: 20px; gap: 7px; font-variant-numeric: tabular-nums; }
+.stat .icon { display: grid; place-items: center; font-size: 19px; color: var(--yellow); }
+.stat:nth-child(2) .icon { color: var(--t-alert); }
+.stat .of { opacity: 0.6; font-size: 0.8em; }
+.stat.clock .icon { color: #ffd98a; }
+#rank { border-radius: 12px; }
+.rk-icon { display: grid; place-items: center; font-size: 22px; color: #9fe3ff; }
+.mission { border-radius: 10px; border-left: 4px solid rgba(255, 255, 255, 0.35); }
+.mission .m-step { opacity: 0.75; }
+.mission .m-timer { color: #ffb15a; display: inline-flex; align-items: center; gap: 2px; }
+.mission.active { border-color: var(--glass-line); border-left-color: var(--t-alert); }
+.mission.done { border-left-color: var(--t-success); }
+.m-step .ic { margin-right: 3px; }
+#minimap { border: 3px solid rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 3px rgba(16, 14, 32, 0.55), var(--hud-shadow); }
+#map-hint { border-radius: 8px; padding: 2px 8px 3px; font-size: 11px; }
+#map-hint kbd { color: var(--ink); font-size: 10px; padding: 0 5px; border-width: 1.5px; border-bottom-width: 2.5px; margin-right: 2px; }
+#waypoint-info { display: flex; align-items: center; gap: 6px; border-radius: 10px; font-size: 13px; }
+#waypoint-info .ic { color: var(--yellow); }
+#waypoint-info.hidden { display: none !important; }
+#prompt { border-radius: 12px; display: flex; align-items: center; gap: 8px; }
+#prompt .ic { color: var(--yellow); }
+#stamina { height: 8px; border: none; background: rgba(16, 14, 32, 0.55); box-shadow: var(--hud-shadow); }
+#stamina-fill { background: linear-gradient(90deg, #ffd23f, #ffe98a); border-radius: 8px; }
+#location { text-shadow: 0 2px 0 rgba(0,0,0,0.55), 0 0 14px rgba(0,0,0,0.45); font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; letter-spacing: 1.5px; }
+.hud-btn, #hud #photo-btn, #hud #radio-btn { color: #fff; font-size: 20px; }
+#hud #photo-btn:active, #hud #radio-btn:active { transform: translateY(1px); box-shadow: none; }
+
+/* touch controls: glass circles, the action button is the one red primary */
+#stick { background: rgba(16, 14, 32, 0.28); border: 2px solid rgba(255, 255, 255, 0.45); }
+#stick-knob { background: rgba(255, 255, 255, 0.92); border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+.touch-btn { display: grid; place-items: center; color: #fff; font-size: 30px; border: 2px solid rgba(255, 255, 255, 0.55);
+  background: var(--glass); box-shadow: var(--hud-shadow); }
+.touch-btn:active { transform: scale(0.94); box-shadow: var(--hud-shadow); }
+#btn-action { background: var(--red); border-color: rgba(255, 255, 255, 0.85); font-size: 36px; }
+#btn-action .ic { stroke-width: 2.4; }
+#btn-action.ready { animation: actionReady 1.1s ease-in-out infinite; }
+@keyframes actionReady { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 50, 58, 0.6), var(--hud-shadow); } 50% { box-shadow: 0 0 0 12px rgba(224, 50, 58, 0), var(--hud-shadow); transform: scale(1.06); } }
+html.driving #btn-jump { color: #ff8a8a; }
+
+/* --- Headline: the transparent title card (new emergency, outbreak, races…) --- */
+#mission-card { top: 17%; z-index: 7; width: min(92vw, 760px); }
+.mc-kicker { color: var(--tone, var(--t-info)); display: inline-flex; align-items: center; gap: 8px; font-size: 14px; letter-spacing: 4px; }
+.mc-kicker .ic { font-size: 18px; }
+.mc-title { display: block; }
+.mc-sub { color: #fff; opacity: 0.92; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.mc-sub .ic { color: var(--yellow); }
+@media (max-height: 500px) { #mission-card { top: 12%; } .mc-title { font-size: 30px; } .mc-sub { font-size: 13px; } .mc-kicker { font-size: 12px; } }
+
+/* --- Feed: small side notices --- */
+.feed-item { display: flex; align-items: flex-start; gap: 10px; background: var(--glass-strong); border: 1.5px solid var(--glass-line);
+  border-left: 4px solid var(--tone, var(--t-info)); border-radius: 10px; padding: 7px 12px 7px 9px; box-shadow: var(--hud-shadow); }
+.fi-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; flex: none; font-size: 16px; color: var(--tone, var(--t-info));
+  background: color-mix(in srgb, var(--tone, var(--t-info)) 18%, transparent); }
+.fi-body { display: grid; gap: 1px; min-width: 0; }
+.fi-body b .ic, .fi-body em .ic, .fi-body span .ic { margin: 0 1px; }
+.feed-item em { display: inline-flex; align-items: center; gap: 2px; }
+html.touch .fi-icon { width: 22px; height: 22px; font-size: 13px; }
+
+/* --- Timers: one chip for frenzy, races and outbreaks, stacked at the top centre --- */
+#timers { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 8px; width: max-content; max-width: calc(100vw - 480px); z-index: 6; pointer-events: none; }
+html.touch #timers { top: calc(10px + env(safe-area-inset-top)); }
+.timer { position: relative; display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 14px;
+  min-width: 220px; padding: 6px 16px 7px; border-radius: 12px; color: #fff; background: var(--glass-strong); border: 1.5px solid var(--glass-line);
+  border-top: 3px solid var(--tone, var(--t-info)); box-shadow: var(--hud-shadow); }
+.timer.hidden { display: none !important; }
+.tm-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--tone, var(--t-info)); }
+.tm-head .ic { font-size: 14px; }
+.tm-time { font: 400 28px 'Anton', 'Impact', sans-serif; letter-spacing: 1px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tm-time.hurry { color: #ff8a8a; animation: tmPulse 0.5s ease-in-out infinite alternate; }
+@keyframes tmPulse { to { transform: scale(1.08); } }
+.tm-sub { font-size: 13px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.tm-badge { position: absolute; top: 6px; right: 10px; font: 400 18px 'Anton', 'Impact', sans-serif; opacity: 0.35; display: inline-flex; }
+.tm-badge.on { opacity: 1; color: var(--tone, var(--t-info)); }
+.tm-badge:empty { display: none; }
+html.touch .timer { min-width: 0; padding: 4px 12px 5px; }
+html.touch .tm-time { font-size: 22px; }
+html.touch .tm-sub { font-size: 11px; }
+
+/* --- Achievement: a glass card that rises at the bottom centre, away from the timers --- */
+#achievement { top: auto; bottom: 112px; transform: translate(-50%, 40px); opacity: 0; background: var(--glass-strong); border: 1.5px solid var(--glass-line);
+  border-top: 3px solid var(--yellow); border-radius: 12px; transition: transform 0.45s cubic-bezier(.2,1.4,.4,1), opacity 0.3s; }
+#achievement.show { transform: translate(-50%, 0); opacity: 1; }
+.ach-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; color: var(--yellow); background: rgba(255, 210, 63, 0.16); }
+#achievement em { display: inline-flex; align-items: center; gap: 3px; }
+html.touch #achievement { bottom: calc(205px + env(safe-area-inset-bottom)); }
+
+/* --- Banners & report: rank badges instead of emoji --- */
+.rb-icon { font-size: 72px; color: #9fe3ff; display: grid; place-items: center; }
+.rb-icon .ic { stroke-width: 1.6; }
+.sb-sub { display: inline-flex; align-items: center; gap: 8px; }
+.sb-line b, .sb-total b { display: inline-flex; align-items: center; gap: 4px; }
+.sb-line b .ic, .sb-total b .ic { color: #ffd23f; }
+.sb-line span { display: inline-flex; align-items: center; gap: 6px; }
+.sb-line span .ic { color: #ffd23f; }
+.sb-xp { display: inline-flex; align-items: center; gap: 5px; justify-content: center; }
+.er-icon { font-size: 44px; color: #9fe3ff; display: grid; place-items: center; }
+.st-i { color: #ffd23f; font-size: 22px; display: inline-flex; gap: 2px; }
+
+/* --- Cards: one ink header for every menu --- */
+.shop-head, #bus .bus-head { background: var(--ink); border-bottom: 4px solid var(--yellow); }
+.shop-title { display: flex; align-items: center; gap: 10px; }
+.shop-title small { margin-left: 4px; opacity: 0.7; }
+.st-ic { display: grid; place-items: center; font-size: 26px; color: var(--yellow); }
+.shop-wallet { display: inline-flex; align-items: center; gap: 6px; }
+.shop-wallet .ic, .item button .ic { color: inherit; }
+.shop-wallet [data-icon] { display: grid; color: var(--yellow); }
+.item button { display: inline-flex; align-items: center; gap: 4px; justify-content: center; }
+#bus-list .b-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 400 18px 'Anton', 'Impact', sans-serif; background: var(--scrubs); color: #fff; }
+#bus-list button:disabled .b-icon { background: #9a948c; }
+.trophy-btn { display: grid; place-items: center; font-size: 20px; }
+.bm-title { display: inline-flex; align-items: center; gap: 8px; }
+.bm-title .ic { color: var(--yellow); }
+.bm-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.bm-legend .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 2px solid #fff; }
+.dot.red { background: #e0323a; } .dot.green { background: #4cc35a; } .dot.blue { background: #2f7fc1; } .dot.white { background: #e0323a; }
+.dot.yellow { background: #ffd23f; } .dot.star { background: #ffd23f; border-radius: 2px; transform: rotate(45deg); }
+/* a running timer pushes the headline down a little so they never overlap */
+#hud:has(.timer:not(.hidden)) #mission-card { top: 24%; }
+@media (max-height: 500px) { #hud:has(.timer:not(.hidden)) #mission-card { top: 27%; } }
+html.touch #timers { max-width: calc(100vw - 360px); }
+html.touch .tm-head { font-size: 9px; letter-spacing: 1.5px; white-space: nowrap; }
+html.touch .timer { column-gap: 10px; }
+@media (max-height: 500px) { html.touch #hud:has(.timer:not(.hidden)) #mission-card { top: 30%; } }
+#photo .ph-label, #photo .ph-snap { display: inline-flex; align-items: center; gap: 8px; }
+#mg-steps .mg-done { color: #fff; background: var(--t-success); border-radius: 50%; padding: 3px; width: 1.1em; height: 1.1em; stroke-width: 3; }
+
+/* --- Touch driving: a sliding steering wheel (left) and a gas lever (right: up = gas, down = brake / reverse) --- */
+.drive-ui { display: none; }
+html.touch.driving .drive-ui { display: block; }
+html.touch.driving #stick { display: none; }
+#wheel { position: absolute; left: calc(22px + env(safe-area-inset-left)); bottom: calc(22px + env(safe-area-inset-bottom));
+  width: min(300px, 38vw); height: 96px; pointer-events: auto; touch-action: none; }
+.wh-track { position: absolute; left: 0; right: 0; top: 50%; height: 10px; margin-top: -5px; border-radius: 6px;
+  background: var(--glass); border: 1.5px solid var(--glass-line); box-shadow: var(--hud-shadow); }
+.wh-tick { position: absolute; left: 50%; top: -6px; width: 2px; height: 20px; margin-left: -1px; background: rgba(255, 255, 255, 0.5); border-radius: 1px; }
+#wheel-knob { position: absolute; left: 50%; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 64px; color: #fff; background: var(--glass-strong); border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--hud-shadow); transition: transform 0.18s cubic-bezier(.3,1.4,.5,1); }
+#wheel.on #wheel-knob { transition: none; border-color: var(--yellow); color: var(--yellow); }
+#wheel-knob .ic { stroke-width: 1.8; }
+#throttle { position: absolute; right: calc(22px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); width: 84px; height: 210px;
+  pointer-events: auto; touch-action: none; --th: 0; }
+.th-track { position: absolute; left: 50%; top: 24px; bottom: 24px; width: 12px; margin-left: -6px; border-radius: 7px; overflow: visible;
+  background: var(--glass); border: 1.5px solid var(--glass-line); box-shadow: var(--hud-shadow); }
+.th-track .wh-tick { top: 50%; left: -7px; width: 24px; height: 2px; margin: -1px 0 0; }
+.th-fill { position: absolute; left: 1px; right: 1px; bottom: 50%; height: calc(max(0, var(--th)) * 50%); border-radius: 5px; background: var(--t-success); }
+#throttle.rev .th-fill { bottom: auto; top: 50%; height: calc(max(0, -1 * var(--th)) * 50%); background: var(--t-alert); }
+.th-label { position: absolute; left: 0; right: 0; text-align: center; font: 700 11px 'Fredoka', sans-serif; letter-spacing: 2px; color: var(--t-success); text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.th-gas { top: 0; } .th-rev { bottom: 0; color: var(--t-alert); font-size: 13px; }
+#throttle-knob { position: absolute; left: 50%; top: 50%; width: 62px; height: 66px; margin: -33px 0 0 -31px; border-radius: 14px; display: flex; justify-content: center;
+  background: #1d1a33; border: 2px solid rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35), var(--hud-shadow);
+  transition: transform 0.18s cubic-bezier(.3,1.4,.5,1), border-color 0.15s; }
+#throttle.on #throttle-knob { transition: border-color 0.15s; border-color: var(--t-success); }
+#throttle.on.rev #throttle-knob { border-color: var(--t-alert); }
+#throttle-knob .pd-ridges { margin: 10px 0; width: 60%; }
+.pd-ridges { display: block; border-radius: 6px; background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0 4px, transparent 4px 11px); }
+/* siren + door sit beside the lever; camera / radio move up beside the radar */
+html.touch.driving #btn-action, html.touch.driving #btn-jump { width: 58px; height: 58px; font-size: 26px; }
+html.touch.driving #btn-action { right: calc(116px + env(safe-area-inset-right)); bottom: calc(110px + env(safe-area-inset-bottom)); }
+html.touch.driving #btn-jump { right: calc(116px + env(safe-area-inset-right)); bottom: calc(30px + env(safe-area-inset-bottom)); }
+html.touch.driving #hud #photo-btn { top: calc(10px + env(safe-area-inset-top)); bottom: auto; right: calc(146px + env(safe-area-inset-right)); }
+html.touch.driving #hud #radio-btn { top: calc(60px + env(safe-area-inset-top)); bottom: auto; right: calc(146px + env(safe-area-inset-right)); }
+html.touch.driving #prompt { bottom: calc(124px + env(safe-area-inset-bottom)); max-width: 40vw; }
+@media (max-height: 420px) {
+  #wheel-knob { width: 74px; height: 74px; margin: -37px 0 0 -37px; font-size: 56px; }
+  #throttle { height: 196px; }
+}

@@ -38,7 +38,7 @@ r.auraFar = await g(() => __game.minigame.slow);
 // Gorge goes missing → find him → bring him back
 await g(() => __game.caspi.loseGorge());
 await wait(800);
-r.lost = await g(() => ({ state: __game.caspi.gorgeState, toast: document.querySelector('#toast')?.innerText ?? '', blips: __game.caspi.blips().map((b) => b.icon).join('') }));
+r.lost = await g(() => ({ state: __game.caspi.gorgeState, toast: (__game.notices ?? []).slice(-3).join(' | '), blips: __game.caspi.blips().map((b) => b.icon).join('') }));
 await g(() => { const gp = __game.caspi.gorge.root.position; __game.player.pos.set(gp.x + 1, 0, gp.z); });
 await wait(1500);
 r.found = await g(() => __game.caspi.gorgeState);

@@ -7,6 +7,7 @@ import { signBoard } from './cityprops.js';
 import { DT_SPOTS } from './downtown.js';
 import { MH } from './suburbs.js';
 import { CAMP } from './camp.js';
+import { notify } from './notify.js';
 
 export const FARE = 2;
 /** zone → stop. Positions are nudged to the nearest clear, walkable spot when the stops are built. */
@@ -86,8 +87,8 @@ export class Buses {
     this.list.innerHTML = STOPS.map((s, i) => {
       const here = s === from, known = visited[s.zone];
       return `<button data-i="${i}" ${here || !known ? 'disabled' : ''}>
-        <span class="b-icon">${known ? s.icon : '❔'}</span><span class="b-name">${known ? s.name : '???'}</span>
-        <span class="b-note">${here ? 'You are here' : known ? `${FARE} 🍭` : 'Visit it first'}</span></button>`;
+        <span class="b-icon">${i + 1}</span><span class="b-name">${known ? s.name : '???'}</span>
+        <span class="b-note">${here ? 'You are here' : known ? `${FARE} lollipops` : 'Visit it first'}</span></button>`;
     }).join('');
     this.list.querySelectorAll('button:not([disabled])').forEach((b) => b.addEventListener('click', () => this.ride(STOPS[+b.dataset.i])));
     this.el.classList.remove('hidden');
@@ -96,7 +97,7 @@ export class Buses {
   close() { this.el.classList.add('hidden'); }
 
   ride(to) {
-    if (this.wallet.get() < FARE) { this.toast(`🚌 The bus costs ${FARE} 🍭 — save a few kids first!`, 2200); return; }
+    if (this.wallet.get() < FARE) { notify(`The bus costs ${FARE} lollipops`, { icon: 'bus', tone: 'alert', sub: 'Help a few kids first!', ms: 2600 }); return; }
     this.wallet.add(-FARE);
     this.close();
     const fade = document.getElementById('bus-fade');

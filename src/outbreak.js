@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { buildKid, makeBubble } from './characters.js';
 import { clampWalkable, collidersNear } from './world.js';
 import { sfx } from './audio.js';
+import { timerHTML } from './icons.js';
+import { headline, notify } from './notify.js';
 
 const EVERY = [360, 540]; // seconds between outbreaks
 const DURATION = 180;
@@ -60,8 +62,9 @@ export class Outbreak {
       k++;
     }
     this.active = { zone, kids, left: DURATION, cured: 0 };
+    this.render();
     this.hud.classList.remove('hidden');
-    this.ui.toast(`🤒 <b>Flu outbreak in ${NAMES_OF[zone]}!</b><br><small>${kids.length} kids are sick — check them all in 3 minutes</small>`, 3600);
+    headline({ kicker: 'FLU OUTBREAK', icon: 'virus', tone: 'outbreak', title: NAMES_OF[zone].replace(/^the /, 'The '), sub: `${kids.length} kids are sick — treat them all in 3 minutes`, ms: 3600 });
     sfx.alert();
     return true;
   }
@@ -76,7 +79,7 @@ export class Outbreak {
     A.cured++;
     this.ui.reward(3);
     sfx.pickup();
-    this.ui.toast(`💊 ${entry.name} is feeling better! (${A.cured}/${A.kids.length}) · +3 🍭`, 1600);
+    notify(`${entry.name} is feeling better`, { icon: 'pill', tone: 'outbreak', sub: `${A.cured}/${A.kids.length} treated`, reward: '+3 🍭', ms: 2400 });
     // they head home a moment later
     setTimeout(() => this.remove(entry), 2500);
     if (A.cured >= A.kids.length) this.finish(true);
@@ -98,10 +101,10 @@ export class Outbreak {
       this.progress.data.outbreaks = (this.progress.data.outbreaks ?? 0) + 1;
       this.progress.dirty = true;
       this.ui.reward(15);
-      this.ui.toast(`🏆 <b>Outbreak contained!</b><br><small>Everyone in ${NAMES_OF[A.zone]} is healthy again · +15 🍭</small>`, 3600);
+      headline({ kicker: 'OUTBREAK CONTAINED', icon: 'virus', tone: 'success', title: 'Everyone’s healthy!', sub: `${NAMES_OF[A.zone].replace(/^the /, 'The ')} is flu-free · +15 🍭`, ms: 3600 });
       sfx.missionPassed();
     } else {
-      this.ui.toast(`🤧 The flu ran its course in ${NAMES_OF[A.zone]}… ${A.cured}/${A.kids.length} treated.`, 3000);
+      notify('The flu ran its course', { icon: 'virus', tone: 'outbreak', sub: `${NAMES_OF[A.zone].replace(/^the /, 'The ')} · ${A.cured}/${A.kids.length} treated`, ms: 3400 });
     }
   }
 
@@ -113,10 +116,15 @@ export class Outbreak {
     }
     const A = this.active;
     A.left -= dt;
-    const s = Math.max(0, Math.ceil(A.left));
-    this.hud.innerHTML = `<span class="fz-title">🤒 FLU OUTBREAK · ${NAMES_OF[A.zone]}</span><span class="fz-time ${s <= 30 ? 'hurry' : ''}">${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span>`
-      + `<span class="fz-score">💊 ${A.cured}/${A.kids.length} treated</span><span class="fz-combo on">🤧</span>`;
+    this.render();
     if (A.left <= 0) this.finish(false);
+  }
+
+  /** The countdown chip (paused while a Frenzy runs or you're indoors, but still on screen). */
+  render() {
+    const A = this.active, s = Math.max(0, Math.ceil(A.left));
+    this.hud.innerHTML = timerHTML({ icon: 'virus', title: `Flu outbreak · ${NAMES_OF[A.zone].replace(/^the /, 'The ')}`, time: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`,
+      hurry: s <= 30, sub: `${A.cured}/${A.kids.length} treated` });
   }
 
   /** End quietly (a new shift clears every kid). */

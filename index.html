@@ -46,40 +46,44 @@
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="stats">
-      <div class="stat"><span class="icon">🍭</span><span id="lollipops">0</span></div>
-      <div class="stat"><span class="icon">⛑️</span><span id="rescued">0</span>/<span id="total">0</span></div>
-      <div class="stat clock"><span id="clock">☀️ 15:30</span></div>
+      <div class="stat"><span class="icon" data-icon="lollipop"></span><span id="lollipops">0</span></div>
+      <div class="stat"><span class="icon" data-icon="patient"></span><span id="rescued">0</span><span class="of">/<span id="total">0</span></span></div>
+      <div class="stat clock"><span class="icon" id="clock-icon" data-icon="sun"></span><span id="clock">15:30</span></div>
     </div>
-    <div id="rank"><span class="rk-icon">🩹</span><span class="rk-body"><span class="rk-name">Volunteer</span><span class="rk-bar"><span class="rk-fill"></span></span></span><span class="rk-xp">0 XP</span></div>
+    <div id="rank"><span class="rk-icon"></span><span class="rk-body"><span class="rk-name">Volunteer</span><span class="rk-bar"><span class="rk-fill"></span></span></span><span class="rk-xp">0 XP</span></div>
     <div id="missions"></div>
     <div id="mission-card"></div>
     <div id="feed"></div>
-    <div id="frenzy-hud" class="hidden"></div>
-    <div id="race-hud" class="hidden"></div>
-    <div id="outbreak-hud" class="hidden"></div>
+    <div id="timers">
+      <div id="race-hud" class="timer tone-race hidden"></div>
+      <div id="frenzy-hud" class="timer tone-frenzy hidden"></div>
+      <div id="outbreak-hud" class="timer tone-outbreak hidden"></div>
+    </div>
     <canvas id="minimap" width="200" height="200" title="Open the map (M)"></canvas>
-    <div id="map-hint">M · map</div>
-    <button id="photo-btn" aria-label="Photo mode" title="Photo mode (P)">📷</button>
-    <button id="radio-btn" aria-label="Radio" title="Radio (R)" style="display:none">📻</button>
+    <div id="map-hint"><kbd>M</kbd> map</div>
+    <button id="photo-btn" aria-label="Photo mode" title="Photo mode (P)" class="hud-btn" data-icon="camera"></button>
+    <button id="radio-btn" aria-label="Radio" title="Radio (R)" class="hud-btn" data-icon="radio" style="display:none"></button>
     <div id="waypoint-info" class="hidden"></div>
     <div id="location"></div>
     <div id="district" class="hidden"><span class="d-name"></span><span class="d-sub"></span></div>
     <div id="stamina"><div id="stamina-fill"></div></div>
     <div id="prompt" class="hidden"></div>
-    <div id="toast" class="hidden"></div>
 
     <!-- Touch controls (shown on phones/tablets) -->
     <div id="touch-ui">
       <div id="stick"><div id="stick-knob"></div></div>
-      <button id="btn-jump" class="touch-btn" aria-label="Jump">⤒</button>
-      <button id="btn-action" class="touch-btn" aria-label="Help">✋</button>
+      <!-- driving: a steering wheel that slides left/right, and a gas lever (up = gas, down = brake / reverse) -->
+      <div id="wheel" class="drive-ui" aria-label="Steering"><div class="wh-track"><span class="wh-tick"></span></div><div id="wheel-knob" data-icon="steer"></div></div>
+      <div id="throttle" class="drive-ui" aria-label="Gas (up) / brake and reverse (down)"><span class="th-label th-gas">GAS</span><div class="th-track"><span class="th-fill"></span><span class="wh-tick"></span></div><div id="throttle-knob"><span class="pd-ridges"></span></div><span class="th-label th-rev">R</span></div>
+      <button id="btn-jump" class="touch-btn" aria-label="Jump" data-icon="jump"></button>
+      <button id="btn-action" class="touch-btn" aria-label="Action" data-icon="cross"></button>
     </div>
   </div>
 
   <!-- Full-screen world map (M / tap the radar) -->
   <div id="bigmap" class="hidden">
     <div class="bm-head">
-      <span class="bm-title">🗺️ Map</span>
+      <span class="bm-title" data-icon="map" data-label="Map"></span>
       <span class="bm-help key-hint">Click an emergency or anywhere for a waypoint · drag &amp; scroll to move/zoom · <kbd>M</kbd> close</span>
       <span class="bm-help touch-hint">Tap an emergency or anywhere for a waypoint · drag &amp; pinch to move/zoom</span>
       <span id="bigmap-where"></span>
@@ -93,7 +97,7 @@
         <button id="bigmap-me" aria-label="Centre on me">◎</button>
       </div>
     </div>
-    <div class="bm-legend"><span>🔴 Emergency</span><span>🟢 Drop-off</span><span>⭐ Waypoint</span><span>🚑 Ambulance</span><span>🏥 Hospital</span><span>🟡 You</span></div>
+    <div class="bm-legend"><span><i class="dot red"></i>Emergency</span><span><i class="dot green"></i>Drop-off</span><span><i class="dot star"></i>Waypoint</span><span><i class="dot blue"></i>Ambulance</span><span><i class="dot white"></i>Hospital</span><span><i class="dot yellow"></i>You</span></div>
   </div>
 
   <!-- GTA-style mission passed banner -->
@@ -116,7 +120,7 @@
   <div id="bus" class="hidden">
     <div class="shop-card">
       <div class="shop-head bus-head">
-        <span class="shop-title">🚌 Wolfson Buses <small>· 2 🍭 a ride</small></span>
+        <span class="shop-title"><span class="st-ic" data-icon="bus"></span>Wolfson Buses <small>2 lollipops a ride</small></span>
         <button id="bus-close" aria-label="Close">✕</button>
       </div>
       <div id="bus-list"></div>
@@ -126,8 +130,8 @@
   <div id="shop" class="hidden">
     <div class="shop-card">
       <div class="shop-head">
-        <span class="shop-title">🛍️ Doctor Shop</span>
-        <span class="shop-wallet">🍭 <b id="shop-wallet">0</b></span>
+        <span class="shop-title"><span class="st-ic" data-icon="bag"></span>Doctor Shop</span>
+        <span class="shop-wallet"><span data-icon="lollipop"></span><b id="shop-wallet">0</b></span>
         <button id="shop-close" aria-label="Close shop">✕</button>
       </div>
       <div id="shop-tabs"></div>
@@ -139,7 +143,7 @@
   <div id="trophies" class="hidden">
     <div class="shop-card">
       <div class="shop-head">
-        <span class="shop-title">🏆 Achievements <small id="trophy-count"></small></span>
+        <span class="shop-title"><span class="st-ic" data-icon="trophy"></span>Achievements <small id="trophy-count"></small></span>
         <button id="trophies-close" aria-label="Close">✕</button>
       </div>
       <div id="trophy-list"></div>
@@ -175,14 +179,14 @@
       <p class="title-zones">The Park · The Beach · The Hospital · The Zoo</p>
     </div>
     <button id="help-open" class="help-btn key-hint" aria-label="Controls">?</button>
-    <button id="trophies-open" class="help-btn trophy-btn" aria-label="Achievements">🏆</button>
+    <button id="trophies-open" class="help-btn trophy-btn" aria-label="Achievements" data-icon="trophy"></button>
   </div>
 
   <!-- Controls (computer) -->
   <!-- phones held upright after Start shift: ask to turn sideways (iPhone can't lock orientation) -->
   <div id="rotate" class="hidden">
     <div class="rot-card">
-      <div class="rot-phone">📱</div>
+      <div class="rot-phone" data-icon="phone"></div>
       <h2>Turn your phone sideways</h2>
       <p>Doctor Guy plays best in landscape — more city, bigger controls.</p>
       <p class="rot-ios">Nothing happening? Switch off <b>Rotation Lock</b> in Control Center.</p>
@@ -195,10 +199,10 @@
       <ul>
         <li><kbd>W A S D</kbd> move · <kbd>SHIFT</kbd> run · <kbd>SPACE</kbd> jump</li>
         <li><kbd>E</kbd> help a kid · pick up · hand over · enter buildings · drive the ambulance</li>
-        <li><kbd>E</kbd> near any kid out playing: 🩺 stethoscope check-up</li>
-        <li><kbd>E</kbd> at the lollipop stand: 🛍️ Doctor Shop · progress saves automatically</li>
+        <li><kbd>E</kbd> near any kid out playing: stethoscope check-up</li>
+        <li><kbd>E</kbd> at the lollipop stand: Doctor Shop · progress saves automatically</li>
         <li>In the ambulance: <kbd>W S</kbd> drive · <kbd>A D</kbd> steer · <kbd>SPACE</kbd> siren</li>
-        <li><kbd>M</kbd> map &amp; waypoints · <kbd>Mouse drag</kbd> look · <kbd>wheel</kbd> zoom</li>
+        <li><kbd>M</kbd> map &amp; waypoints · <kbd>P</kbd> photo mode · <kbd>R</kbd> radio (driving) · <kbd>Mouse drag</kbd> look · <kbd>wheel</kbd> zoom</li>
         <li><kbd>H</kbd> or <kbd>?</kbd> this help</li>
       </ul>
       <button id="help-close">Got it</button>

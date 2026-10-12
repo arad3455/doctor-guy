@@ -13,6 +13,7 @@ import { DT_SPOTS, DOWNTOWN } from './downtown.js';
 import { FAIR } from './pier.js';
 import { CAMP } from './camp.js';
 import { sfx } from './audio.js';
+import { notify } from './notify.js';
 
 // where he hangs out, by the hour (the day/night clock)
 const SCHEDULE = [
@@ -175,7 +176,7 @@ export class Caspi {
     if (this.gorgeState === 'follow' && (this.gorgeTimer -= dt) <= 0) this.loseGorge();
     if (this.gorgeState === 'lost' && Math.hypot(p.x - gp.x, p.z - gp.z) < 2.2) {
       this.gorgeState = 'found';
-      this.ui.toast('🐱 <b>Found Gorge!</b><br><small>He’s following you — take him back to Caspi</small>', 2800);
+      notify('Found Gorge!', { icon: 'paw', tone: 'caspi', sub: 'He’s following you — take him back to Caspi', ms: 3400 });
       sfx.pickup();
     }
     if (this.gorgeState === 'found' && Math.hypot(this.pos.x - gp.x, this.pos.z - gp.z) < 4) this.reunite();

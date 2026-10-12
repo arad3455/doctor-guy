@@ -3,6 +3,7 @@
 //   hold             — hold down to fill the gauge, let go while it's in the green zone (blood draw, thermometer)
 //   mash             — tap as fast as you can to pump the gauge into the green zone before time runs out
 import { sfx } from './audio.js';
+import { icon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const isTouch = () => document.documentElement.classList.contains('touch');
@@ -66,7 +67,7 @@ export class MiniGame {
 
   renderSteps() {
     $('mg-steps').innerHTML = this.t.steps
-      .map((s, i) => `<span style="opacity:${i < this.step ? 1 : 0.3}">${i < this.step ? '✅' : s.icon}</span>`)
+      .map((s, i) => `<span style="opacity:${i < this.step ? 1 : 0.3}">${i < this.step ? icon('check', 'mg-done') : s.icon}</span>`)
       .join('');
   }
 

@@ -13,6 +13,7 @@ import { CAMP } from './camp.js';
 import { HARBOR, HB_MAP } from './harbor.js';
 import { AIRPORT, AIR_MAP } from './airport.js';
 import { STOPS } from './bus.js';
+import { drawBlip } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const UNITS_PER_M = 1.36; // Doctor Guy is 2.45 units ≈ 1.8 m
@@ -76,6 +77,7 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   const text = (x, z, str, px, color = '#fff') => {
     const [a, b] = P(x, z);
     upright((cx, cy) => {
+      if (drawBlip(ctx, str, cx, cy, px * 0.55)) return; // POIs (bus stops, the frenzy token…) as icon blips
       ctx.font = `700 ${px}px "Fredoka", sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineWidth = Math.max(2, px / 5); ctx.strokeStyle = 'rgba(20,30,40,0.85)';
@@ -503,6 +505,7 @@ export class Radar {
   icon(x, y, emoji, px, faded = false) {
     const ctx = this.ctx;
     ctx.globalAlpha = faded ? 0.85 : 1;
+    if (drawBlip(ctx, emoji, x, y, px * 0.72)) { ctx.globalAlpha = 1; return; }
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.beginPath(); ctx.arc(x, y, px * 0.72, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -671,7 +674,7 @@ export class BigMap {
     ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, 9); ctx.lineTo(0, 4); ctx.lineTo(-9, 9); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
     this.decorations();
-    $('bigmap-where').textContent = inside ? '📍 You are inside Wolfson Medical Center' : '';
+    $('bigmap-where').textContent = inside ? 'You are inside Wolfson Medical Center' : '';
   }
 
   /** Compass rose and scale bar drawn on top of the map. */
@@ -701,6 +704,7 @@ export class BigMap {
 
   badge(x, y, emoji) {
     const ctx = this.ctx;
+    if (drawBlip(ctx, emoji, x, y, 11)) return;
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.font = '15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

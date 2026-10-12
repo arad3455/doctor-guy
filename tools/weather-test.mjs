@@ -19,7 +19,7 @@ await g(() => { const it = __game.bandages.items[2]; __game.player.pos.set(it.g.
 await page.waitForFunction(() => __game.bandages.count >= 1, { timeout: 30000 }).catch(() => {});
 r.found = await g(() => __game.bandages.count);
 r.popsGained = (await g(() => __game.missions.lollipops)) - pops0;
-r.toast = await g(() => document.querySelector('#toast')?.innerText ?? '');
+r.toast = await g(() => (__game.notices ?? []).slice(-3).join(' | '));
 await wait(1500);
 r.saved = await g(() => { __game.progress.save(true); return Object.keys(JSON.parse(localStorage.getItem('doctorguy.save.v1')).bandages ?? {}).length; });
 // rain

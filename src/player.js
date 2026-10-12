@@ -60,6 +60,7 @@ export class Input {
     }, { passive: true });
 
     this.stick = { x: 0, y: 0 };
+    this.drive = { steer: 0, throttle: 0 }; // touch driving: wheel −1..1 (right +), lever −1..1 (up = gas)
     this.bindTouchControls();
   }
 
@@ -90,6 +91,63 @@ export class Input {
       };
       stick.addEventListener('pointerup', end);
       stick.addEventListener('pointercancel', end);
+    }
+    // steering wheel: drag sideways from wherever you touch it (no jump on touch-down); springs back to centre
+    const wheel = document.getElementById('wheel');
+    const wknob = document.getElementById('wheel-knob');
+    if (wheel) {
+      let id = null, x0 = 0;
+      const set = (v) => {
+        this.drive.steer = v;
+        const range = wheel.clientWidth / 2 - wknob.clientWidth / 2;
+        wknob.style.transform = `translateX(${v * range}px) rotate(${v * 100}deg)`;
+      };
+      wheel.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        id = e.pointerId; wheel.setPointerCapture(id);
+        // touching the knob grabs it where it is; touching the track off to one side steers that way straight away
+        const r = wknob.getBoundingClientRect();
+        const range = wheel.clientWidth / 2 - wknob.clientWidth / 2, wr = wheel.getBoundingClientRect();
+        x0 = e.clientX >= r.left && e.clientX <= r.right ? e.clientX - this.drive.steer * range : wr.left + wr.width / 2;
+        wheel.classList.add('on');
+        move(e);
+      });
+      const move = (e) => {
+        if (e.pointerId !== id) return;
+        const range = Math.max(40, wheel.clientWidth / 2 - wknob.clientWidth / 2);
+        set(Math.max(-1, Math.min(1, (e.clientX - x0) / range)));
+      };
+      wheel.addEventListener('pointermove', move);
+      const end = (e) => { if (e.pointerId !== id) return; id = null; wheel.classList.remove('on'); set(0); };
+      wheel.addEventListener('pointerup', end);
+      wheel.addEventListener('pointercancel', end);
+    }
+    // gas lever: slide up to accelerate, down to brake and then reverse; springs back to neutral
+    const lever = document.getElementById('throttle');
+    const lknob = document.getElementById('throttle-knob');
+    if (lever) {
+      let id = null, y0 = 0;
+      const range = () => Math.max(30, lever.querySelector('.th-track').clientHeight / 2 - lknob.clientHeight / 2 + 8);
+      const set = (v) => {
+        this.drive.throttle = v;
+        lknob.style.transform = `translateY(${-v * range()}px)`;
+        lever.style.setProperty('--th', v);
+        lever.classList.toggle('rev', v < -0.05);
+      };
+      const move = (e) => { if (e.pointerId === id) set(Math.max(-1, Math.min(1, (y0 - e.clientY) / range()))); };
+      lever.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        id = e.pointerId; lever.setPointerCapture(id);
+        // grab the knob where it is, or touch the track above / below to jump there
+        const r = lknob.getBoundingClientRect(), tr = lever.querySelector('.th-track').getBoundingClientRect();
+        y0 = e.clientY >= r.top && e.clientY <= r.bottom ? e.clientY + this.drive.throttle * range() : tr.top + tr.height / 2;
+        lever.classList.add('on');
+        move(e);
+      });
+      lever.addEventListener('pointermove', move);
+      const end = (e) => { if (e.pointerId !== id) return; id = null; lever.classList.remove('on'); set(0); };
+      lever.addEventListener('pointerup', end);
+      lever.addEventListener('pointercancel', end);
     }
     for (const [elId, code] of [['btn-jump', 'Space'], ['btn-action', 'KeyE']]) {
       const btn = document.getElementById(elId);

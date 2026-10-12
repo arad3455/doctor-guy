@@ -1,4 +1,4 @@
-// Phone: walk to the ambulance, tap ✋ to get in, drive with the joystick, 🚨 siren, 🚪 out.
+// Phone: walk to the ambulance, tap the action button to get in, drive with the wheel + gas lever, siren, door out.
 import puppeteer, { KnownDevices } from 'puppeteer-core';
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', protocolTimeout: 600000, args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 const page = await browser.newPage();
@@ -16,16 +16,28 @@ await page.screenshot({ path: '.shots/drive-mobile-0-before.png' });
 await tap('#btn-action');
 await wait(1500);
 await page.screenshot({ path: '.shots/drive-mobile-1-in.png' });
-const r = { in: await page.evaluate(() => __game.ambulance.driving), buttons: await page.evaluate(() => [document.getElementById('btn-action').textContent, document.getElementById('btn-jump').textContent]) };
+const r = { in: await page.evaluate(() => __game.ambulance.driving), buttons: await page.evaluate(() => ['wheel', 'throttle', 'stick'].map((id) => id + ':' + getComputedStyle(document.getElementById(id)).display).join(' ')) };
 console.log('in', JSON.stringify(r));
 const p0 = await page.evaluate(() => __game.ambulance.pos.toArray());
-const st = await (await page.$('#stick')).boundingBox();
-await page.touchscreen.touchStart(st.x + st.width / 2, st.y + st.height / 2);
-await page.touchscreen.touchMove(st.x + st.width / 2, st.y + 4);
-await wait(3000);
+// push the gas lever up (one finger) and slide the wheel right (another finger)
+const gas = await (await page.$('#throttle-knob')).boundingBox();
+const wh = await (await page.$('#wheel-knob')).boundingBox();
+const cdp = await page.createCDPSession();
+const pt = (x, y, id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 });
+const G = pt(gas.x + gas.width / 2, gas.y + gas.height / 2, 1), W0 = pt(wh.x + wh.width / 2, wh.y + wh.height / 2, 2);
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [G] });
+G.y -= 60;
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [G] });
+await wait(1600);
+r.straight = await page.evaluate(() => ({ speed: +__game.ambulance.speed.toFixed(2), heading: +__game.ambulance.heading.toFixed(2) }));
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [G, W0] });
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [G, { ...W0, x: W0.x + 90 }] });
+await wait(1400);
+r.turning = await page.evaluate(() => ({ steer: __game.input.drive.steer, heading: +__game.ambulance.heading.toFixed(2), throttle: +__game.input.drive.throttle.toFixed(2) }));
 await page.screenshot({ path: '.shots/drive-mobile.png' });
-console.log('cam', await page.evaluate(() => JSON.stringify({ cam: __game.follow.camera.position.toArray(), yaw: __game.input.yaw, pitch: __game.input.pitch, dist: __game.input.distance, amb: __game.ambulance.pos.toArray(), heading: __game.ambulance.heading, speed: __game.ambulance.speed })));
-await page.touchscreen.touchEnd();
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+await wait(300);
+r.released = await page.evaluate(() => ({ steer: __game.input.drive.steer, throttle: __game.input.drive.throttle }));
 console.log('drove');
 const p1 = await page.evaluate(() => __game.ambulance.pos.toArray());
 r.drove = +Math.hypot(p1[0] - p0[0], p1[2] - p0[2]).toFixed(2);

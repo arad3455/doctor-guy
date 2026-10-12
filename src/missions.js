@@ -13,14 +13,15 @@ import { AIRPORT, AIR_SPOTS } from './airport.js';
 import { kit } from './kit.js';
 import { BEACH, makeCrab, makeFloatRing, makeJellyfish, makeBeachBall, makeSunscreen } from './beach.js';
 import { sfx } from './audio.js';
+import { headline, notify } from './notify.js';
 import { toon, part } from './toon.js';
 
 // Where carried kids are handed over
 export const DROPS = {
-  hospital: { pos: WORLD.hospitalDoor, action: 'Hand %s to the nurses', toast: '🏥 Take %s to the hospital! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the hospital drop-off.', drive: '🚑 Drive to the hospital drop-off.', walkTo: new THREE.Vector3(0, 0, -46.5) },
-  tower: { pos: WORLD.lifeguardDrop, action: 'Bring %s to the first-aid station', toast: '⛑️ Take %s to the lifeguard first-aid station! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the lifeguard tower (first aid).', drive: '🚑 Drive to the lifeguard tower.', walkTo: new THREE.Vector3(WORLD.lifeguardDrop.x + 2.2, 0, WORLD.lifeguardDrop.z + 1.6) },
-  ranger: { pos: CAMP.dropAt, action: 'Bring %s to the ranger station', toast: '🌲 Take %s to the ranger station! <small>(or drive the ambulance 🚑)</small>', step: 'Carry to the ranger station.', drive: '🚑 Drive to the ranger station.', walkTo: new THREE.Vector3(CAMP.ranger.x + 3.5, 0, CAMP.ranger.z) },
-  mom: { action: 'Reunite %s with Mom', toast: '💛 Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.', drive: '🚑 Drive to Mom at the lollipop stand.' },
+  hospital: { pos: WORLD.hospitalDoor, action: 'Hand %s to the nurses', toast: 'Take %s to the hospital!', step: 'Carry to the hospital drop-off.', drive: '🚑 Drive to the hospital drop-off.', walkTo: new THREE.Vector3(0, 0, -46.5) },
+  tower: { pos: WORLD.lifeguardDrop, action: 'Bring %s to the first-aid station', toast: 'Take %s to the lifeguard first-aid station!', step: 'Carry to the lifeguard tower (first aid).', drive: '🚑 Drive to the lifeguard tower.', walkTo: new THREE.Vector3(WORLD.lifeguardDrop.x + 2.2, 0, WORLD.lifeguardDrop.z + 1.6) },
+  ranger: { pos: CAMP.dropAt, action: 'Bring %s to the ranger station', toast: 'Take %s to the ranger station!', step: 'Carry to the ranger station.', drive: '🚑 Drive to the ranger station.', walkTo: new THREE.Vector3(CAMP.ranger.x + 3.5, 0, CAMP.ranger.z) },
+  mom: { action: 'Reunite %s with Mom', toast: 'Bring %s to Mom at the lollipop stand!', step: 'Bring Noa to Mom at the lollipop stand.', drive: '🚑 Drive to Mom at the lollipop stand.' },
 };
 const fill = (text, name) => text.replace('%s', name);
 const KID_NAMES = ['Noam', 'Shira', 'Itamar', 'Yuval', 'Ella', 'Ori', 'Romi', 'Ben', 'Alma', 'Eyal', 'Tamar', 'Lior', 'Maya', 'Gili', 'Yoav'];
@@ -935,7 +936,7 @@ export class MissionSystem {
     if (def.hidden) { bubble.visible = false; icon.visible = false; }
     const m = { def, kid, bubble, icon, beacon: bc, state: 'active', spawnedAt: this.time, found: !def.hidden };
     if (def.tint) m.untint = tintKid(kid, def.tint);
-    if (def.chase) { m.chaseA = 0; this.ui.toast('🐒 A monkey grabbed your stethoscope! Chase him!', 2800); }
+    if (def.chase) { m.chaseA = 0; headline({ kicker: 'HEY!', icon: 'monkey', tone: 'alert', title: 'Monkey business', sub: 'He grabbed your stethoscope — chase him!', ms: 3000 }); }
     if (def.prop) m.prop = this.makeProp(def.prop, kid);
     this.missions.push(m);
     sfx.alert();
@@ -988,7 +989,7 @@ export class MissionSystem {
     if (!this.zonesSeen.has(zone)) {
       this.zonesSeen.add(zone);
       // (the district title card announces every area — see ui.zoneEntered; the hospital also gets a hint)
-      if (zone === 'hospital') this.ui.toast('🏥 Wolfson Medical Center<br><small>Patients are waiting in the Exam Room, Lab and Ward</small>', 3000);
+      if (zone === 'hospital') notify('Patients are waiting', { icon: 'hospital', sub: 'Exam Room, Lab and Ward', ms: 3200 });
       this.nextSpawn = Math.min(this.nextSpawn, this.time + (zone === 'hospital' ? 1.5 : 4));
       this.ui.zoneEntered?.(zone);
     }
@@ -1130,7 +1131,7 @@ export class MissionSystem {
         if (!m.found && Math.hypot(kp.x - p.x, kp.z - p.z) < 14) {
           m.found = true;
           m.bubble.visible = m.icon.visible = m.beacon.visible = true;
-          this.ui.toast('👂 You hear crying nearby…', 1800);
+          notify('You hear crying nearby…', { icon: 'ear', tone: 'alert', ms: 2400 });
         }
       } else if (m.state === 'treated' || m.state === 'lifting') {
         animateRig(m.kid, m.def.pose === 'sit' && m.def.spot ? 'sit' : 'idle', t, dt);
@@ -1271,7 +1272,7 @@ export class MissionSystem {
       a.checkedAt = this.time;
       this.checkups = (this.checkups ?? 0) + 1;
       this.ui.career?.checkup(a.name, `${icon} ${text}`);
-    } else this.ui.toast(`${a.name}: “You already checked me, Doc!” 😄`, 1800);
+    } else notify(`${a.name}: “You already checked me, Doc!”`, { icon: 'steth', ms: 2200 });
   }
 
   showCheckupResult(a) {
@@ -1351,7 +1352,7 @@ export class MissionSystem {
     if (kneels) await sleep((rig.standUp?.() ?? 0) * 0.8);
     this.player.frozen = false;
     this.busy = false;
-    if (!res) { this.ui.toast('Come back when you’re ready!', 1400); return; }
+    if (!res) { notify('Come back when you’re ready!', { icon: 'chat', ms: 2000 }); return; }
     m.misses = res.misses;
     m.kid.tears.visible = false;
     m.bubble.visible = false;
@@ -1378,7 +1379,7 @@ export class MissionSystem {
     }
     if (m.def.deliver) {
       this.pickUp(m);
-      this.ui.toast(fill(DROPS[m.def.deliver].toast, m.def.name), 2400);
+      notify(fill(DROPS[m.def.deliver].toast, m.def.name), { icon: m.def.deliver === 'mom' ? 'heart' : 'ambulance', tone: 'alert', sub: m.def.deliver === 'mom' ? '' : 'Carry them, or drive the ambulance', ms: 3000 });
     } else {
       this.complete(m);
     }

@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import { signTexture } from './toon.js';
 import { sfx } from './audio.js';
+import { timerHTML } from './icons.js';
+import { headline } from './notify.js';
 
 export const RACES = [
   {
@@ -76,7 +78,7 @@ export class Races {
     for (const x of RACES) x.marker.visible = false;
     this.place();
     this.hud.classList.remove('hidden');
-    this.ui.toast(`🏁 <b>${r.name}</b><br><small>🥇 ${r.medals.gold}s · 🥈 ${r.medals.silver}s · 🥉 ${r.medals.bronze}s</small>`, 2600);
+    headline({ kicker: 'TIME TRIAL', icon: 'flag', tone: 'race', title: r.name, sub: `🥇 ${r.medals.gold}s · 🥈 ${r.medals.silver}s · 🥉 ${r.medals.bronze}s`, ms: 2400, replace: true });
     sfx.stinger();
   }
 
@@ -100,7 +102,7 @@ export class Races {
     for (const r of RACES) r.marker.rotation.y = t * 0.6;
     const A = this.active;
     if (!A) return;
-    if (!this.ambulance.driving) { this.stop('🏁 Race abandoned — you got out!'); return; }
+    if (!this.ambulance.driving) { this.stop({ title: 'Race abandoned', sub: 'You got out of the ambulance' }); return; }
     const prevT = A.t;
     A.t += dt;
     // countdown: hold the ambulance still until GO
@@ -108,10 +110,10 @@ export class Races {
       this.ambulance.speed = 0;
       const n = Math.ceil(-A.t);
       if (n !== Math.ceil(-prevT)) sfx.tick();
-      this.hud.innerHTML = `<span class="fz-title">${A.r.icon} ${A.r.name}</span><span class="fz-time hurry">${n}</span>`;
+      this.hud.innerHTML = timerHTML({ icon: 'flag', title: A.r.name, time: n, hurry: true, sub: 'Get ready…' });
       return;
     }
-    if (prevT < 0) { this.ui.toast('🚦 <b>GO!</b>', 900); sfx.success(); }
+    if (prevT < 0) { headline({ kicker: A.r.name.toUpperCase(), icon: 'flag', tone: 'race', title: 'GO!', ms: 900, replace: true }); sfx.success(); }
     this.next.rotation.z = t * 1.5;
     const p = this.ambulance.pos, [cx, cz] = A.r.cps[A.i];
     if (Math.hypot(p.x - cx, p.z - cz) < CP_RADIUS) {
@@ -121,9 +123,10 @@ export class Races {
       this.place();
     }
     const best = this.progress.data.races?.[A.r.id]?.time;
-    this.hud.innerHTML = `<span class="fz-title">${A.r.icon} ${A.r.name}</span><span class="fz-time">${A.t.toFixed(1)}s</span>`
-      + `<span class="fz-score">🏁 ${A.i}/${A.r.cps.length}${best ? ` · best ${best.toFixed(1)}s` : ''}</span><span class="fz-combo on">${medalFor(A.r, A.t)?.icon ?? '⏱️'}</span>`;
-    if (A.t > A.r.medals.bronze * 3) this.stop('🏁 Out of time — try again!');
+    const medal = medalFor(A.r, A.t);
+    this.hud.innerHTML = timerHTML({ icon: 'flag', title: A.r.name, time: `${A.t.toFixed(1)}s`,
+      sub: `Checkpoint ${A.i}/${A.r.cps.length}${best ? ` · best ${best.toFixed(1)}s` : ''}`, badge: medal?.icon ?? '', badgeOn: !!medal });
+    if (A.t > A.r.medals.bronze * 3) this.stop({ title: 'Out of time', sub: 'Try again!' });
   }
 
   finish() {
@@ -137,16 +140,18 @@ export class Races {
     }
     const reward = medal ? medal.reward : 1;
     this.ui.reward(reward);
-    this.stop(`🏁 <b>${r.name}: ${t.toFixed(1)}s</b><br><small>${medal ? `${medal.icon} ${medal.name} medal` : 'No medal this time'}${record ? ' · 🏆 personal best!' : ''} · +${reward} 🍭</small>`, 4200);
+    this.stop({ kicker: medal ? `${medal.name.toUpperCase()} MEDAL` : 'FINISHED', title: `${r.name} · ${t.toFixed(1)}s`, tone: medal ? 'race' : 'info',
+      sub: `${medal ? medal.icon : 'No medal this time'}${record ? ' · Personal best!' : ''} · +${reward} 🍭`, ms: 4200 });
     sfx.missionPassed();
   }
 
-  stop(msg, ms = 2600) {
+  /** End the race; msg is a headline ({ title, sub, kicker, tone, ms }). */
+  stop(msg) {
     this.active = null;
     this.next.visible = this.after.visible = this.beam.visible = false;
     for (const x of RACES) x.marker.visible = true;
     this.hud.classList.add('hidden');
-    if (msg) this.ui.toast(msg, ms);
+    if (msg) headline({ kicker: 'TIME TRIAL', icon: 'flag', tone: 'info', ms: 2600, ...msg, replace: true });
   }
 
   blips() { return RACES.map((r) => ({ x: r.start.x, z: r.start.z, icon: '🏁', name: r.name })); }

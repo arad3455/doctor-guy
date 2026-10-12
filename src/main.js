@@ -6,6 +6,8 @@ import { Player, Input, FollowCamera } from './player.js';
 import { MissionSystem } from './missions.js';
 import { MiniGame } from './minigame.js';
 import { HUD } from './hud.js';
+import { headline, notify, notices } from './notify.js';
+import { icon, iconize, hydrateIcons } from './icons.js';
 import { initAudio, sfx, engine, siren, audioCtx } from './audio.js';
 import { Ambulance, PARKING } from './vehicle.js';
 import { buildHospital, INTERIOR, isInside, makeGate } from './hospital.js';
@@ -103,13 +105,14 @@ let skyMat = null;
 base.traverse((o) => { if (o.material?.uniforms?.top) skyMat = o.material; });
 const weather = new Weather(scene); // rain showers now and then, a rainbow after
 const radioBtn = document.getElementById('radio-btn');
-const radio = new Radio({ onChange: (name) => hud.toast(`📻 ${name}`, 1600) }); // R / 📻 while driving
+const radio = new Radio({ onChange: (name) => notify(name, { icon: 'radio', tone: 'info', ms: 1800 }) }); // R / 📻 while driving
 const ambience = new Ambience(audioCtx); // gulls, music box, campfire, birds, city hum, rain
 const dayNight = new DayNight({ scene, sun, hemi, sky: skyMat, fog: outdoorFog, ambulance, startHour: 15.5 });
 const ambulanceReady = ambulance.loadModel().catch((e) => console.warn('[ambulance] model failed, using the blocky van', e));
 const follow = new FollowCamera(camera);
 follow.blockers = cameraBlockers;
 const hud = new HUD();
+hydrateIcons(); // the static HUD buttons and chips (data-icon="…")
 const minigame = new MiniGame();
 
 let started = false;
@@ -150,12 +153,12 @@ let shopTab = 'hat';
 const shopEl = document.getElementById('shop');
 function renderShop() {
   document.getElementById('shop-wallet').textContent = missions?.lollipops ?? progress.wallet;
-  document.getElementById('shop-tabs').innerHTML = SHOP_CATS.map(([c, label]) => `<button data-tab="${c}" class="${c === shopTab ? 'on' : ''}">${label}</button>`).join('');
+  document.getElementById('shop-tabs').innerHTML = SHOP_CATS.map(([c, label]) => `<button data-tab="${c}" class="${c === shopTab ? 'on' : ''}">${iconize(label)}</button>`).join('');
   document.getElementById('shop-items').innerHTML = SHOP.filter((i) => i.cat === shopTab).map((i) => {
     const owned = progress.owned.includes(i.id), on = progress.equipped[i.cat] === i.id;
     const wallet = missions?.lollipops ?? progress.wallet;
-    const btn = !owned ? `<button data-buy="${i.id}" ${wallet < i.price ? 'disabled' : ''}>🍭 ${i.price}</button>`
-      : `<button data-equip="${i.id}" class="${on ? 'equipped' : 'equip'}">${on ? '✓ Wearing' : 'Use'}</button>`;
+    const btn = !owned ? `<button data-buy="${i.id}" ${wallet < i.price ? 'disabled' : ''}>${icon('lollipop')}${i.price}</button>`
+      : `<button data-equip="${i.id}" class="${on ? 'equipped' : 'equip'}">${on ? 'Wearing' : 'Use'}</button>`;
     return `<div class="item"><span class="ic">${i.icon}</span><b>${i.name}</b><small>${i.note ?? (owned ? 'Owned' : '')}</small>${btn}</div>`;
   }).join('');
 }
@@ -171,7 +174,7 @@ shopEl.addEventListener('click', (e) => {
       progress.equip(item); // wear it right away
       applyCosmetics();
       sfx.buy();
-      hud.toast(`🛍️ ${item.icon} ${item.name} — enjoy!`, 1600);
+      notify(`${item.name} — enjoy!`, { icon: 'bag', tone: 'success', ms: 2000 });
       progress.save(true);
     }
     renderShop();
@@ -201,8 +204,8 @@ addEventListener('keydown', (e) => { if (e.code === 'Escape') { openShop(false);
 /* ---- Getting in and out of the ambulance ---- */
 const setButtons = (driving) => {
   document.documentElement.classList.toggle('driving', driving);
-  document.getElementById('btn-jump').textContent = driving ? '🚨' : '⤒';
-  document.getElementById('btn-action').textContent = driving ? '🚪' : '✋';
+  document.getElementById('btn-jump').innerHTML = icon(driving ? 'siren' : 'jump');
+  document.getElementById('btn-action').innerHTML = icon(driving ? 'door' : 'cross');
 };
 function enterAmbulance() {
   ambulance.driving = true;
@@ -216,13 +219,13 @@ function enterAmbulance() {
     // emergency run: siren on, head for the drop-off
     ambulance.siren = true;
     siren.on();
-    hud.toast(`🚑 ${patient.def.name} is in the ambulance — siren on!<br><small>${isTouch ? 'Joystick to drive' : 'W/S drive · A/D steer'} · park at the drop-off to hand over</small>`, 3000);
+    notify(`${patient.def.name} is in the ambulance — siren on!`, { icon: 'ambulance', tone: 'alert', sub: `${isTouch ? 'Wheel to steer · lever for gas' : 'W/S drive · A/D steer'} · park at the drop-off to hand over`, ms: 3400 });
   } else {
-    hud.toast(isTouch ? '🚑 Joystick to drive · 🚨 siren · 🚪 get out' : '🚑 W/S drive · A/D steer · SPACE siren · E get out', 2600);
+    notify('Ambulance', { icon: 'ambulance', sub: isTouch ? 'Slide the wheel to steer · push the lever up for gas, down to brake / reverse' : 'W/S drive · A/D steer · SPACE siren · E get out', ms: 3000 });
   }
 }
 function exitAmbulance(force = false) {
-  if (!force && Math.abs(ambulance.speed) > 2.5) { hud.toast('Stop first! 🛑', 1000); return; }
+  if (!force && Math.abs(ambulance.speed) > 2.5) { notify('Stop first!', { icon: 'stop', tone: 'alert', ms: 1400 }); return; }
   ambulance.driving = false;
   ambulance.speed = 0;
   if (ambulance.siren) { ambulance.siren = false; siren.off(); }
@@ -402,7 +405,7 @@ function start() {
   started = true;
   updateRotate();
   progress.data.visited = { ...(progress.data.visited ?? {}), park: true };
-  hud.toast(`Your shift begins!<br><small>${isTouch ? 'Tap the radar for the map 🗺️' : 'Press H for controls · M for the map'}</small>`, 3200);
+  notify('Your shift begins!', { icon: 'cross', tone: 'success', sub: isTouch ? 'Tap the radar for the map' : 'Press H for controls · M for the map', ms: 3600 });
 }
 document.getElementById('start').addEventListener('click', () => { if (missions) start(); });
 // Controls help (computers): ? on the title, H in game
@@ -526,6 +529,8 @@ function frame() {
     let steer = k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft');
     const stickMag = Math.min(1, Math.hypot(stick.x, stick.y));
     if (stickMag > 0.12) ({ throttle, steer } = stickDrive(stick, stickMag));
+    const d = input.drive; // phones: wheel + gas lever
+    if (d) { if (Math.abs(d.throttle) > 0.05) throttle = d.throttle; if (Math.abs(d.steer) > 0.03) steer = d.steer; }
     if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
     const before = ambulance.pos.clone();
     ambulance.update(dt, t, { throttle, steer });
@@ -664,7 +669,11 @@ function frame() {
   const so = dayNight.sunOffset ?? new THREE.Vector3(30, 50, 20);
   sun.position.set(player.pos.x + so.x, so.y, player.pos.z + so.z);
   const clockEl = document.getElementById('clock');
-  if (clockEl && started) clockEl.textContent = (dayNight.night > 0.5 ? '🌙 ' : '☀️ ') + dayNight.clock;
+  if (clockEl && started) {
+    const night = dayNight.night > 0.5;
+    if (night !== clockEl.night) { clockEl.night = night; document.getElementById('clock-icon').innerHTML = icon(night ? 'moon' : 'sun'); }
+    clockEl.textContent = dayNight.clock;
+  }
   sun.target.position.set(player.pos.x, 0, player.pos.z);
 
   renderer.render(scene, camera);
@@ -698,7 +707,7 @@ hud.plan = hospital.plan;
 applyCosmetics(); // saved hats, paint, siren…
 career.renderRank(false);
 nurses = new DoorNurses(scene, ambulance, {
-  onCallout: () => hud.toast('🏥 The nurses heard the siren — they’re coming out to meet you!', 2600),
+  onCallout: () => notify('The nurses heard the siren', { icon: 'hospital', tone: 'info', sub: 'They’re coming out to meet you', ms: 2800 }),
 });
 missions = new MissionSystem(scene, player, ui);
 frenzy = new Frenzy({ scene, missions, career, progress, ui });
@@ -718,7 +727,7 @@ bandages = new Bandages(scene, progress, {
   isOpen: () => started && !isInside(player.pos),
   onFind: (n, total, it) => {
     missions.lollipops += 5;
-    hud.toast(`✨ <b>Golden Bandage ${n}/${total}</b><br><small>${it.hint} · +5 🍭</small>`, 2600);
+    notify(`Golden Bandage ${n}/${total}`, { icon: 'bandage', tone: 'reward', sub: it.hint, reward: '+5 🍭', ms: 3000 });
   },
 });
 window.__game.bandages = bandages;
@@ -757,12 +766,12 @@ caspi = new Caspi({
   ui: {
     hour: () => dayNight.hour,
     toast: (h, ms) => hud.toast(h, ms),
-    gorgeLost: (h) => hud.toast(`🐱 <b>Gorge is missing!</b><br><small>Caspi doesn’t look worried… last seen ${h.hint}</small>`, 3600),
+    gorgeLost: (h) => headline({ kicker: 'CASPI’S CAT', title: 'Gorge is missing!', sub: `Caspi doesn’t look worried… last seen ${h.hint}`, tone: 'caspi', icon: 'paw', ms: 3600 }),
     gorgeHome: () => {
       missions.lollipops += 10;
       progress.data.caspiSmiled = (progress.data.caspiSmiled ?? 0) + 1;
       progress.dirty = true;
-      hud.toast('😎 <b>Caspi smiled!</b><br><small>Gorge is home · +10 🍭</small>', 3000);
+      headline({ kicker: 'GORGE IS HOME', title: 'Caspi smiled!', sub: '+10 🍭', tone: 'success', icon: 'paw', ms: 3000 });
     },
   },
 });
@@ -777,6 +786,9 @@ window.__game.caspi = caspi;
 window.__game.world = worldApi;
 window.__game.bigMap = bigMap;
 window.__game.hud = hud;
+window.__game.notices = notices;
+window.__game.headline = headline;
+window.__game.notify = notify;
 window.__game.career = career;
 window.__game.progress = progress;
 window.__game.openShop = openShop;

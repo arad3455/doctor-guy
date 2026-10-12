@@ -2,12 +2,13 @@
 import { locationName } from './world.js';
 import { DROPS } from './missions.js';
 import { Radar } from './map.js';
+import { icon, iconize, leadIcon } from './icons.js';
+import { notify, notices } from './notify.js';
 
 const $ = (id) => document.getElementById(id);
 
 export class HUD {
   constructor() {
-    this.toastTimer = null;
     this.lastPrompt = undefined;
     this.radar = new Radar($('minimap'));
     this.lastLocation = null;
@@ -20,22 +21,18 @@ export class HUD {
     if (label === this.lastPrompt) return;
     this.lastPrompt = label;
     const el = $('prompt');
-    $('btn-action')?.classList.toggle('ready', !!label);
+    const btn = $('btn-action');
+    btn?.classList.toggle('ready', !!label);
+    // the touch action button shows what it will do (drive, shop, check-up…), a plain hand otherwise
+    if (btn && !document.documentElement.classList.contains('driving')) btn.innerHTML = icon((label && leadIcon(label)) || 'cross');
     if (!label) { el.classList.add('hidden'); return; }
-    el.innerHTML = document.documentElement.classList.contains('touch') ? `✋ ${label}` : `<kbd>E</kbd> ${label}`;
+    el.innerHTML = document.documentElement.classList.contains('touch') ? iconize(label) : `<kbd>E</kbd> ${iconize(label)}`;
     el.classList.remove('hidden');
   }
 
-  toast(html, ms = 2000) {
-    const el = $('toast');
-    el.innerHTML = html;
-    el.classList.remove('hidden');
-    el.style.animation = 'none';
-    void el.offsetWidth;
-    el.style.animation = '';
-    clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => el.classList.add('hidden'), ms);
-  }
+  /** Small messages go to the side feed (see notify.js); big moments use headline(). */
+  toast(html, ms = 2000) { notify(html, { ms: Math.max(ms, 2200) }); }
+  get notices() { return notices; }
 
   update(ms, player, ambulance, yaw = 0) {
     this.ambulance = ambulance;
@@ -61,9 +58,9 @@ export class HUD {
         done: 'Rescued!',
       }[m.state];
       const left = Math.ceil(m.def.bonusTime - (ms.time - m.spawnedAt));
-      const timer = m.state !== 'done' && left > 0 ? `<span class="m-timer">⚡${left}s</span>` : '';
+      const timer = m.state !== 'done' && left > 0 ? `<span class="m-timer">${icon('bolt')}${left}s</span>` : '';
       const cls = m.state === 'done' ? 'done' : m.state === 'carried' ? 'active' : '';
-      return `<div class="mission ${cls}"><div class="m-title"><span>${m.def.title}</span>${timer}</div><div class="m-step">${step}</div></div>`;
+      return `<div class="mission ${cls}"><div class="m-title"><span>${m.def.title}</span>${timer}</div><div class="m-step">${iconize(step)}</div></div>`;
     }).join('');
     if (html !== this.lastMissions) {
       $('missions').innerHTML = html;
@@ -73,8 +70,8 @@ export class HUD {
     const wp = this.radar.waypoint;
     const info = $('waypoint-info');
     if (wp && wpDist !== null) {
-      if (wpDist < 4 && !wp.mission) { this.radar.waypoint = null; this.toast('⭐ You’ve reached your waypoint', 1400); }
-      info.textContent = `⭐ ${wp.label} · ${Math.round(wpDist)} m`;
+      if (wpDist < 4 && !wp.mission) { this.radar.waypoint = null; notify('You’ve reached your waypoint', { icon: 'star', tone: 'success', ms: 1800 }); }
+      info.innerHTML = `${icon('star')}<span>${wp.label} · ${Math.round(wpDist)} m</span>`;
       info.classList.remove('hidden');
     } else info.classList.add('hidden');
     // GTA-style location name when you move into a new area

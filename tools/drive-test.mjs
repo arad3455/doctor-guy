@@ -91,7 +91,7 @@ const prompt2 = await g(() => document.getElementById('prompt').textContent);
 await shot('5-patient-dropoff');
 await page.keyboard.press('KeyE');
 await wait(800);
-const done = await g(() => ({ state: __game.missions.missions.find((m) => m.def.id === 'pond').state, driving: __game.ambulance.driving, toast: document.getElementById('toast').textContent }));
+const done = await g(() => ({ state: __game.missions.missions.find((m) => m.def.id === 'pond').state, driving: __game.ambulance.driving, toast: __game.notices.slice(-3).join(' | ') }));
 console.log('patient run:', run, '→ in van', JSON.stringify(inVan), '→ prompt', JSON.stringify(prompt2), '→', JSON.stringify(done));
 await shot('6-patient-done');
 // ---- Siren near the hospital: nurses come out to meet the van, then walk the patient in

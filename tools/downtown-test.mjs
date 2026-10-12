@@ -38,7 +38,7 @@ r.out = await g(() => !__game.ambulance.driving);
 await g(() => { __game.player.pos.set(-132.5, 0, -2); });
 await wait(1200);
 r.plazaName = await g(() => document.getElementById('location').textContent);
-r.zone = await g(() => document.querySelector('#toast')?.textContent ?? '');
+r.zone = await g(() => (__game.notices ?? []).slice(-3).join(' | '));
 await page.screenshot({ path: '.shots/dt-2-plaza.png' });
 r.wall = await g(() => {
   const b = __game.downtown.group; // walk into the first tower block from the street
