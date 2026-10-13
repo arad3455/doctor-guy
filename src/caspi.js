@@ -13,7 +13,7 @@ import { clampWalkable, collidersNear } from './world.js';
 import { sfx } from './audio.js';
 import { notify } from './notify.js';
 import { MH_SPOTS } from './suburbs.js';
-import { reach, armBones, makeHammer } from './poses.js';
+import { reach, armBones, makeHammer, sitOn } from './poses.js';
 
 // his day (the day/night clock): building the sukkah with Dad, then dinner in it (spots filled in from the sukkah)
 const SCHEDULE = [
@@ -374,22 +374,6 @@ export class Caspi {
     if (this.gorgeState === 'lost') out.push({ x: this.gorge.root.position.x, z: this.gorge.root.position.z, icon: '🐱', name: 'Gorge' });
     return out;
   }
-}
-
-/**
- * Put a sitting character's hips on a chair: measure the hip bone in the sit pose and move the whole body so the
- * hips sit just above the seat, centred over it (the clip's own sitting height varies between rigs).
- */
-const _hips = new THREE.Vector3();
-function sitOn(rig, seat) {
-  const hips = rig.hipsBone ??= rig.bone?.(/^Hips$/i);
-  if (!hips) return;
-  rig.root.updateMatrixWorld(true);
-  hips.getWorldPosition(_hips);
-  const p = rig.root.position;
-  p.x += seat.cx - _hips.x;
-  p.z += seat.cz - _hips.z;
-  p.y += seat.y + rig.height * 0.06 - _hips.y;
 }
 
 /** Ease a character round to face `want` (radians). */

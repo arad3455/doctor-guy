@@ -3,7 +3,7 @@
 import { clampWalkable, collidersNear, inWater } from './world.js';
 
 const CELL = 3;
-const B = { x0: -206, x1: 242, z0: -226, z1: 182 }; // the outdoor world (the hospital interior is far away)
+const B = { x0: -206, x1: 300, z0: -226, z1: 182 }; // the outdoor world (the hospital interior is far away)
 const NX = Math.ceil((B.x1 - B.x0) / CELL), NZ = Math.ceil((B.z1 - B.z0) / CELL);
 
 export class GPS {

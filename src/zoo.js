@@ -6,18 +6,20 @@ import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.
 import { addCircle } from './world.js';
 import { scatter, kit } from './kit.js';
 import { gltfLoader, toonify } from './skinned.js';
+import { buildWing, wingBusy, WING, Wanderer } from './zooWing.js';
+import { makeZebra, makeHippo } from './zooAnimals.js';
 
 export const ZOO = {
   road: { z: -37, x0: -24, x1: 140, width: 7 }, // Zoo Road, from the hospital plaza to the zoo gate
   gate: new THREE.Vector3(138, 0, -37),
   min: new THREE.Vector3(137.5, 0, -45.5),
-  max: new THREE.Vector3(232.5, 0, 45.5),
+  max: new THREE.Vector3(296, 0, 45.5), // (east of x = 232.5: Lakash's wing, zooWing.js)
   center: new THREE.Vector3(185, 0, 0),
   ring: 24, // visitor path around the middle
   pens: {
     lion: { x: 212, z: -24, r: 11, label: 'LIONS', color: 0xd9b56b },
-    elephant: { x: 212, z: 24, r: 13, label: 'ELEPHANTS', color: 0xc9a46a },
-    giraffe: { x: 158, z: 26, r: 12, label: 'GIRAFFES', color: 0xd8c27a },
+    elephant: { x: 212, z: 24, r: 13, label: 'ELEPHANTS|& HIPPOS', color: 0xc9a46a },
+    giraffe: { x: 158, z: 26, r: 12, label: 'GIRAFFES|& ZEBRAS', color: 0xd8c27a },
     penguin: { x: 160, z: -21, r: 8.5, label: 'PENGUINS', color: 0xe6f2fa },
     monkey: { x: 185, z: 2, r: 7.5, label: 'MONKEYS', color: 0x9ccf6a },
   },
@@ -221,13 +223,14 @@ export async function buildZoo(scene) {
     board.position.copy(sp);
     board.rotation.y = Math.atan2(toC.x, toC.z) + Math.PI;
     group.add(board);
-    const label = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.6), new THREE.MeshBasicMaterial({ map: signTexture([p.label], { w: 512, h: 224, size: 92, bg: '#7a4a26', fg: '#ffe9b3' }), side: THREE.DoubleSide }));
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.6), new THREE.MeshBasicMaterial({ map: signTexture(p.label.split('|'), { w: 512, h: 224, size: p.label.includes('|') ? 70 : 92, bg: '#7a4a26', fg: '#ffe9b3' }), side: THREE.DoubleSide }));
     label.position.copy(sp).add(new THREE.Vector3(0, 1.45, 0)).addScaledVector(toC, 0.2);
     label.rotation.y = board.rotation.y;
     group.add(label);
     addCircle(sp.x, sp.z, 0.4);
   }
   decoratePens(group, animated);
+  const wing = buildWing(group, animated);
 
   // ---- entrance plaza: paving, a fountain, ticket booth, lanterns, benches, flower pots
   const plaza = new THREE.Mesh(new THREE.PlaneGeometry(18, 15), toon(0xd9c9a8));
@@ -264,6 +267,26 @@ export async function buildZoo(scene) {
   for (const b of plazaBenches) addCircle(b.x, b.z, 0.9);
   group.add(scatter('pot_large', [[153.5, -44.4], [140.5, -30.6], [155.6, -30.6]].map(([x, z]) => ({ x, z, scale: 2.4 })), { outline: 0.012 }));
   group.add(scatter('flower_redB', [[153.2, -44.2], [153.8, -44.6], [140.3, -30.4], [155.4, -30.4], [155.9, -30.8]].map(([x, z]) => ({ x, z, y: 0.45, scale: 3 }))));
+
+  // a fingerpost on the plaza: which way to everything, and who's in charge
+  {
+    const fp = new THREE.Group();
+    fp.position.set(156.5, 0, -33.6);
+    const post = part(new THREE.CylinderGeometry(0.12, 0.14, 3.6, 8), 0x7a4a26, { outline: 0.015 });
+    post.position.y = 1.8;
+    fp.add(post);
+    [['CAPYBARA LAGOON →', 0, 3.1, '#8fd060'], ['MONKEY ISLAND →', 0.5, 2.55, '#ffe9b3'], ['← WAY OUT', Math.PI, 2.0, '#ffe9b3'], ['ZOOKEEPER: LAKASH', Math.PI / 2, 1.45, '#ffd23f']].forEach(([txt, rot, y, fg]) => {
+      const arm = new THREE.Group();
+      arm.rotation.y = rot;
+      arm.position.y = y;
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.42), new THREE.MeshBasicMaterial({ map: signTexture([txt], { w: 512, h: 100, size: 52, bg: '#7a4a26', fg }), side: THREE.DoubleSide }));
+      board.position.x = 1.2;
+      arm.add(board);
+      fp.add(arm);
+    });
+    group.add(fp);
+    addCircle(156.5, -33.6, 0.4);
+  }
 
   // ---- food court on the way in: market stalls, a cart, picnic benches
   const court = [[166, -42.5, 'stall-green', 0], [172, -42.5, 'stall-red', 0], [178.5, -42.5, 'stall-green', 0]];
@@ -334,13 +357,14 @@ export async function buildZoo(scene) {
   // flowers and grass tufts scattered across the lawns
   const flowers = { flower_redA: [], flower_purpleA: [], flower_yellowA: [], grass_large: [], grass: [] };
   const kinds = Object.keys(flowers);
-  for (let i = 0; i < 520; i++) {
+  for (let i = 0; i < 860; i++) {
     const x = min.x + 2 + rand() * (max.x - min.x - 4), z = min.z + 2 + rand() * (max.z - min.z - 4);
     if (Object.values(pens).some((p) => Math.hypot(p.x - x, p.z - z) < p.r + 1)) continue;
     const rr = Math.hypot(x - center.x, z - center.z);
     if (Math.abs(rr - ZOO.ring) < 2.4) continue; // keep the path clear
     if (x < 157 && z < -29) continue; // plaza
     if (z < -29 && x < 186) continue; // food court + entrance path
+    if (wingBusy(x, z)) continue;
     flowers[kinds[i % kinds.length]].push({ x, z, rot: rand() * 6, scale: 2.4 + rand() * 1.2 });
   }
   for (const [k, list] of Object.entries(flowers)) group.add(scatter(k, list, { cast: false }));
@@ -348,7 +372,7 @@ export async function buildZoo(scene) {
   // ---- trees: a green belt along the zoo fence (several Kenney tree types)
   const belt = { tree_oak: [], tree_default: [], tree_detailed: [], tree_tall: [], tree_fat: [], tree_cone: [] };
   const beltKinds = Object.keys(belt);
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 140; i++) {
     const side = Math.floor(rand() * 4);
     const u = rand();
     let x, z;
@@ -359,6 +383,7 @@ export async function buildZoo(scene) {
     if (Math.abs(z - ZOO.road.z) < 6 && x < 160) continue; // entrance
     if (z < -29 && x > 137 && x < 186) continue; // plaza + food court
     if (Object.values(pens).some((p) => Math.hypot(p.x - x, p.z - z) < p.r + 2.5)) continue;
+    if (wingBusy(x, z, 2)) continue;
     const scale = 3.6 + rand() * 1.6;
     belt[beltKinds[i % beltKinds.length]].push({ x, z, rot: rand() * 6, scale });
     addCircle(x, z, 0.55);
@@ -401,11 +426,30 @@ export async function buildZoo(scene) {
       critters.push(c);
     }
   }
-  animated.push({ update: (t, dt) => { if (group.visible) for (const c of critters) c.update(t, dt); } });
+  // zebras share the giraffes' savannah; hippos wallow in the elephants' pool
+  const extras = [];
+  for (let i = 0; i < 3; i++) {
+    const w = new Wanderer(makeZebra(), new THREE.Vector3(pens.giraffe.x, 0, pens.giraffe.z), pens.giraffe.r - 3, { speed: 1.3 });
+    w.root.userData.dynamic = true; group.add(w.root); extras.push(w);
+  }
+  const hippoPool = { x: pens.elephant.x + 5, z: pens.elephant.z + 4, r: 3.8 };
+  for (let i = 0; i < 2; i++) {
+    const w = new Wanderer(makeHippo(), new THREE.Vector3(hippoPool.x, 0, hippoPool.z), hippoPool.r - 1, { speed: 0.6, swimmer: true, pond: hippoPool });
+    w.root.position.set(hippoPool.x + (i ? 1.2 : -1.2), 0, hippoPool.z);
+    w.root.userData.dynamic = true; group.add(w.root); extras.push(w);
+  }
+  animated.push({ update: (t, dt) => { if (group.visible) { for (const c of critters) c.update(t, dt); for (const w of extras) w.update(t, dt); } } });
 
   return {
     group,
     animated,
+    wing,
+    /** Lakash's feeding rounds: the animals of `kind` come to `at` for `secs` (old pens and the new wing). */
+    gather(kind, at, secs = 16) {
+      let i = 0;
+      for (const c of critters) if (c.kind === kind) c.callTo(at, secs, i++);
+      wing.gather(kind, at, secs);
+    },
     /** A loose monkey for the chase mission, shaped like a kid rig so missions.js can drive it. */
     makeMonkey() {
       const root = new THREE.Group();
@@ -442,17 +486,27 @@ class Critter {
     this.wait = rand() * 4;
     this.phase = rand() * 10;
   }
+  /** Feeding time: come over to `at` (kept inside the pen) and stay a while. */
+  callTo(at, secs, i = 0) {
+    const a = i * 2.4, r = 0.8 + i * 0.9;
+    const p = new THREE.Vector3(at.x + Math.cos(a) * r, 0, at.z + Math.sin(a) * r);
+    const off = p.clone().sub(this.home).setY(0);
+    if (off.length() > this.radius) off.setLength(this.radius);
+    this.call = { until: secs };
+    this.target = this.home.clone().add(off);
+  }
   randomSpot() {
     const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * this.radius;
     return new THREE.Vector3(this.home.x + Math.cos(a) * d, 0, this.home.z + Math.sin(a) * d);
   }
   update(t, dt) {
     const p = this.root.position;
+    if (this.call && (this.call.until -= dt) <= 0) { this.call = null; this.target = null; this.wait = 1 + rand() * 3; }
     let moving = false;
     if (this.target) {
       const to = this.target.clone().sub(p).setY(0);
       const d = to.length();
-      if (d < 0.3) { this.target = null; this.wait = 2 + rand() * 5; }
+      if (d < 0.3) { if (!this.call) { this.target = null; this.wait = 2 + rand() * 5; } }
       else {
         to.normalize();
         const want = Math.atan2(to.x, to.z);

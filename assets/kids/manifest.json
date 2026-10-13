@@ -11,7 +11,8 @@
     "nurse": "nurse.glb",
     "teddyToddler": "teddyToddler.glb",
     "caspi": "caspi.glb",
-    "caspiDad": "caspiDad.glb"
+    "caspiDad": "caspiDad.glb",
+    "lakash": "lakash.glb"
   },
   "clips": {
     "walk": "anims/walk.glb",

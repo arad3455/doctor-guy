@@ -49,6 +49,23 @@ export function armBones(rig, side) {
   return upper && fore && hand ? { upper, fore, hand } : null;
 }
 
+/**
+ * Put a sitting character's hips on a chair: measure the hip bone in the sit pose and move the whole body so the
+ * hips sit just above the seat, centred over it (the clip's own sitting height varies between rigs).
+ * seat: { cx, cz, y } — the seat's centre and height.
+ */
+const _hips = new THREE.Vector3();
+export function sitOn(rig, seat) {
+  const hips = rig.hipsBone ??= rig.bone?.(/^Hips$/i);
+  if (!hips) return;
+  rig.root.updateMatrixWorld(true);
+  hips.getWorldPosition(_hips);
+  const p = rig.root.position;
+  p.x += seat.cx - _hips.x;
+  p.z += seat.cz - _hips.z;
+  p.y += seat.y + rig.height * 0.06 - _hips.y;
+}
+
 /** A claw hammer (handle along +y, head at the top), for Caspi's dad. */
 export function makeHammer(scale = 1) {
   const g = new THREE.Group();

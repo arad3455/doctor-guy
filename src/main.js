@@ -27,6 +27,7 @@ import { PhotoMode } from './photomode.js';
 import { buildBusStops, Buses, STOPS } from './bus.js';
 import { Radio } from './radio.js';
 import { Caspi } from './caspi.js';
+import { Lakash } from './lakash.js';
 import { Races, RACES } from './races.js';
 import { Outbreak } from './outbreak.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
@@ -290,7 +291,7 @@ function extraAction() {
   if (frenzy?.available && Math.hypot(p.x - FRENZY_TOKEN.x, p.z - FRENZY_TOKEN.z) < 2.2) {
     return { label: `⚡ Start Check-up Frenzy${progress.data.frenzyBest ? ` (best ${progress.data.frenzyBest})` : ''}`, run: () => frenzy.start() };
   }
-  const chat = caspi?.chatAction(p);
+  const chat = caspi?.chatAction(p) ?? lakash?.chatAction(p);
   if (chat) return chat;
   const stop = buses?.nearStop(p);
   if (stop) return { label: '🚌 Take the bus', run: () => buses.show(stop) };
@@ -368,6 +369,7 @@ let frenzy = null;
 let photo = null; // photo mode (P / 📷)
 let buses = null; // bus stops in every area (fast travel)
 let caspi = null; // Doctor Guy's friend (and Gorge the cat)
+let lakash = null; // the zookeeper (and his six cats)
 let races = null; // ambulance time trials
 let outbreak = null; // flu outbreaks
 let bandages = null; // Golden Bandages (created once the world is built)
@@ -650,6 +652,7 @@ function frame() {
   outbreak?.update(dt, started && !isInside(player.pos) && !frenzy?.active);
   if (caspi && started) {
     caspi.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
+    lakash?.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
     minigame.slow = caspi.calming(player.pos) ? 0.6 : 1; // his calm makes treatments easier
   }
   radioBtn.style.display = started && ambulance.driving ? '' : 'none';
@@ -779,7 +782,9 @@ races = new Races({ scene, progress, ambulance, ui: { toast: (h, ms) => hud.toas
 hud.radar.raceTarget = () => races.target;
 outbreak = new Outbreak({ missions, progress, ui: { toast: (h, ms) => hud.toast(h, ms), reward: (n) => { missions.lollipops += n; } } });
 window.__game.outbreak = outbreak;
-hud.radar.extraBlips = () => [...caspi.blips(), ...outbreak.blips(), ...(races.active ? [] : races.blips())];
+lakash = new Lakash({ scene, player, gps: hud.radar.gps, zoo, ui: {} });
+window.__game.lakash = lakash;
+hud.radar.extraBlips = () => [...caspi.blips(), ...lakash.blips(), ...outbreak.blips(), ...(races.active ? [] : races.blips())];
 window.__game.races = races;
 window.__game.raceDefs = { RACES };
 window.__game.caspi = caspi;

@@ -67,7 +67,7 @@ const EMOJI = {
   '🍭': 'lollipop', '🩺': 'steth', '⚡': 'bolt', '💊': 'pill', '🏁': 'flag', '🚌': 'bus', '🛍️': 'bag', '🛍': 'bag', '🏥': 'hospital',
   '🚑': 'ambulance', '🚨': 'siren', '🚪': 'door', '⭐': 'star', '🏆': 'trophy', '🤒': 'virus', '🤧': 'virus', '🐱': 'paw', '😎': 'chat',
   '📻': 'radio', '📷': 'camera', '✨': 'sparkle', '🔥': 'flame', '🗺️': 'map', '🗺': 'map', '☀️': 'sun', '🌙': 'moon', '⛑️': 'cross',
-  '👂': 'ear', '🐒': 'monkey', '🛑': 'stop', '🚦': 'go', '⏱️': 'clock', '🩹': 'bandage', '✋': 'hand', '❤️': 'heart', '🧒': 'patient', '🎯': 'target', '🚶': 'walk',
+  '👂': 'ear', '🐒': 'monkey', '🛑': 'stop', '🚦': 'go', '⏱️': 'clock', '🩹': 'bandage', '✋': 'hand', '❤️': 'heart', '🧒': 'patient', '🐾': 'paw', '🎯': 'target', '🚶': 'walk',
 };
 const MEDALS = { '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' };
 const EMOJI_RE = /\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*/gu;
@@ -93,7 +93,7 @@ const BLIPS = {
   '🏥': ['hospital', '#e0323a'], '🏖️': ['umbrella', '#ef9a2a'], '🦁': ['paw', '#a8692c'], '🌳': ['tree', '#3f9a3a'], '🏙️': ['building', '#5560c8'],
   '🏡': ['house', '#d9774a'], '🎡': ['wheel', '#e04f8f'], '🏕️': ['tent', '#2e7d4f'], '⚓': ['anchor', '#2f7fc1'], '✈️': ['plane', '#3a9ad9'],
   '😎': ['chat', '#8a63d2'], '🐱': ['paw', '#8a63d2'], '🤒': ['virus', '#6aa82e'], '🏁': ['flag', '#1b1b2e'], '🚪': ['door', '#4a4a5a'], '🚑': ['ambulance', '#2f7fc1'],
-  '🚌': ['bus', '#2f7fc1'], '⚡': ['bolt', '#ff3c8e'],
+  '🐾': ['paw', '#e0741f'], '🚌': ['bus', '#2f7fc1'], '⚡': ['bolt', '#ff3c8e'],
 };
 const pathCache = {};
 /** The parts of an icon as canvas Path2Ds (24-unit space). */

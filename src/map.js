@@ -13,6 +13,7 @@ import { CAMP } from './camp.js';
 import { HARBOR, HB_MAP } from './harbor.js';
 import { AIRPORT, AIR_MAP } from './airport.js';
 import { STOPS } from './bus.js';
+import { WING } from './zooWing.js';
 import { drawBlip } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -36,6 +37,7 @@ export const ZONE_LABELS = [
   { x: 0, z: 100, text: 'SUNNY BEACH' },
   { x: 97, z: -46, text: 'ZOO ROAD' },
   { x: ZOO.center.x, z: ZOO.max.z + 7, text: 'WOLFSON CITY ZOO' },
+  { x: 264, z: ZOO.max.z + 7, text: 'CAPYBARA LAGOON' },
   { x: DOWNTOWN.plaza.cx, z: DOWNTOWN.min.z - 6, text: 'DOWNTOWN' },
   { x: -86, z: -37, text: 'MAIN ST' },
   { x: 104, z: 16, text: 'MAPLE HEIGHTS' },
@@ -297,6 +299,22 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
     if (name === 'monkey') rect(p.x - 2.7, p.z - 2.7, p.x + 2.7, p.z + 2.7, '#a8743f', '#7a4a26', 1);
     if (s > 1) text(p.x, p.z, penIcons[name], Math.min(28, p.r * s * 0.95));
   }
+  // Lakash's wing: the promenade, capybara lagoon, tortoises, flamingos, meerkats, the shed and his cottage
+  { const W = WING, P = W.promenade;
+    rect(P.x0, P.z - P.w / 2, P.x1, P.z + P.w / 2, pathFill);
+    rect(W.northPath.x - 1.2, W.northPath.z0, W.northPath.x + 1.2, W.northPath.z1, pathFill);
+    rect(W.aviary.x + W.aviary.r, -37.1, W.northPath.x, -34.9, pathFill);
+    circle(W.aviary.x, W.aviary.z, W.aviary.r, '#cfe8c0', '#2e5a26', Math.max(1, 0.4 * s));
+    for (const [k, col] of [['capybara', '#8fd060'], ['tortoise', '#d9c48a'], ['flamingo', '#9fd46a'], ['meerkat', '#e0c27e']]) {
+      const e = W[k];
+      circle(e.x, e.z, e.r + 0.3, '#7a5230');
+      circle(e.x, e.z, e.r - 0.1, col);
+      if (e.pond) { circle(e.pond.x, e.pond.z, e.pond.r + 1, '#e8d49a'); circle(e.pond.x, e.pond.z, e.pond.r, '#43aef5'); }
+    }
+    circle(W.capybara.island.x, W.capybara.island.z, W.capybara.island.r, '#8fd060', '#b59a62', 1);
+    rect(W.shed.x - W.shed.w / 2, W.shed.z - W.shed.d / 2, W.shed.x + W.shed.w / 2, W.shed.z + W.shed.d / 2, '#b0402e', '#5a3a28', 1);
+    rect(W.cottage.x - W.cottage.w / 2, W.cottage.z - 3.4, W.cottage.x + W.cottage.w / 2, W.cottage.z + 2.6, '#4a7a3a', '#2e5a26', 1);
+  }
   rect(ZOO.gate.x - 1, ZOO.gate.z - 5.5, ZOO.gate.x + 1, ZOO.gate.z + 5.5, '#c0541f', '#6b2a0d', 1);
 
   // ---- trees everywhere, with shadows and a highlight
@@ -520,7 +538,7 @@ export class Radar {
 /* ------------------------------------------------------------------ */
 /* Full-screen map                                                      */
 /* ------------------------------------------------------------------ */
-const BOUNDS = { x0: -210, x1: 245, z0: -224, z1: 182 };
+const BOUNDS = { x0: -210, x1: 300, z0: -224, z1: 182 };
 
 export class BigMap {
   constructor(radar, getState) {

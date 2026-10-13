@@ -95,7 +95,7 @@ export function locationName(p) {
   if (p.x > 117 && p.z > 113) return p.z > 165 ? 'Sunset Pier · Lighthouse' : 'Sunset Pier';
   if (p.x > 92 && p.z > 63) return 'Sunset Pier Funfair';
   if (p.x > 60 && p.z > 63 && p.z < 78) return 'Pier Car Park';
-  if (p.x > 137) return 'Wolfson City Zoo';
+  if (p.x > 137) return p.x < 232.5 ? 'Wolfson City Zoo' : p.z < -31 ? 'Zoo · Lakash’s Cottage' : p.z < 0 && p.x < 278 ? 'Zoo · Capybara Lagoon' : p.z < 0 ? 'Zoo · Meerkat Colony' : p.z > 12 ? (p.x < 265 ? 'Zoo · Tortoise Garden' : 'Zoo · Flamingo Pond') : 'Zoo · Capybara Lagoon';
   if (p.x > 58 && p.z > -33 && p.z < 63) return suburbName(p);
   if (p.x > 56) return 'Zoo Road';
   if (p.z > 82) return 'Sunny Beach';
@@ -150,7 +150,7 @@ const WALKABLE = [
   { minX: -102.6, maxX: -99.4, minZ: 114, maxZ: 139.5 }, // …and its jetty
   { minX: 9, maxX: 151, minZ: -217, maxZ: -98.5 }, // Pinewood Camp (camp.js)
   { minX: 115.5, maxX: 132.5, minZ: -52.6, maxZ: -40 }, // the zoo car park
-  { minX: 137.5, maxX: 232.5, minZ: -45.5, maxZ: 45.5 }, // the zoo
+  { minX: 137.5, maxX: 296, minZ: -45.5, maxZ: 45.5 }, // the zoo (with Lakash's wing, east of x = 232.5)
 ];
 
 /** Keeps a position inside the walkable areas (moves it to the nearest one if it left them all). */

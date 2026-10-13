@@ -314,7 +314,11 @@ export function animateRig(rig, state, t, dt, speed = 0) {
 /* ------------------------------------------------------------------ */
 /* Floating UI in the world                                            */
 /* ------------------------------------------------------------------ */
+const measure = document.createElement('canvas').getContext('2d');
 export function makeBubble(text, { bg = '#ffffff', fg = '#1b1b1b', w = 256, h = 110 } = {}) {
+  // grow to fit the line (the sprite keeps the same text size, so a longer line makes a wider bubble)
+  measure.font = `700 38px ${FONT}`;
+  w = Math.max(w, Math.ceil(measure.measureText(text).width) + 64);
   const tex = canvasTexture(w, h, (ctx) => {
     ctx.fillStyle = bg;
     ctx.strokeStyle = '#1b1b1b';
@@ -335,7 +339,7 @@ export function makeBubble(text, { bg = '#ffffff', fg = '#1b1b1b', w = 256, h = 
     ctx.fillText(text, w / 2, (h - 28) / 2 + 3);
   });
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-  sprite.scale.set(1.5, (1.5 * h) / w, 1);
+  sprite.scale.set((1.5 * w) / 256, (1.5 * h) / 256, 1);
   sprite.renderOrder = 10;
   return sprite;
 }
