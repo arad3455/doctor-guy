@@ -26,6 +26,7 @@ function tone(freq, dur, { type = 'sine', vol = 0.15, delay = 0, slide = 0 } = {
 
 export const sfx = {
   pickup: () => { tone(880, 0.08, { type: 'square', vol: 0.06 }); tone(1320, 0.12, { type: 'square', vol: 0.06, delay: 0.06 }); },
+  knock: (vol = 0.08) => { tone(170, 0.05, { type: 'square', vol, slide: 0.55 }); tone(90, 0.09, { type: 'triangle', vol: vol * 1.4 }); }, // a hammer on wood
   hit: () => tone(660, 0.12, { type: 'triangle', vol: 0.2, slide: 1.5 }),
   miss: () => tone(160, 0.25, { type: 'sawtooth', vol: 0.08, slide: 0.6 }),
   alert: () => { for (let i = 0; i < 3; i++) { tone(780, 0.14, { type: 'square', vol: 0.05, delay: i * 0.3 }); tone(620, 0.14, { type: 'square', vol: 0.05, delay: i * 0.3 + 0.15 }); } },

@@ -9,7 +9,7 @@ import { toon } from './toon.js';
 const BASE = new URL('../assets/kids/', import.meta.url);
 const OUTLINE = 0.008;
 const DEFAULT_HEIGHT = 1.4; // same as the procedural kids, so bubbles/colliders/carrying line up
-const HEIGHTS = { teddyToddler: 1.1, mom: 2.05, nurse: 2.05, caspi: 2.2 };
+const HEIGHTS = { teddyToddler: 1.1, mom: 2.05, nurse: 2.05, caspi: 2.2, caspiDad: 2.2 };
 const BIND_POSE = new URLSearchParams(location.search).has('bind');
 
 // Game state → shared kid clips (see ACTIONS in tools/meshy-kids.mjs)
@@ -180,10 +180,14 @@ export function buildKid3D(look) {
     seatHeight: tpl.seat.hips, // hip height while sitting (riding on shoulders)
     seat: tpl.seat,
     playOnce: anim.playOnce,
+    model,
+    bone: (re) => findBone(model, re),
+    overlay: null, // (dt, t) => …: pose tweaks on top of the clip (Caspi's dad hammering, see poses.js)
     animate(state, dt, speed = 0) {
       t += dt;
       if (BIND_POSE) return; // debug: ?bind shows the raw rig
       anim.update(state, dt, speed);
+      if (this.overlay) { model.updateMatrixWorld(true); this.overlay(dt, t); }
       if (feet.length && state !== 'sit' && state !== 'carried') {
         model.updateMatrixWorld(true);
         root.getWorldPosition(rp);

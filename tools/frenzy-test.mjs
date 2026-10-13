@@ -15,7 +15,11 @@ await g(() => { __game.player.pos.set(9, 0, -10.8); __game.input.yaw = 0; __game
 await wait(1200);
 await page.screenshot({ path: '.shots/frenzy-1-token.png' });
 const prompt = await g(() => document.getElementById('prompt').textContent);
-await page.keyboard.press('KeyE');
+// (a key press can land on a slow software-GL frame: press again until the frenzy is running)
+for (let i = 0; i < 4 && !(await g(() => __game.frenzy.active)); i++) {
+  await page.keyboard.press('KeyE');
+  await page.waitForFunction(() => __game.frenzy.active, { timeout: 8000 }).catch(() => {});
+}
 await wait(600);
 console.log("PROMPT", prompt);
 const started = await g(() => ({ active: __game.frenzy.active, kids: __game.frenzy.kids?.length, hud: document.getElementById('frenzy-hud').innerText.replace(/\n/g, ' ') }));

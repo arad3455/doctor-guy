@@ -186,6 +186,8 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   }
   for (const [x, z] of MH_MAP.pools) circle(x, z, 2.2, '#4fc0f0', '#ff8ac0', Math.max(1, 0.4 * s));
   for (const [x, z] of MH_MAP.tramps) circle(x, z, 2, '#1b1b1b', '#2f7fc1', Math.max(1, 0.4 * s));
+  // Caspi's family sukkah: green palm roof on a wooden frame
+  if (MH_MAP.sukkah) { const k = MH_MAP.sukkah; rect(k.x - k.w / 2, k.z - k.d / 2, k.x + k.w / 2, k.z + k.d / 2, '#4f9a3a', '#7a5230', Math.max(1, 0.5 * s)); }
   if (detail) shadow((c) => { for (const h of MH_MAP.houses) rect(h.x - h.w / 2, h.z - h.d / 2, h.x + h.w / 2, h.z + h.d / 2, c); });
   for (const h of MH_MAP.houses) rect(h.x - h.w / 2, h.z - h.d / 2, h.x + h.w / 2, h.z + h.d / 2, h.roof ? roofColor(h.roof) : '#46a86a', '#3b4250', Math.max(1, 0.3 * s));
   if (sch.building) { const b = sch.building; rect(b.x - b.w / 2, b.z - b.d / 2, b.x + b.w / 2, b.z + b.d / 2, '#e0b84a', '#3b4250', Math.max(1, 0.3 * s)); text(b.x, b.z, '🏫', Math.max(10, 4 * s)); }

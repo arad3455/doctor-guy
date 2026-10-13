@@ -1,27 +1,26 @@
-// Caspi — Doctor Guy's friend. The chillest guy in Wolfson: he drifts between his favourite spots on his own
-// clock (café mornings, park afternoons, pier sunsets, campfire nights) with his cat Gorge trotting behind.
-// Talk to him and all you get is "Later Later…" as he wanders off. Stand near him while treating a kid and his
-// calm rubs off (the timing bar slows down). Now and then Gorge goes missing — bring him back and, for once,
-// Caspi smiles.
+// Caspi — Doctor Guy's friend. The chillest guy in Wolfson. You find him at home in Maple Heights, in the back
+// garden, helping his dad (curly hair, always building something) put up the family sukkah: by day Caspi holds the
+// beam while Dad hammers it in, in the evening they sit down to dinner in it under the string lights. His cat Gorge
+// is never far away. Talk to him and all you get is "Later Later…" as he wanders off (Dad is not impressed).
+// Stand near him while treating a kid and his calm rubs off (the timing bar slows down). Now and then Gorge goes
+// missing — bring him back and, for once, Caspi smiles.
 import * as THREE from 'three';
 import { buildKid, animateRig, makeBubble } from './characters.js';
 import { gltfLoader } from './skinned.js';
 import { rigQuadruped } from './catrig.js';
 import { part, toon } from './toon.js';
 import { clampWalkable, collidersNear } from './world.js';
-import { DT_SPOTS, DOWNTOWN } from './downtown.js';
-import { FAIR } from './pier.js';
-import { CAMP } from './camp.js';
 import { sfx } from './audio.js';
 import { notify } from './notify.js';
+import { MH_SPOTS } from './suburbs.js';
+import { reach, armBones, makeHammer } from './poses.js';
 
-// where he hangs out, by the hour (the day/night clock)
+// his day (the day/night clock): building the sukkah with Dad, then dinner in it (spots filled in from the sukkah)
 const SCHEDULE = [
-  { from: 6, to: 11, name: 'the café on Market Row', x: DT_SPOTS.cafe.x + 6, z: DOWNTOWN.shops.z1 - 1.6, pose: 'idle' },
-  { from: 11, to: 16.5, name: 'Wolfson Park', x: -9, z: 6, pose: 'idle' },
-  { from: 16.5, to: 20.5, name: 'the end of Sunset Pier', x: FAIR.pier.x0 + 2.2, z: FAIR.pier.z1 - 8, pose: 'idle' },
-  { from: 20.5, to: 30, name: 'the Pinewood campfire', x: CAMP.site.x - 3.6, z: CAMP.site.z + 0.5, pose: 'idle' },
+  { from: 6, to: 20.5, name: 'home, building the sukkah', mode: 'build' },
+  { from: 20.5, to: 30, name: 'home, having dinner in the sukkah', mode: 'dinner' },
 ];
+const DAD_LINES = ['Shalom, Doc! Almost done!', 'Come eat with us in the sukkah tonight!', 'Measure twice, hammer once.', 'Caspi, hold it straight!', 'Next year we build a bigger one!'];
 // where Gorge likes to "get lost"
 const GORGE_HIDEOUTS = [
   { x: 23, z: -22, hint: 'by the pond' }, { x: 104, z: 81, hint: 'under the Ferris wheel… no, by the carousel' },
@@ -64,10 +63,18 @@ export class Caspi {
     this.chatCooldown = 0;
     this.gorgeState = 'follow'; // follow | lost | found (following Doctor Guy back)
     this.gorgeTimer = 150 + Math.random() * 120; // first disappearance after a few minutes
-    for (const s of SCHEDULE) nudge(s);
+    // home: the sukkah in the back garden (Maple Heights); work spots by day, chairs at dinner
+    const S = this.sukkah = MH_SPOTS.sukkah;
+    const front = { x: S.x + 1.0, z: S.z + S.d / 2 + 0.9 }; // the way in, through the open front
+    this.front = front;
+    for (const s of SCHEDULE) Object.assign(s, s.mode === 'build' ? { ...S.caspi } : { x: S.seats[0].x, z: S.seats[0].z, rot: S.seats[0].rot, seat: S.seats[0] });
     for (const h of GORGE_HIDEOUTS) nudge(h);
+    this.buildDad();
     this.spot = this.spotFor(this.ui.hour());
     this.pos.set(this.spot.x, 0, this.spot.z);
+    this.rig.root.rotation.y = this.spot.rot ?? 0;
+    this.placeDad(true);
+    this.setupPoses();
     this.gorge.root.position.set(this.spot.x + 1.2, 0, this.spot.z + 0.8);
     this.loadGorgeModel();
   }
@@ -90,6 +97,81 @@ export class Caspi {
     } catch { /* keep the hand-built cat */ }
   }
 
+  /** Caspi's dad: curly hair, checked work shirt, a hammer in his hand. */
+  buildDad() {
+    this.dad = buildKid('caspiDad');
+    this.dad.root.name = 'caspiDad';
+    this.scene.add(this.dad.root);
+    this.dad.hammer = makeHammer(1.5);
+    this.scene.add(this.dad.hammer);
+    this.dad.route = null;
+    this.dad.bubble = null;
+    this.dad.bubbleT = 0;
+    this.dadChatCooldown = 0;
+  }
+
+  /** Dad's spot for the time of day (snap = put him straight there). */
+  placeDad(snap = false) {
+    const S = this.sukkah, dinner = this.spot.mode === 'dinner';
+    const want = dinner ? { x: S.seats[1].x, z: S.seats[1].z, rot: S.seats[1].rot, seat: S.seats[1] } : { ...S.dad };
+    this.dad.spot = want;
+    if (snap) { this.dad.root.position.set(want.x, 0, want.z); this.dad.root.rotation.y = want.rot; this.dad.route = null; }
+    else this.dad.route = [{ ...this.front }, { x: want.x, z: want.z }];
+  }
+
+  /** The hand-made poses: Caspi holding the beam, Dad hammering it in (two-bone IK, see poses.js). */
+  setupPoses() {
+    const S = this.sukkah;
+    const up = new THREE.Vector3(0, 1, 0);
+    const holdR = new THREE.Vector3(S.hold[1].x, S.hold[1].y, S.hold[1].z), holdL = new THREE.Vector3(S.hold[0].x, S.hold[0].y, S.hold[0].z);
+    const strike = new THREE.Vector3(S.strike.x, S.strike.y, S.strike.z);
+    const tgt = new THREE.Vector3(), pole = new THREE.Vector3(), sh = new THREE.Vector3(), fwd = new THREE.Vector3(), side = new THREE.Vector3();
+    // Caspi: both hands on the beam (a lazy sway — he's holding it, more or less)
+    const cR = armBones(this.rig, 'Right'), cL = armBones(this.rig, 'Left');
+    this.caspiPose = cR && cL ? (dt, t) => {
+      const w = this.posing === 'build' ? 1 : 0;
+      this.holdW = (this.holdW ?? 0) + (w - (this.holdW ?? 0)) * Math.min(1, dt * 4);
+      if (this.holdW < 0.01) return;
+      const sway = Math.sin(t * 0.9) * 0.02;
+      reach(cR, tgt.copy(holdR).setY(holdR.y + sway), pole.set(0, -1, -0.6).normalize(), this.holdW);
+      reach(cL, tgt.copy(holdL).setY(holdL.y + sway), pole.set(0, -1, 0.6).normalize(), this.holdW);
+    } : null;
+    // Dad: left hand steadies the beam, right hand swings the hammer onto the joint (a knock you can hear)
+    const dR = armBones(this.dad, 'Right'), dL = armBones(this.dad, 'Left');
+    const hammer = this.dad.hammer;
+    let lastPhase = 0;
+    this.dadPose = dR && dL ? (dt, t) => {
+      const working = this.dad.posing === 'build';
+      this.dad.workW = (this.dad.workW ?? 0) + ((working ? 1 : 0) - (this.dad.workW ?? 0)) * Math.min(1, dt * 4);
+      hammer.visible = this.dad.root.visible && this.dad.workW > 0.3 && !this.dad.route;
+      if (this.dad.workW < 0.01) return;
+      // waiting for Caspi to come back and hold the beam: arms down, no hammering
+      const busy = !this.route && this.posing === 'build';
+      const cycle = busy ? (t * 1.15) % 1 : 0.8;
+      dR.upper.getWorldPosition(sh);
+      fwd.subVectors(strike, sh).setY(0).normalize();
+      side.crossVectors(fwd, up).normalize(); // his right
+      const hit = tgt.copy(strike).addScaledVector(fwd, -0.3).addScaledVector(up, 0.06); // the hand stops short; the head lands on the joint
+      const raised = new THREE.Vector3().copy(sh).addScaledVector(fwd, 0.22).addScaledVector(up, 0.32).addScaledVector(side, 0.05);
+      let k; // 0 = raised, 1 = on the joint
+      if (cycle < 0.55) k = 1 - THREE.MathUtils.smoothstep(cycle, 0, 0.5);
+      else if (cycle < 0.66) k = (cycle - 0.55) / 0.11;
+      else k = 1;
+      const hand = raised.lerp(hit, k * k);
+      reach(dR, hand, pole.set(0, -1, 0).addScaledVector(side, 0.7).normalize(), this.dad.workW);
+      reach(dL, tgt.set(this.sukkah.hold[1].x, this.sukkah.hold[1].y, this.sukkah.hold[1].z - 0.0).lerp(strike, 0.35), pole.set(0, -1, 0).addScaledVector(side, -0.7).normalize(), this.dad.workW * (busy ? 1 : 0.4));
+      if (busy && lastPhase < 0.66 && cycle >= 0.66 && Math.hypot(this.player.pos.x - strike.x, this.player.pos.z - strike.z) < 14) sfx.knock(0.07);
+      lastPhase = cycle;
+      // the hammer in his fist: handle across the forearm, head leading the swing
+      dR.hand.getWorldPosition(hammer.position);
+      const fore = new THREE.Vector3().subVectors(hammer.position, dR.fore.getWorldPosition(new THREE.Vector3())).normalize();
+      const dir = fore.clone().applyAxisAngle(side, -Math.PI / 2 * 0.85).normalize();
+      hammer.quaternion.setFromUnitVectors(up, dir);
+    } : null;
+    this.rig.overlay = this.caspiPose;
+    this.dad.overlay = this.dadPose;
+  }
+
   spotFor(hour) { const h = hour < 6 ? hour + 24 : hour; return SCHEDULE.find((s) => h >= s.from && h < s.to) ?? SCHEDULE[0]; }
 
   say(text, secs = 2.6) {
@@ -105,11 +187,27 @@ export class Caspi {
     this.route = r && r.length > 1 ? r.slice(1) : [{ x, z }];
   }
 
-  /** What E does when you're next to him. */
+  /** What E does when you're next to him (or his dad). */
   chatAction(p) {
-    if (this.chatCooldown > 0 || Math.hypot(p.x - this.pos.x, p.z - this.pos.z) > CHAT_RANGE) return null;
+    const dCaspi = Math.hypot(p.x - this.pos.x, p.z - this.pos.z), dDad = Math.hypot(p.x - this.dad.root.position.x, p.z - this.dad.root.position.z);
+    if (dDad < CHAT_RANGE && dDad < dCaspi && this.dadChatCooldown <= 0) return { label: '😎 Talk to Caspi’s dad', run: () => this.dadChat() };
+    if (this.chatCooldown > 0 || dCaspi > CHAT_RANGE) return null;
     if (this.gorgeState === 'found') return null; // bringing Gorge back is automatic
     return { label: '😎 Hey Caspi!', run: () => this.brushOff() };
+  }
+
+  dadSay(text, secs = 3) {
+    const d = this.dad;
+    if (d.bubble) d.root.remove(d.bubble);
+    d.bubble = makeBubble(text, { w: 340, bg: '#eaf3ff' });
+    d.bubble.position.y = d.height + 0.9;
+    d.root.add(d.bubble);
+    d.bubbleT = secs;
+  }
+
+  dadChat() {
+    this.dadSay(DAD_LINES[this.dadLine = ((this.dadLine ?? -1) + 1) % DAD_LINES.length]);
+    this.dadChatCooldown = 4;
   }
 
   brushOff() {
@@ -120,22 +218,33 @@ export class Caspi {
     const t = nudge({ x: this.pos.x + away.x * 14 + away.z * 4, z: this.pos.z + away.z * 14 - away.x * 4 });
     this.walkTo(t.x, t.z);
     this.wanderBack = 25; // seconds before strolling back to his spot
+    if (this.spot.mode === 'build') setTimeout(() => this.dadSay('Caspi! Who’s holding the beam?!', 3), 1400);
     this.ui.onChat?.();
+  }
+
+  /** Walk home to a spot: by the GPS to the sukkah's open front if he's out, then straight to it. */
+  goHome(spot) {
+    const S = this.sukkah;
+    if (Math.hypot(this.pos.x - S.x, this.pos.z - S.z) < 9) this.route = [{ ...this.front }, { x: spot.x, z: spot.z }];
+    else { this.walkTo(this.front.x, this.front.z); this.route.push({ x: spot.x, z: spot.z }); }
   }
 
   /** Called each frame from the game loop. */
   update(dt, t, { hour, outside, inside }) {
     const p = this.player.pos;
     this.chatCooldown = Math.max(0, this.chatCooldown - dt);
+    this.dadChatCooldown = Math.max(0, this.dadChatCooldown - dt);
     if (this.bubble && (this.bubbleT -= dt) <= 0) { this.rig.root.remove(this.bubble); this.bubble = null; }
-    // his day: when the clock moves him on, walk there if you can see him, otherwise just be there
+    // his day: when the clock moves him on (build → dinner), walk there if you can see him, otherwise just be there
     const spot = this.spotFor(hour);
     if (spot !== this.spot) {
       this.spot = spot;
-      if (Math.hypot(p.x - this.pos.x, p.z - this.pos.z) < 70) this.walkTo(spot.x, spot.z);
+      const near = Math.hypot(p.x - this.pos.x, p.z - this.pos.z) < 40;
+      if (near) this.goHome(spot);
       else { this.pos.set(spot.x, 0, spot.z); this.route = null; }
+      this.placeDad(!near);
     }
-    if (this.wanderBack != null && !this.route && (this.wanderBack -= dt) <= 0) { this.wanderBack = null; this.walkTo(spot.x, spot.z); }
+    if (this.wanderBack != null && !this.route && (this.wanderBack -= dt) <= 0) { this.wanderBack = null; this.goHome(spot); }
     // far from both the player and his destination: skip the long walk
     if (this.route && Math.hypot(p.x - this.pos.x, p.z - this.pos.z) > 90) {
       const last = this.route[this.route.length - 1];
@@ -153,14 +262,51 @@ export class Caspi {
         this.rig.root.rotation.y = Math.atan2(dx, dz);
         moving = true;
       }
-    } else if (Math.hypot(p.x - this.pos.x, p.z - this.pos.z) < 6) {
-      // a lazy glance at Doctor Guy when he's close
-      const want = Math.atan2(p.x - this.pos.x, p.z - this.pos.z);
-      this.rig.root.rotation.y += Math.atan2(Math.sin(want - this.rig.root.rotation.y), Math.cos(want - this.rig.root.rotation.y)) * Math.min(1, dt * 1.5);
     }
-    animateRig(this.rig, moving ? 'walk' : 'idle', t, dt, moving ? SPEED : 0);
+    // at his spot: face the work (or the table) and get on with it
+    const atSpot = !this.route && Math.hypot(this.pos.x - spot.x, this.pos.z - spot.z) < 0.5;
+    this.posing = atSpot ? spot.mode : null;
+    if (atSpot) turnTo(this.rig.root, spot.rot, dt);
+    else if (!this.route && Math.hypot(p.x - this.pos.x, p.z - this.pos.z) < 6) turnTo(this.rig.root, Math.atan2(p.x - this.pos.x, p.z - this.pos.z), dt * 0.5); // a lazy glance
+    const sitting = this.posing === 'dinner';
+    if (!sitting) this.pos.y = 0;
+    // out of sight across town: no need to pose anyone (saves the skinning + IK work)
+    this.far = Math.hypot(p.x - this.sukkah.x, p.z - this.sukkah.z) > 85 && Math.hypot(p.x - this.pos.x, p.z - this.pos.z) > 85;
+    if (!this.far) animateRig(this.rig, moving ? 'walk' : sitting ? 'sit' : 'idle', t, dt, moving ? SPEED : 0);
+    if (sitting) sitOn(this.rig, spot.seat);
     this.rig.root.visible = !inside;
+    this.updateDad(dt, t, inside);
     this.updateGorge(dt, t, moving, inside);
+  }
+
+  updateDad(dt, t, inside) {
+    const d = this.dad, dp = d.root.position, p = this.player.pos;
+    if (d.bubble && (d.bubbleT -= dt) <= 0) { d.root.remove(d.bubble); d.bubble = null; }
+    let moving = false;
+    if (d.route) {
+      const tgt = d.route[0];
+      const dx = tgt.x - dp.x, dz = tgt.z - dp.z, dist = Math.hypot(dx, dz);
+      if (dist < 0.3) { d.route.shift(); if (!d.route.length) d.route = null; }
+      else {
+        const step = Math.min(dist, SPEED * 1.1 * dt);
+        dp.x += (dx / dist) * step; dp.z += (dz / dist) * step;
+        d.root.rotation.y = Math.atan2(dx, dz);
+        moving = true;
+      }
+    }
+    const atSpot = !d.route && Math.hypot(dp.x - d.spot.x, dp.z - d.spot.z) < 0.5;
+    d.posing = atSpot ? (d.spot.seat ? 'dinner' : 'build') : null;
+    // waiting on Caspi (he wandered off): turn round to look for him
+    const waiting = d.posing === 'build' && this.posing !== 'build';
+    if (atSpot) turnTo(d.root, waiting ? Math.atan2(this.pos.x - dp.x, this.pos.z - dp.z) : d.spot.rot, dt);
+    else if (d.bubble && !d.route) turnTo(d.root, Math.atan2(p.x - dp.x, p.z - dp.z), dt);
+    const sitting = d.posing === 'dinner';
+    if (!sitting) dp.y = 0;
+    if (d.posing === 'build' && waiting) d.posing = 'wait';
+    if (!this.far) animateRig(d, moving ? 'walk' : sitting ? 'sit' : 'idle', t, dt, moving ? SPEED : 0);
+    if (sitting) sitOn(d, d.spot.seat);
+    d.root.visible = !inside;
+    if (inside) d.hammer.visible = false;
   }
 
   /** Is Caspi's calm close enough to slow the treatment timing bar? */
@@ -228,6 +374,27 @@ export class Caspi {
     if (this.gorgeState === 'lost') out.push({ x: this.gorge.root.position.x, z: this.gorge.root.position.z, icon: '🐱', name: 'Gorge' });
     return out;
   }
+}
+
+/**
+ * Put a sitting character's hips on a chair: measure the hip bone in the sit pose and move the whole body so the
+ * hips sit just above the seat, centred over it (the clip's own sitting height varies between rigs).
+ */
+const _hips = new THREE.Vector3();
+function sitOn(rig, seat) {
+  const hips = rig.hipsBone ??= rig.bone?.(/^Hips$/i);
+  if (!hips) return;
+  rig.root.updateMatrixWorld(true);
+  hips.getWorldPosition(_hips);
+  const p = rig.root.position;
+  p.x += seat.cx - _hips.x;
+  p.z += seat.cz - _hips.z;
+  p.y += seat.y + rig.height * 0.06 - _hips.y;
+}
+
+/** Ease a character round to face `want` (radians). */
+function turnTo(root, want, dt) {
+  root.rotation.y += Math.atan2(Math.sin(want - root.rotation.y), Math.cos(want - root.rotation.y)) * Math.min(1, dt * 4);
 }
 
 /** Gorge, hand-built until (or if) the Meshy model loads: a brown tabby with a red check collar and a bell. */

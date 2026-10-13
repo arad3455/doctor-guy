@@ -34,6 +34,7 @@ export const KIDS = {
   gownKid: { height: 1.2, desc: 'A boy about 8 years old with short dark hair wearing a light-blue hospital gown with small dark-blue dots, blue slippers.' },
   mom: { height: 1.7, desc: 'A friendly mother in her thirties with long brown hair, a teal dress, white sneakers.' },
   caspi: { height: 1.75, desc: 'A laid-back young man with short dark hair faded at the sides, a short neat dark beard and moustache, a black leather biker jacket over an olive-green shirt, dark jeans, white sneakers.' },
+  caspiDad: { height: 1.76, ref: 'caspi', desc: 'Caspi\'s father, a warm, friendly man in his late fifties with a big mop of thick, tight curly black hair going a little grey, a short salt-and-pepper beard, a light-blue checked flannel shirt with the sleeves rolled up, beige work trousers, brown work boots.' },
   nurse: { height: 1.7, desc: 'A friendly hospital nurse in her thirties with dark hair tied in a bun, light-blue nurse scrubs (short-sleeved top and trousers), a small name badge with a red cross, white clogs.' },
 };
 const TEMPLATE = 'bandageBoy';
@@ -111,11 +112,13 @@ async function concept(kid) {
   const t = await run('image-to-image', {
     ai_model: args.includes('--alt-model') ? 'gpt-image-2' : 'nano-banana-pro',
     // --style-ref: use our own clean kid concept instead of the original scene art (avoids provider refusals)
-    reference_image_urls: args.includes('--style-ref')
+    // ref: a family member, drawn from that character's concept (same style, a family likeness)
+    reference_image_urls: k.ref ? [dataUri(join(SRC, `${k.ref}-concept.png`))]
+      : args.includes('--style-ref')
       ? [dataUri(join(SRC, `${TEMPLATE}-concept.png`))]
       : ['hospital.png', 'zoo.png', 'park.png'].map((f) => dataUri(join(REFS, f))),
     prompt:
-      `Character model sheet of a different character drawn in exactly the same style as the reference. ${k.desc} ${STYLE} ` +
+      `Character model sheet of a different character drawn in exactly the same style as the reference${k.ref ? ' (he is the father of the man in the reference, with a family likeness)' : ''}. ${k.desc} ${STYLE} ` +
       'Full body from head to shoes, standing in an A-pose (arms straight, held slightly away from the body, legs slightly apart), ' +
       'facing the camera, front view, centred, plain white background, flat even lighting. ' +
       'Only this one character: no other people, no doctor, no text, no scenery, no shadows.',

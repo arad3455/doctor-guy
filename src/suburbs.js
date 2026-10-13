@@ -7,6 +7,7 @@ import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.
 import { addBox, addCircle } from './world.js';
 import { scatter, kit, KIT_SIZES, WALL_TINTS, ROOF_TINTS } from './kit.js';
 import { buildStreets, street, gx, gz, TILE } from './streets.js';
+import { buildSukkah } from './sukkah.js';
 import { seeded, slab, streetLamps, buildings, addCameraBlocker, parkedCars, trees, signBoard, bakeStatic } from './cityprops.js';
 
 const HALF = TILE / 2;
@@ -119,6 +120,14 @@ export function buildSuburbs(scene) {
     MH_SPOTS.treehouse = treehouse(group, tx, tz);
     big.kind = 'treehouse';
   }
+  // Caspi's family garden: the middle house on Oak Street, where he and his dad are building a sukkah
+  const home = yards.filter((y) => !y.north && !y.kind && y.z1 < MH.birchZ && y.x0 > XR[1][0] && y.x1 < XR[1][1]).sort((a, b) => (b.x1 - b.x0) - (a.x1 - a.x0))[0]; // the roomiest
+  if (home) {
+    home.kind = 'sukkah';
+    MH_SPOTS.sukkah = buildSukkah(group, (home.x0 + home.x1) / 2 - 0.6, (home.z0 + home.z1) / 2 - 0.4);
+    MH_SPOTS.sukkah.yard = home;
+    MH_MAP.sukkah = MH_SPOTS.sukkah;
+  }
   // ---- back-garden toys: trampolines, paddling pools, swing sets, a sandpit, the treehouse
   const kinds = ['tramp', 'pool', 'swing', 'tramp', 'pool', 'bbq', 'sand', 'tramp'];
   yards.forEach((y, i) => {
@@ -148,6 +157,7 @@ export function buildSuburbs(scene) {
   for (let i = WEST + 1; i <= EAST; i += 3) for (const z of [MH.oakZ, MH.birchZ]) if (Math.abs(gx(i) - MH.mapleX) > 6) lamps.push({ x: gx(i), z: z + HALF + 0.8, rot: Math.PI });
   const clear = lamps.filter((l) => Math.abs(l.z - MH.oakZ) > 5.5 && Math.abs(l.z - MH.birchZ) > 5.5 && l.z < gz(MH.southJ) - 2);
   const bulbs = streetLamps(group, clear, { height: 4.6 });
+  if (MH_SPOTS.sukkah) bulbs.push(...MH_SPOTS.sukkah.bulbs); // the sukkah's string lights glow at night too
 
   // street signs at the corners
   for (const [x, z, a, b] of [[MH.mapleX - HALF - 1, MH.oakZ - HALF - 1, 'MAPLE LN', 'OAK ST'], [MH.mapleX - HALF - 1, MH.birchZ - HALF - 1, 'MAPLE LN', 'BIRCH ST']]) streetSign(group, x, z, a, b);
