@@ -31,8 +31,10 @@ import { Lakash } from './lakash.js';
 import { Races, RACES } from './races.js';
 import { Outbreak } from './outbreak.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
+import { buildRoadNetwork, ROAD_TEXT } from './roads.js';
+import { laneAssist, HW } from './streets.js';
 import { DT_MAP } from './downtown.js';
-import { MH_MAP } from './suburbs.js';
+import { MH_MAP, MH } from './suburbs.js';
 import { CAMP } from './camp.js';
 import { loadKits } from './kit.js';
 import { BigMap } from './map.js';
@@ -90,6 +92,7 @@ let pier = null; // Zone 6, Sunset Pier
 let camp = null; // Zone 7, Pinewood Camp
 let harbor = null; // Zone 8, Wolfson Harbor
 let airport = null; // Zone 10, Wolfson Airport
+let roadNetwork = null; // every street, drawn at once (roads.js)
 let road = null; // Zoo Road, built from Kenney's road kit once the kits have loaded
 let zoo = null; // built (with its Meshy animals) during loading
 animated.push(...beach.animated);
@@ -533,6 +536,15 @@ function frame() {
     if (stickMag > 0.12) ({ throttle, steer } = stickDrive(stick, stickMag));
     const d = input.drive; // phones: wheel + gas lever
     if (d) { if (Math.abs(d.throttle) > 0.05) throttle = d.throttle; if (Math.abs(d.steer) > 0.03) steer = d.steer; }
+    // lane keeping: hands off the wheel on a straight street and the van eases into the middle of its lane
+    ambulance.assist = 0;
+    if (Math.abs(steer) < 0.05 && ambulance.speed > 3) {
+      const lane = laneAssist(ambulance.pos.x, ambulance.pos.z, ambulance.heading);
+      if (lane) {
+        const k = Math.min(1, ambulance.speed / 8);
+        steer = ambulance.assist = THREE.MathUtils.clamp((0.25 * lane.lateral + 2.6 * lane.align) * k, -0.5, 0.5); // (a damped PD: settles in a second or two)
+      }
+    }
     if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
     const before = ambulance.pos.clone();
     ambulance.update(dt, t, { throttle, steer });
@@ -580,7 +592,7 @@ function frame() {
       const want = ambulance.heading + Math.PI;
       input.yaw += Math.atan2(Math.sin(want - input.yaw), Math.cos(want - input.yaw)) * Math.min(1, dt * 2.5);
     }
-    follow.update(dt, { pos: ambulance.root.position }, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.32), distance: Math.max(input.distance, 12) });
+    follow.update(dt, { pos: ambulance.root.position }, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.38), distance: Math.max(input.distance, 12.5) }); // high enough to see the road ahead
   } else if (started && isInside(player.pos)) {
     // indoors: look down into the rooms over the (roofless) walls
     follow.update(dt, player, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.78), distance: THREE.MathUtils.clamp(input.distance, 6, 11) });
@@ -702,6 +714,10 @@ animated.push(...camp.animated);
 harbor = buildHarbor(scene);
 animated.push(...harbor.animated);
 airport = buildAirport(scene);
+// painted words: the ambulance's own bay by the hospital, SCHOOL / SLOW by Maple Heights Elementary
+ROAD_TEXT.push({ x: PARKING.x, z: PARKING.z, text: 'AMBULANCE', color: '#f2c230', box: [7.6, 3.3] });
+for (const [z, text, yaw, side] of [[-23.5, 'SLOW', Math.PI, -1], [-19.5, 'SCHOOL', Math.PI, -1], [-9, 'SLOW', 0, 1], [-13, 'SCHOOL', 0, 1]] /* (the first word a driver meets is nearest) */) ROAD_TEXT.push({ x: MH.mapleX + side * HW / 2, z, text, yaw });
+roadNetwork = buildRoadNetwork(scene); // every district has registered its streets: draw them all
 animated.push(...airport.animated);
 animated.push(...zoo.animated);
 dayNight.addLampHalos([...downtown.bulbs.map((b) => ({ ...b, parent: downtown.group })), ...suburbs.bulbs.map((b) => ({ ...b, parent: suburbs.group })), ...pier.bulbs.map((b) => ({ ...b, parent: pier.group })), ...camp.bulbs.map((b) => ({ ...b, parent: camp.group })), ...harbor.bulbs.map((b) => ({ ...b, parent: harbor.group })), ...airport.bulbs.map((b) => ({ ...b, parent: airport.group }))]);

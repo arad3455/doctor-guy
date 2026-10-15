@@ -6,11 +6,13 @@ import * as THREE from 'three';
 import { part, toon, instanced, canvasTexture, signTexture, FONT } from './toon.js';
 import { addBox, addCircle } from './world.js';
 import { scatter, kit, KIT_SIZES, WALL_TINTS, ROOF_TINTS } from './kit.js';
-import { buildStreets, street, gx, gz, TILE } from './streets.js';
+import { buildStreets, street, gx, gz, TILE, HW } from './streets.js';
 import { buildSukkah } from './sukkah.js';
 import { seeded, slab, streetLamps, buildings, addCameraBlocker, parkedCars, trees, signBoard, bakeStatic } from './cityprops.js';
 
 const HALF = TILE / 2;
+const EDGE = HW + 0.3; // the kerb's outer edge (the asphalt is wider than a grid cell)
+const PAVE = 1.4; // pavement width beyond the kerb
 const MAPLE = 15; // Maple Lane: grid column (x = 84.5)
 const OAK = 5, BIRCH = 10; // grid rows (z = -2, 33)
 const WEST = 12, EAST = 20; // the cross streets run from x = 63.5 to the east loop at x = 119.5
@@ -20,8 +22,8 @@ export const MH = {
   southJ: 14, // Maple Lane's last tile (z = 61), at the funfair gate
 };
 // The three strips of lots between the streets: [x0, x1] ranges (west of Maple Lane, middle, east of the loop)
-const XR = [[MH.min.x + 1, MH.mapleX - HALF - 0.5], [MH.mapleX + HALF + 0.5, MH.loopX - HALF - 0.5], [MH.loopX + HALF + 0.5, MH.max.x - 0.5]];
-export const SCHOOL = { x0: MH.mapleX + HALF + 1.6, x1: MH.max.x - 1, z0: -25, z1: MH.oakZ - HALF - 1.6 };
+const XR = [[MH.min.x + 1, MH.mapleX - EDGE - PAVE], [MH.mapleX + EDGE + PAVE, MH.loopX - EDGE - PAVE], [MH.loopX + EDGE + PAVE, MH.max.x - 0.5]];
+export const SCHOOL = { x0: MH.mapleX + EDGE + PAVE, x1: MH.max.x - 1, z0: -25, z1: MH.oakZ - EDGE - PAVE };
 /** Landmarks other modules use (missions, map). */
 export const MH_SPOTS = {};
 export const MH_MAP = { streets: [], houses: [], yards: [], trees: [], fences: [], school: SCHOOL, pools: [], tramps: [], cars: [] };
@@ -47,9 +49,9 @@ export function buildSuburbs(scene) {
   // pavements along the streets (a strip of concrete each side)
   const walk = [];
   const pave = (x0, z0, x1, z1) => walk.push(new THREE.Matrix4().compose(new THREE.Vector3((x0 + x1) / 2, 0.025, (z0 + z1) / 2), new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), new THREE.Vector3(x1 - x0, z1 - z0, 1)));
-  for (const z of [MH.oakZ, MH.birchZ]) { pave(MH.westX - HALF, z - HALF - 1.6, MH.loopX + HALF, z - HALF); pave(MH.westX - HALF, z + HALF, MH.loopX + HALF, z + HALF + 1.6); }
-  for (const x of [MH.mapleX]) { pave(x - HALF - 1.6, -33.5, x - HALF, gz(MH.southJ) + HALF); pave(x + HALF, -33.5, x + HALF + 1.6, gz(MH.southJ) + HALF); }
-  pave(MH.loopX + HALF, MH.oakZ - HALF, MH.loopX + HALF + 1.6, MH.birchZ + HALF);
+  for (const z of [MH.oakZ, MH.birchZ]) { pave(MH.westX - HALF, z - EDGE - PAVE, MH.loopX + EDGE, z - EDGE); pave(MH.westX - HALF, z + EDGE, MH.loopX + EDGE, z + EDGE + PAVE); }
+  for (const x of [MH.mapleX]) { pave(x - EDGE - PAVE, -33.5, x - EDGE, gz(MH.southJ) + HALF); pave(x + EDGE, -33.5, x + EDGE + PAVE, gz(MH.southJ) + HALF); }
+  pave(MH.loopX + EDGE, MH.oakZ - EDGE, MH.loopX + EDGE + PAVE, MH.birchZ + EDGE);
   const paveMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), toon(0xd4d8dc), walk.length);
   walk.forEach((m, i) => paveMesh.setMatrixAt(i, m));
   paveMesh.receiveShadow = true;
@@ -61,8 +63,8 @@ export function buildSuburbs(scene) {
   const fences = []; // [x0, z0, x1, z1] low picket fences
   const yards = []; // back gardens: { x0, x1, z0, z1 }
   const SCALE = 7.6;
-  for (const [streetZ, gardenTo] of [[MH.oakZ, MH.birchZ - HALF - 1.8], [MH.birchZ, MH.max.z - 4]]) {
-    const front = streetZ + HALF + 1.6 + 3.2; // pavement + front lawn
+  for (const [streetZ, gardenTo] of [[MH.oakZ, MH.birchZ - EDGE - PAVE - 0.2], [MH.birchZ, MH.max.z - 4]]) {
+    const front = streetZ + EDGE + PAVE + 2.6; // pavement + front lawn
     for (const [x0, x1] of XR) {
       let x = x0 + 0.8;
       while (x < x1 - 9) {
@@ -75,10 +77,10 @@ export function buildSuburbs(scene) {
         const side = rand() < 0.5 ? -1 : 1;
         const dx = cx + side * (w / 2 + 1.6);
         if (Math.abs(dx - cx) < lot / 2 - 1) {
-          slab(group, dx - 1.5, streetZ + HALF + 1.6, dx + 1.5, front + d, 0xb9bfc6, { y: 0.028 });
+          slab(group, dx - 1.5, streetZ + EDGE, dx + 1.5, front + d, 0xb9bfc6, { y: 0.028 });
           if (rand() < 0.55) MH_MAP.cars.push({ x: dx, z: front + 2.6, rot: Math.PI, name: rand.pick(['sedan', 'suv', 'hatchback-sports', 'van']) });
         }
-        slab(group, cx - 0.7, streetZ + HALF + 1.6, cx + 0.7, front, 0xe6dcc8, { y: 0.029 });
+        slab(group, cx - 0.7, streetZ + EDGE + PAVE, cx + 0.7, front, 0xe6dcc8, { y: 0.029 });
         // side fences between the back gardens, a back fence along the far edge
         const backZ = front + d;
         fences.push([x, backZ, x, gardenTo], [x + lot, backZ, x + lot, gardenTo]);
@@ -92,7 +94,7 @@ export function buildSuburbs(scene) {
   // the two houses north of Oak Street, west of Maple Lane (facing Oak Street, gardens towards Zoo Road)
   {
     const [x0, x1] = XR[0];
-    const front = MH.oakZ - HALF - 1.6 - 3.2;
+    const front = MH.oakZ - EDGE - PAVE - 2.6;
     let x = x0 + 0.8;
     while (x < x1 - 9) {
       const fit = pickHouse(rand, houseNames, x1 - x, SCALE);
@@ -100,7 +102,7 @@ export function buildSuburbs(scene) {
       const { name, w, d, lot } = fit;
       const cx = x + lot / 2;
       houses.push({ name, x: cx, z: front - d / 2, rot: 0, scale: SCALE, wall: rand.pick(WALL_TINTS), roof: rand.pick(ROOF_TINTS) });
-      slab(group, cx - 0.7, front, cx + 0.7, MH.oakZ - HALF - 1.6, 0xe6dcc8, { y: 0.029 });
+      slab(group, cx - 0.7, front, cx + 0.7, MH.oakZ - EDGE - PAVE, 0xe6dcc8, { y: 0.029 });
       fences.push([x, front - d, x, -24], [x + lot, front - d, x + lot, -24]);
       yards.push({ x0: x + 0.6, x1: x + lot - 0.6, z0: -23.4, z1: front - d - 0.8, house: houses.length - 1, north: true });
       x += lot;
@@ -160,7 +162,7 @@ export function buildSuburbs(scene) {
   if (MH_SPOTS.sukkah) bulbs.push(...MH_SPOTS.sukkah.bulbs); // the sukkah's string lights glow at night too
 
   // street signs at the corners
-  for (const [x, z, a, b] of [[MH.mapleX - HALF - 1, MH.oakZ - HALF - 1, 'MAPLE LN', 'OAK ST'], [MH.mapleX - HALF - 1, MH.birchZ - HALF - 1, 'MAPLE LN', 'BIRCH ST']]) streetSign(group, x, z, a, b);
+  for (const [x, z, a, b] of [[MH.mapleX - EDGE - 1, MH.oakZ - EDGE - 1, 'MAPLE LN', 'OAK ST'], [MH.mapleX - EDGE - 1, MH.birchZ - EDGE - 1, 'MAPLE LN', 'BIRCH ST']]) streetSign(group, x, z, a, b);
   // a sign at the top of Maple Lane, by Zoo Road
   const welcome = signBoard(new THREE.PlaneGeometry(4.2, 2.1), signTexture(['Maple Heights', '🏡 drive slowly 🐢'], { w: 512, h: 256, size: 56, bg: '#2f8a35', fg: '#ffffff' }));
   welcome.position.set(MH.mapleX + HALF + 3, 2.6, -28.5);

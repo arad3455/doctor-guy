@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { toon, instanced, canvasTexture } from './toon.js';
 import { addBox, addCircle, cameraBlockers } from './world.js';
 import { scatter, KIT_SIZES, KIT_CENTERS } from './kit.js';
+import { offRoad } from './streets.js';
 
 /** Small deterministic random generator (same city every visit). */
 export function seeded(seed = 1) {
@@ -46,6 +47,7 @@ export function streetLamps(group, lamps, { height = 5.2 } = {}) {
   const poles = [], arms = [], heads = [], bulbs = [];
   const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
   for (const l of lamps) {
+    offRoad(l); // (the streets got wider: keep the posts on the pavement)
     const r = l.rot ?? 0, dx = Math.sin(r), dz = Math.cos(r);
     q.setFromAxisAngle(up, r);
     poles.push(new THREE.Matrix4().compose(new THREE.Vector3(l.x, height / 2, l.z), q.clone(), new THREE.Vector3(1, height, 1)));

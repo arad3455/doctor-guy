@@ -7,6 +7,8 @@ import { addCircle } from './world.js';
 import { scatter, kit } from './kit.js';
 import { gltfLoader, toonify } from './skinned.js';
 import { buildWing, wingBusy, WING, Wanderer } from './zooWing.js';
+import { CROSSWALKS } from './roads.js';
+import { HW } from './streets.js';
 import { makeZebra, makeHippo } from './zooAnimals.js';
 
 export const ZOO = {
@@ -27,7 +29,6 @@ export const ZOO = {
 export const inZoo = (p) => p.x > ZOO.min.x - 1;
 export const PARKING_LOT = { x: 124, z: -47.5 }; // zoo car park, north of Zoo Road
 export const JUNCTIONS = [84.5, 63.5]; // Maple Lane (suburbs.js) and Pine Road (camp.js) meet Zoo Road here
-const ROAD_YAW = Number(new URLSearchParams(location.search).get('roadYaw') ?? 0); // Kenney road tiles run along x (checked top-down)
 /** Things the map draws that live in this file (trees etc.). */
 export const MAP_DECOR = { trees: [], benches: [] };
 
@@ -49,14 +50,8 @@ export function buildRoad(scene) {
   const group = new THREE.Group();
   scene.add(group);
   const { z, x0, x1, width } = ZOO.road;
-  const T = width; // one road tile = the road's width
-  const tiles = [], crossings = [];
-  for (let x = x0 + T / 2; x < x1; x += T) {
-    if (JUNCTIONS.some((j) => Math.abs(x - j) < T / 2)) continue; // side streets build their own T-junction tile
-    (Math.abs(x) < T / 2 || Math.abs(x - 131) < T / 2 ? crossings : tiles).push({ x, y: 0.005, z, rot: ROAD_YAW, sx: T, sy: 1, sz: T });
-  }
-  group.add(scatter('road-straight', tiles, { cast: false }));
-  group.add(scatter('road-crossing', crossings, { cast: false })); // zebra crossings: hospital path + zoo gate
+  // the asphalt itself is drawn with every other street (roads.js; Zoo Road's cells are registered in streets.js)
+  CROSSWALKS.push({ x: 0.5, z, axis: 'z' }, { x: 133.5, z, axis: 'z' }); // zebra crossings: hospital path + zoo gate
   // (no dead end at the west: Main Street carries on to Downtown, see downtown.js)
   // grass verges outside the park
   const verge = new THREE.Mesh(new THREE.PlaneGeometry(x1 - 57, 16), toon(0x74c64e));
@@ -71,8 +66,8 @@ export function buildRoad(scene) {
     if (x > -4 && x < 4) continue;
     const side = i % 2 ? 1 : -1;
     if (JUNCTIONS.some((j) => Math.abs(x - j) < 6)) continue; // leave the side-street mouths clear
-    lights.push({ x, z: z + side * (width / 2 + 0.6), rot: side > 0 ? Math.PI : 0, scale: 7 });
-    addCircle(x, z + side * (width / 2 + 0.6), 0.25);
+    lights.push({ x, z: z + side * (HW + 0.8), rot: side > 0 ? Math.PI : 0, scale: 7 });
+    addCircle(x, z + side * (HW + 0.8), 0.25);
   }
   group.add(scatter('light-curved', lights, { outline: 0.012 }));
   const poles = [];
@@ -86,9 +81,9 @@ export function buildRoad(scene) {
     group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.QuadraticBezierCurve3(a, mid, b).getPoints(12)), wireMat));
   }
   // traffic lights at the hospital crossing, a little road works zone, roadside trees
-  group.add(scatter('traffic-light', [{ x: -4.2, z: z - width / 2 - 0.5, rot: Math.PI / 2, scale: 7 }, { x: 4.2, z: z + width / 2 + 0.5, rot: -Math.PI / 2, scale: 7 }], { outline: 0.012 }));
-  addCircle(-4.2, z - width / 2 - 0.5, 0.3);
-  addCircle(4.2, z + width / 2 + 0.5, 0.3);
+  group.add(scatter('traffic-light', [{ x: -4.2, z: z - HW - 0.8, rot: Math.PI / 2, scale: 7 }, { x: 4.2, z: z + HW + 0.8, rot: -Math.PI / 2, scale: 7 }], { outline: 0.012 }));
+  addCircle(-4.2, z - HW - 0.8, 0.3);
+  addCircle(4.2, z + HW + 0.8, 0.3);
   group.add(scatter('construction-cone', [0, 1, 2, 3, 4].map((i) => ({ x: 96 + i * 2.2, z: z + width / 2 + 1.6, scale: 7 }))));
   group.add(scatter('construction-barrier', [{ x: 94, z: z + width / 2 + 1.7, rot: Math.PI / 2, scale: 7 }, { x: 108, z: z + width / 2 + 1.7, rot: Math.PI / 2, scale: 7 }]));
   const roadside = [], bushes = [];

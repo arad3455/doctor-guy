@@ -3,7 +3,7 @@
 # usage: tools/run-suite.sh [test names…]   (logs in $LOGDIR, default /tmp/doctorguy-tests)
 cd "$(dirname "$0")/.."
 LOGDIR=${LOGDIR:-/tmp/doctorguy-tests}; mkdir -p $LOGDIR
-[ $# -eq 0 ] && set -- playtest mobile-test drive-test stunt-test pier-test downtown-test camp-test harbor-test airport-test gps-test spots-test weather-test photo-test bus-test radio-test caspi-test lakash-test race-test outbreak-test checkup-test frenzy-test zoo-test hospital-test career-test progress-test daynight-test
+[ $# -eq 0 ] && set -- playtest mobile-test drive-test stunt-test pier-test downtown-test camp-test harbor-test airport-test gps-test spots-test weather-test photo-test bus-test radio-test caspi-test lakash-test lane-test race-test outbreak-test checkup-test frenzy-test zoo-test hospital-test career-test progress-test daynight-test
 for t in "$@"; do
   for attempt in 1 2; do
     # a hard limit per test (headless Chrome sometimes stops answering): perl's alarm, since macOS has no `timeout`

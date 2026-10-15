@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { part, toon, canvasTexture, signTexture, FONT, roundRect } from './toon.js';
 import { addBox, addCircle } from './world.js';
 import { scatter, kit, WALL_TINTS, KIT_SIZES } from './kit.js';
-import { buildStreets, street, gx, gz, TILE } from './streets.js';
+import { buildStreets, street, gx, gz, TILE, HW } from './streets.js';
 import { RAMPS } from './stunts.js';
 import { seeded, slab, kerb, streetLamps, buildings, addCameraBlocker, parkedCars, trees, hedgeLine, pavingTexture, signBoard, bakeStatic } from './cityprops.js';
 
@@ -147,7 +147,7 @@ export function buildDowntown(scene) {
   const tl = [];
   for (const i of XS.slice(0, 3)) for (const j of ZS.slice(1, 3)) {
     // NE and SW corners (the other two have street lamps)
-    tl.push({ x: gx(i) + HALF + 0.5, z: gz(j) - HALF - 0.5, rot: Math.PI, scale: 7 }, { x: gx(i) - HALF - 0.5, z: gz(j) + HALF + 0.5, rot: 0, scale: 7 });
+    tl.push({ x: gx(i) + HW + 1, z: gz(j) - HW - 1, rot: Math.PI, scale: 7 }, { x: gx(i) - HW - 1, z: gz(j) + HW + 1, rot: 0, scale: 7 }); // (behind the rounded kerb corners)
   }
   group.add(scatter('traffic-light', tl, { outline: 0.012 }));
   for (const t of tl) addCircle(t.x, t.z, 0.3);

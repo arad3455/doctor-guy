@@ -12,7 +12,7 @@ import { rampAt } from './stunts.js';
 const GRAVITY = 22;
 const LAUNCH_MIN = 7; // speed needed to leave a ramp's lip
 
-const LENGTH = 7; // game units (Doctor Guy is 2.45 tall)
+const LENGTH = 6; // game units (Doctor Guy is 2.45 tall; 6 leaves room to spare in a lane of the 8-wide streets)
 const MAX_FWD = 12.5;
 const MAX_ROAD = 21; // on any road
 const onOpenRoad = (p) => roadAt(p.x, p.z); // Zoo Road and every city street (streets.js)
@@ -22,13 +22,13 @@ const ACCEL_ROAD = 10;
 const BRAKE = 22;
 const DRAG = 3.2;
 const STEER = 1.9; // rad/s at full lock and speed
-const REACH = LENGTH / 2 - 1.35; // collision circles run from bumper to bumper (radius ≈ half the width)
+const REACH = LENGTH / 2 - 1.15; // collision circles run from bumper to bumper (radius ≈ half the width)
 // The generated model's nose points along this local direction once loaded (fixed after inspecting it)
 const MODEL_YAW = Math.PI / 2; // generated ambulance's nose points -x
 // No black outline: the realistic van has thin panels the outline hull pokes through (dark shards)
 const OUTLINE = Number(new URLSearchParams(location.search).get('carOutline') ?? 0);
 
-export const PARKING = { x: -12, z: -37, heading: Math.PI / 2 }; // at the start of Zoo Road by the hospital, nose east
+export const PARKING = { x: -12, z: -38.9, heading: Math.PI / 2 }; // its bay on Zoo Road by the hospital (the north lane), nose east
 
 export class Ambulance {
   constructor(scene) {
@@ -45,7 +45,7 @@ export class Ambulance {
     this.width = 2.6;
     this.height = 3.2;
     // three circles along the body: what the car collides with, and what the player bumps into when parked
-    this.circles = [-1, -0.5, 0, 0.5, 1].map((k) => ({ type: 'circle', x: 0, z: 0, r: 1.35, owner: 'car', k }));
+    this.circles = [-1, -0.5, 0, 0.5, 1].map((k) => ({ type: 'circle', x: 0, z: 0, r: 1.15, owner: 'car', k }));
     getColliders().push(...this.circles);
     this.lights = this.makeLights();
     this.useProcedural();

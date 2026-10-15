@@ -14,6 +14,8 @@ import { HARBOR, HB_MAP } from './harbor.js';
 import { AIRPORT, AIR_MAP } from './airport.js';
 import { STOPS } from './bus.js';
 import { WING } from './zooWing.js';
+import { HW } from './streets.js';
+const RW = HW + 0.05; // a street's half-width on the map (the asphalt, roads.js)
 import { drawBlip } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -124,10 +126,10 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   rect(-57, -57, 57, 57, null, 'rgba(255,255,255,0.9)', Math.max(1, 0.35 * s));
 
   // ---- Zoo Road: asphalt, white edges, dashed centre, zebra crossings, car park
-  rect(road.x0, road.z - road.width / 2 - 0.5, road.x1, road.z + road.width / 2 + 0.5, '#c9ced4');
-  rect(road.x0, road.z - road.width / 2, road.x1, road.z + road.width / 2, '#4a5058');
-  line(road.x0, road.z - road.width / 2 + 0.4, road.x1, road.z - road.width / 2 + 0.4, '#ffffff', Math.max(1, 0.25 * s));
-  line(road.x0, road.z + road.width / 2 - 0.4, road.x1, road.z + road.width / 2 - 0.4, '#ffffff', Math.max(1, 0.25 * s));
+  rect(road.x0, road.z - RW - 0.5, road.x1, road.z + RW + 0.5, '#c9ced4');
+  rect(road.x0, road.z - RW, road.x1, road.z + RW, '#4a5058');
+  line(road.x0, road.z - RW + 0.4, road.x1, road.z - RW + 0.4, '#ffffff', Math.max(1, 0.25 * s));
+  line(road.x0, road.z + RW - 0.4, road.x1, road.z + RW - 0.4, '#ffffff', Math.max(1, 0.25 * s));
   line(road.x0 + 2, road.z, road.x1, road.z, '#ffd23f', Math.max(1, 0.3 * s), [Math.max(2, 2 * s), Math.max(2, 2 * s)]);
   if (detail) for (const cx of [0, 131]) for (let k = -3; k <= 3; k++) rect(cx - 2.2, road.z + k * 0.9 - 0.3, cx + 2.2, road.z + k * 0.9 + 0.3, '#ffffff');
   rect(115, -53, 133, -42, '#5a6068', '#c9ced4', 1.5);
@@ -136,7 +138,7 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
 
   // ---- Downtown: pavements, streets, buildings (roofs tinted like their walls), City Plaza and the court
   rect(DOWNTOWN.min.x, DOWNTOWN.min.z, DOWNTOWN.max.x, DOWNTOWN.max.z, '#b9c0c9');
-  for (const t of DT_MAP.streets) if (near(t.x, t.z)) rect(t.x - 3.55, t.z - 3.55, t.x + 3.55, t.z + 3.55, '#4a5058');
+  for (const t of DT_MAP.streets) if (near(t.x, t.z)) rect(t.x - RW, t.z - RW, t.x + RW, t.z + RW, '#4a5058');
   if (detail) {
     const dash = [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)], lw = Math.max(1, 0.25 * s);
     for (const t of DT_MAP.streets) {
@@ -179,7 +181,7 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
     if (!near(t.x, t.z)) continue;
     rect(t.x - 5.1, t.z - 5.1, t.x + 5.1, t.z + 5.1, '#d4d8dc');
   }
-  for (const t of MH_MAP.streets) if (near(t.x, t.z)) rect(t.x - 3.55, t.z - 3.55, t.x + 3.55, t.z + 3.55, '#4a5058');
+  for (const t of MH_MAP.streets) if (near(t.x, t.z)) rect(t.x - RW, t.z - RW, t.x + RW, t.z + RW, '#4a5058');
   if (detail) for (const t of MH_MAP.streets) {
     if (!near(t.x, t.z)) continue;
     const [e, so, w, n] = t.open;
@@ -213,7 +215,7 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   // ---- Pinewood Camp: forest floor, Pine Road, trails, the lake and falls, campsite, ranger station, pines
   const Cp = CAMP;
   rect(Cp.x0, Cp.z0, Cp.x1, Cp.z1, '#4f9e3c', '#7a4a26', Math.max(1, 0.3 * s));
-  rect(Cp.roadX - 3.55, -100, Cp.roadX + 3.55, -40.5, '#4a5058');
+  rect(Cp.roadX - RW, -100, Cp.roadX + RW, -40.5, '#4a5058');
   if (detail) line(Cp.roadX, -100, Cp.roadX, -41, '#ffffff', Math.max(1, 0.2 * s), [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)]);
   rect(Cp.roadX - 9, -112, Cp.roadX + 9, -102.5, '#b9a98a');
   circle(Cp.lake.x, Cp.lake.z, Cp.lake.r + 5.2, null, '#c9a46a', Math.max(1.5, 2.5 * s));
@@ -235,7 +237,7 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   const Hb = HARBOR;
   rect(Hb.x0, Hb.z0, Hb.x1, Hb.z1, '#c4c8cc', '#8f98a2', Math.max(1, 0.3 * s));
   line(Hb.x0, Hb.z1 - 1, Hb.x1, Hb.z1 - 1, '#ffd23f', Math.max(1, 0.3 * s));
-  rect(Hb.roadX - 3.55, 50.5, Hb.roadX + 3.55, 106.5, '#4a5058');
+  rect(Hb.roadX - RW, 50.5, Hb.roadX + RW, 106.5, '#4a5058');
   if (detail) line(Hb.roadX, 51, Hb.roadX, 106, '#ffffff', Math.max(1, 0.2 * s), [Math.max(2, 1.6 * s), Math.max(2, 1.6 * s)]);
   rect(Hb.yard.x0 - 2, Hb.yard.z0 - 2, Hb.yard.x1 + 2, Hb.yard.z1 + 2, '#6a7078');
   const cc = ['#e0453a', '#2f7fc1', '#4cc35a'];
@@ -257,7 +259,7 @@ export function paintWorld(ctx, P, s, { labels = false, upright = (fn, x, y) => 
   for (const x of [Ap.runway.x0 + 8, -100, Ap.runway.x1 - 8]) rect(x - 5, Ap.runwayZ + Ap.runwayW / 2, x + 5, Ap.taxiZ - 5, '#6a7078');
   rect(Ap.apron.x0, Ap.apron.z0, Ap.apron.x1, Ap.terminal.z0, '#c9ced4');
   rect(Ap.forecourt.x0, Ap.forecourt.z0, Ap.forecourt.x1, Ap.forecourt.z1, '#8f98a2');
-  rect(Ap.roadX - 3.55, -96.5, Ap.roadX + 3.55, -82.5, '#4a5058');
+  rect(Ap.roadX - RW, -96.5, Ap.roadX + RW, -82.5, '#4a5058');
   rect(Ap.terminal.x0, Ap.terminal.z0, Ap.terminal.x1, Ap.terminal.z1, '#e8edf2', '#5b6573', Math.max(1, 0.4 * s));
   for (const h of Ap.hangars) rect(h.x - 10, h.z - 10, h.x + 10, h.z + 10, '#b8c0c9', '#5b6573', 1);
   circle(Ap.tower.x, Ap.tower.z, 3, '#6fb7e8', '#2b2f38', 1);
