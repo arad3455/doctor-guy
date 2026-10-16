@@ -122,25 +122,40 @@ export class Input {
       wheel.addEventListener('pointerup', end);
       wheel.addEventListener('pointercancel', end);
     }
-    // gas lever: slide up to accelerate, down to brake and then reverse; springs back to neutral
+    // gas lever, like a real throttle slider: it rests low, just above reverse — push it up the long way for gas,
+    // pull it down the short way to brake and then reverse. It springs back to rest when you let go.
     const lever = document.getElementById('throttle');
     const lknob = document.getElementById('throttle-knob');
+    const fill = lever?.querySelector('.th-fill');
     if (lever) {
-      let id = null, y0 = 0;
-      const range = () => Math.max(30, lever.querySelector('.th-track').clientHeight / 2 - lknob.clientHeight / 2 + 8);
+      const REST = 0.22; // how far up from the bottom of the travel the knob rests (0 = reverse end, 1 = full gas)
+      let id = null, grab = 0;
+      // the knob's travel, in px down from the top of the lever element (knob centre)
+      const travel = () => {
+        const tr = lever.querySelector('.th-track'), half = lknob.offsetHeight / 2;
+        const top = tr.offsetTop + half - 4, bottom = tr.offsetTop + tr.offsetHeight - half + 4;
+        return { top, bottom, rest: bottom - (bottom - top) * REST };
+      };
+      const yOf = (v) => { const t = travel(); return v >= 0 ? t.rest - v * (t.rest - t.top) : t.rest - v * (t.bottom - t.rest); };
       const set = (v) => {
         this.drive.throttle = v;
-        lknob.style.transform = `translateY(${-v * range()}px)`;
-        lever.style.setProperty('--th', v);
+        const t = travel(), y = yOf(v);
+        lknob.style.top = `${y}px`;
+        // the fill runs from the rest mark to the knob: green for gas, red for brake / reverse
+        const tr = lever.querySelector('.th-track');
+        fill.style.top = `${Math.min(y, t.rest) - tr.offsetTop}px`;
+        fill.style.height = `${Math.abs(y - t.rest)}px`;
         lever.classList.toggle('rev', v < -0.05);
       };
-      const move = (e) => { if (e.pointerId === id) set(Math.max(-1, Math.min(1, (y0 - e.clientY) / range()))); };
+      const vOf = (y) => { const t = travel(); return y <= t.rest ? Math.min(1, (t.rest - y) / (t.rest - t.top)) : -Math.min(1, (y - t.rest) / (t.bottom - t.rest)); };
+      const localY = (e) => e.clientY - lever.getBoundingClientRect().top;
+      const move = (e) => { if (e.pointerId === id) set(vOf(localY(e) - grab)); };
       lever.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         id = e.pointerId; lever.setPointerCapture(id);
-        // grab the knob where it is, or touch the track above / below to jump there
-        const r = lknob.getBoundingClientRect(), tr = lever.querySelector('.th-track').getBoundingClientRect();
-        y0 = e.clientY >= r.top && e.clientY <= r.bottom ? e.clientY + this.drive.throttle * range() : tr.top + tr.height / 2;
+        // grab the knob where you touched it, or touch anywhere on the track to jump the knob there
+        const r = lknob.getBoundingClientRect();
+        grab = e.clientY >= r.top && e.clientY <= r.bottom ? e.clientY - (r.top + r.height / 2) : 0;
         lever.classList.add('on');
         move(e);
       });
@@ -148,6 +163,10 @@ export class Input {
       const end = (e) => { if (e.pointerId !== id) return; id = null; lever.classList.remove('on'); set(0); };
       lever.addEventListener('pointerup', end);
       lever.addEventListener('pointercancel', end);
+      // place the knob at rest once it's on screen (and again if the screen turns)
+      const place = () => { if (lever.offsetHeight) set(this.drive.throttle); };
+      new ResizeObserver(place).observe(lever);
+      this.placeLever = place;
     }
     for (const [elId, code] of [['btn-jump', 'Space'], ['btn-action', 'KeyE']]) {
       const btn = document.getElementById(elId);

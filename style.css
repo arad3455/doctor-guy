@@ -765,42 +765,42 @@ html.touch .timer { column-gap: 10px; }
 .drive-ui { display: none; }
 html.touch.driving .drive-ui { display: block; }
 html.touch.driving #stick { display: none; }
-#wheel { position: absolute; left: calc(22px + env(safe-area-inset-left)); bottom: calc(22px + env(safe-area-inset-bottom));
-  width: min(300px, 38vw); height: 96px; pointer-events: auto; touch-action: none; }
+#wheel { position: absolute; left: calc(22px + env(safe-area-inset-left)); bottom: calc(18px + env(safe-area-inset-bottom));
+  width: min(240px, 32vw); height: 76px; pointer-events: auto; touch-action: none; }
 .wh-track { position: absolute; left: 0; right: 0; top: 50%; height: 10px; margin-top: -5px; border-radius: 6px;
   background: var(--glass); border: 1.5px solid var(--glass-line); box-shadow: var(--hud-shadow); }
 .wh-tick { position: absolute; left: 50%; top: -6px; width: 2px; height: 20px; margin-left: -1px; background: rgba(255, 255, 255, 0.5); border-radius: 1px; }
-#wheel-knob { position: absolute; left: 50%; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
-  display: grid; place-items: center; font-size: 64px; color: #fff; background: var(--glass-strong); border: 2px solid rgba(255, 255, 255, 0.6);
+#wheel-knob { position: absolute; left: 50%; top: 50%; width: 66px; height: 66px; margin: -33px 0 0 -33px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 50px; color: #fff; background: var(--glass-strong); border: 2px solid rgba(255, 255, 255, 0.6);
   box-shadow: var(--hud-shadow); transition: transform 0.18s cubic-bezier(.3,1.4,.5,1); }
 #wheel.on #wheel-knob { transition: none; border-color: var(--yellow); color: var(--yellow); }
 #wheel-knob .ic { stroke-width: 1.8; }
-#throttle { position: absolute; right: calc(22px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); width: 84px; height: 210px;
+#throttle { position: absolute; right: calc(22px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); width: 66px; height: 184px;
   pointer-events: auto; touch-action: none; --th: 0; }
-.th-track { position: absolute; left: 50%; top: 24px; bottom: 24px; width: 12px; margin-left: -6px; border-radius: 7px; overflow: visible;
+.th-track { position: absolute; left: 50%; top: 20px; bottom: 20px; width: 10px; margin-left: -5px; border-radius: 7px; overflow: visible;
   background: var(--glass); border: 1.5px solid var(--glass-line); box-shadow: var(--hud-shadow); }
-.th-track .wh-tick { top: 50%; left: -7px; width: 24px; height: 2px; margin: -1px 0 0; }
-.th-fill { position: absolute; left: 1px; right: 1px; bottom: 50%; height: calc(max(0, var(--th)) * 50%); border-radius: 5px; background: var(--t-success); }
-#throttle.rev .th-fill { bottom: auto; top: 50%; height: calc(max(0, -1 * var(--th)) * 50%); background: var(--t-alert); }
+.th-track .wh-tick { display: none; }
+.th-fill { position: absolute; left: 1px; right: 1px; top: 0; height: 0; border-radius: 5px; background: var(--t-success); } /* (placed from player.js: rest mark → knob) */
+#throttle.rev .th-fill { background: var(--t-alert); }
 .th-label { position: absolute; left: 0; right: 0; text-align: center; font: 700 11px 'Fredoka', sans-serif; letter-spacing: 2px; color: var(--t-success); text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
 .th-gas { top: 0; } .th-rev { bottom: 0; color: var(--t-alert); font-size: 13px; }
-#throttle-knob { position: absolute; left: 50%; top: 50%; width: 62px; height: 66px; margin: -33px 0 0 -31px; border-radius: 14px; display: flex; justify-content: center;
+#throttle-knob { position: absolute; left: 50%; top: 70%; width: 50px; height: 52px; margin: -26px 0 0 -25px; border-radius: 14px; display: flex; justify-content: center;
   background: #1d1a33; border: 2px solid rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35), var(--hud-shadow);
-  transition: transform 0.18s cubic-bezier(.3,1.4,.5,1), border-color 0.15s; }
+  transition: top 0.18s cubic-bezier(.3,1.4,.5,1), border-color 0.15s; }
 #throttle.on #throttle-knob { transition: border-color 0.15s; border-color: var(--t-success); }
 #throttle.on.rev #throttle-knob { border-color: var(--t-alert); }
-#throttle-knob .pd-ridges { margin: 10px 0; width: 60%; }
+#throttle-knob .pd-ridges { margin: 8px 0; width: 60%; }
 .pd-ridges { display: block; border-radius: 6px; background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0 4px, transparent 4px 11px); }
 /* siren + door sit beside the lever; camera / radio move up beside the radar */
-html.touch.driving #btn-action, html.touch.driving #btn-jump { width: 58px; height: 58px; font-size: 26px; }
-html.touch.driving #btn-action { right: calc(116px + env(safe-area-inset-right)); bottom: calc(110px + env(safe-area-inset-bottom)); }
-html.touch.driving #btn-jump { right: calc(116px + env(safe-area-inset-right)); bottom: calc(30px + env(safe-area-inset-bottom)); }
+html.touch.driving #btn-action, html.touch.driving #btn-jump { width: 52px; height: 52px; font-size: 23px; }
+html.touch.driving #btn-action { right: calc(100px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); }
+html.touch.driving #btn-jump { right: calc(100px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); }
 html.touch.driving #hud #photo-btn { top: calc(10px + env(safe-area-inset-top)); bottom: auto; right: calc(146px + env(safe-area-inset-right)); }
 html.touch.driving #hud #radio-btn { top: calc(60px + env(safe-area-inset-top)); bottom: auto; right: calc(146px + env(safe-area-inset-right)); }
 html.touch.driving #prompt { bottom: calc(124px + env(safe-area-inset-bottom)); max-width: 40vw; }
 @media (max-height: 420px) {
-  #wheel-knob { width: 74px; height: 74px; margin: -37px 0 0 -37px; font-size: 56px; }
-  #throttle { height: 196px; }
+  #wheel-knob { width: 60px; height: 60px; margin: -30px 0 0 -30px; font-size: 46px; }
+  #throttle { height: 172px; }
 }
 
 /* --- Ilan Motors catalogue --- */
