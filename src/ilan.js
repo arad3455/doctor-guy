@@ -170,16 +170,27 @@ export class Ilan {
     animateRig(this.rig, moving ? 'walk' : 'idle', t, dt, moving ? 1.1 : 0);
   }
 
-  /** Life in the idle pose: the head looks round slowly, a little weight shift (he isn't a mannequin). */
+  /**
+   * Life in the idle pose: now and then he turns his head to look round (a gentle yaw about the true vertical).
+   * The turn is undone before the next one, so it never adds up, whether or not the clip moves the head.
+   */
   setupIdle() {
-    const head = this.rig.bone?.(/^Head$/i), spine = this.rig.bone?.(/^Spine01$/i) ?? this.rig.bone?.(/^Spine$/i);
+    const head = this.rig.bone?.(/^Head$/i);
     if (!head) return;
+    const up = new THREE.Vector3(), pq = new THREE.Quaternion(), off = new THREE.Quaternion(), last = new THREE.Quaternion(), left = new THREE.Quaternion();
+    let yaw = 0;
     this.rig.overlay = (dt, t) => {
-      if (this.moving) return;
-      const k = this.paused ? 0.25 : 1;
-      head.rotation.y += Math.sin(t * 0.45) * 0.35 * k + Math.sin(t * 1.3) * 0.05;
-      head.rotation.x += Math.sin(t * 0.7 + 1) * 0.06;
-      if (spine) spine.rotation.z += Math.sin(t * 0.6) * 0.035;
+      // take back last frame's turn — unless the clip has already set the head afresh this frame
+      if (head.quaternion.angleTo(left) < 1e-6) head.quaternion.premultiply(last.invert());
+      // where to look: a slow glance left / right while standing, straight ahead while walking or talking
+      const want = this.moving || this.paused ? 0 : Math.sin(t * 0.35) * 0.45 * (Math.sin(t * 0.13) > -0.3 ? 1 : 0);
+      yaw += (want - yaw) * Math.min(1, dt * 2);
+      head.parent.getWorldQuaternion(pq);
+      up.set(0, 1, 0).applyQuaternion(pq.invert()); // the world's up, in the head's parent space
+      off.setFromAxisAngle(up, yaw);
+      head.quaternion.premultiply(off);
+      last.copy(off);
+      left.copy(head.quaternion);
     };
   }
 
