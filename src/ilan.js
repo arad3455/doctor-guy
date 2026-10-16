@@ -165,9 +165,16 @@ export class Ilan {
         moving = true;
       }
     }
-    if (want !== null) this.rig.root.rotation.y += Math.atan2(Math.sin(want - this.rig.root.rotation.y), Math.cos(want - this.rig.root.rotation.y)) * Math.min(1, dt * (moving ? 5 : 3));
-    this.moving = moving;
-    animateRig(this.rig, moving ? 'walk' : 'idle', t, dt, moving ? 1.1 : 0);
+    // turning: at a person's pace (never faster than ~100°/s), and on the spot he steps round rather than pivoting
+    let turning = false;
+    if (want !== null) {
+      const diff = Math.atan2(Math.sin(want - this.rig.root.rotation.y), Math.cos(want - this.rig.root.rotation.y));
+      const step = Math.sign(diff) * Math.min(Math.abs(diff), (moving ? 2.4 : 1.7) * dt, Math.abs(diff) * Math.min(1, dt * 4));
+      this.rig.root.rotation.y += step;
+      turning = !moving && Math.abs(diff) > 0.3;
+    }
+    this.moving = moving || turning;
+    animateRig(this.rig, moving || turning ? 'walk' : 'idle', t, dt, moving ? 1.1 : 0.6);
   }
 
   /**
