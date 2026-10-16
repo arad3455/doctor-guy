@@ -52,6 +52,7 @@ const P = {
   anchor: '<circle cx="12" cy="5" r="2.2"/><path d="M12 7.2V21M8 11h8"/><path d="M4.5 13.5a7.5 7.5 0 0 0 15 0"/>',
   plane: '<path d="M21 15.5v-2l-7.5-4.5V4a1.5 1.5 0 0 0-3 0v5L3 13.5v2l7.5-2.5v4.5l-2 1.5V21l3.5-1 3.5 1v-2l-2-1.5V13z"/>',
   steer: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4"/><path d="M3.3 10.5c3 .9 5.3 1.2 6.4 1.3M20.7 10.5c-3 .9-5.3 1.2-6.4 1.3M12 14.4V21"/>',
+  car: '<path d="M3 15.5v-3l2.2-4.3A2 2 0 0 1 7 7h10a2 2 0 0 1 1.8 1.2L21 12.5v3a1 1 0 0 1-1 1h-1.5"/><path d="M5.5 16.5H3M15.5 16.5h-7"/><circle cx="7" cy="16.5" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/><path d="M5 12h14"/>',
   monkey: '<circle cx="12" cy="12" r="6.5"/><circle cx="4.5" cy="11" r="2"/><circle cx="19.5" cy="11" r="2"/><path d="M9 15c1.8 1.4 4.2 1.4 6 0M9.8 10.5h.01M14.2 10.5h.01"/>',
 };
 
@@ -67,7 +68,7 @@ const EMOJI = {
   '🍭': 'lollipop', '🩺': 'steth', '⚡': 'bolt', '💊': 'pill', '🏁': 'flag', '🚌': 'bus', '🛍️': 'bag', '🛍': 'bag', '🏥': 'hospital',
   '🚑': 'ambulance', '🚨': 'siren', '🚪': 'door', '⭐': 'star', '🏆': 'trophy', '🤒': 'virus', '🤧': 'virus', '🐱': 'paw', '😎': 'chat',
   '📻': 'radio', '📷': 'camera', '✨': 'sparkle', '🔥': 'flame', '🗺️': 'map', '🗺': 'map', '☀️': 'sun', '🌙': 'moon', '⛑️': 'cross',
-  '👂': 'ear', '🐒': 'monkey', '🛑': 'stop', '🚦': 'go', '⏱️': 'clock', '🩹': 'bandage', '✋': 'hand', '❤️': 'heart', '🧒': 'patient', '🐾': 'paw', '🎯': 'target', '🚶': 'walk',
+  '👂': 'ear', '🐒': 'monkey', '🛑': 'stop', '🚦': 'go', '⏱️': 'clock', '🩹': 'bandage', '✋': 'hand', '❤️': 'heart', '🧒': 'patient', '🐾': 'paw', '🚗': 'car', '🏎️': 'car', '🏎': 'car', '🎯': 'target', '🚶': 'walk',
 };
 const MEDALS = { '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' };
 const EMOJI_RE = /\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*/gu;
@@ -93,7 +94,7 @@ const BLIPS = {
   '🏥': ['hospital', '#e0323a'], '🏖️': ['umbrella', '#ef9a2a'], '🦁': ['paw', '#a8692c'], '🌳': ['tree', '#3f9a3a'], '🏙️': ['building', '#5560c8'],
   '🏡': ['house', '#d9774a'], '🎡': ['wheel', '#e04f8f'], '🏕️': ['tent', '#2e7d4f'], '⚓': ['anchor', '#2f7fc1'], '✈️': ['plane', '#3a9ad9'],
   '😎': ['chat', '#8a63d2'], '🐱': ['paw', '#8a63d2'], '🤒': ['virus', '#6aa82e'], '🏁': ['flag', '#1b1b2e'], '🚪': ['door', '#4a4a5a'], '🚑': ['ambulance', '#2f7fc1'],
-  '🐾': ['paw', '#e0741f'], '🚌': ['bus', '#2f7fc1'], '⚡': ['bolt', '#ff3c8e'],
+  '🐾': ['paw', '#e0741f'], '🚗': ['car', '#b8862a'], '🏎️': ['car', '#e0323a'], '🚌': ['bus', '#2f7fc1'], '⚡': ['bolt', '#ff3c8e'],
 };
 const pathCache = {};
 /** The parts of an icon as canvas Path2Ds (24-unit space). */

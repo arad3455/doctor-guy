@@ -22,7 +22,7 @@ const ACCEL_ROAD = 10;
 const BRAKE = 22;
 const DRAG = 3.2;
 const STEER = 1.9; // rad/s at full lock and speed
-const REACH = LENGTH / 2 - 1.15; // collision circles run from bumper to bumper (radius ≈ half the width)
+// (collision circles run from bumper to bumper: reach = length / 2 - 1.15, radius ≈ half the width)
 // The generated model's nose points along this local direction once loaded (fixed after inspecting it)
 const MODEL_YAW = Math.PI / 2; // generated ambulance's nose points -x
 // No black outline: the realistic van has thin panels the outline hull pokes through (dark shards)
@@ -30,14 +30,20 @@ const OUTLINE = Number(new URLSearchParams(location.search).get('carOutline') ??
 
 export const PARKING = { x: -12, z: -38.9, heading: Math.PI / 2 }; // its bay on Zoo Road by the hospital (the north lane), nose east
 
+/**
+ * A drivable vehicle. The ambulance by default; Ilan's showroom cars pass options:
+ * { model: 'carSuper', yaw, length, lights: false, start: { x, z, heading }, speed (top-speed factor), prepare(model) }.
+ */
 export class Ambulance {
-  constructor(scene) {
+  constructor(scene, { model = 'ambulance', yaw = MODEL_YAW, length = LENGTH, lights = true, start = PARKING, speed = 1, prepare = null, toonMaterials = true } = {}) {
+    Object.assign(this, { scene, modelName: model, modelYaw: yaw, len: length, hasLights: lights, speedMul: speed, prepare, toonMaterials });
+    this.reach = length / 2 - 1.15;
     this.root = new THREE.Group();
     this.body = new THREE.Group(); // tilts with acceleration/turning
     this.root.add(this.body);
     scene.add(this.root);
-    this.pos = new THREE.Vector3(PARKING.x, 0, PARKING.z);
-    this.heading = PARKING.heading;
+    this.pos = new THREE.Vector3(start.x, 0, start.z);
+    this.heading = start.heading;
     this.speed = 0;
     this.steer = 0;
     this.siren = false;
@@ -48,6 +54,7 @@ export class Ambulance {
     this.circles = [-1, -0.5, 0, 0.5, 1].map((k) => ({ type: 'circle', x: 0, z: 0, r: 1.15, owner: 'car', k }));
     getColliders().push(...this.circles);
     this.lights = this.makeLights();
+    for (const l of Object.values(this.lights)) l.visible = lights;
     this.useProcedural();
     this.syncTransform();
   }
@@ -56,23 +63,24 @@ export class Ambulance {
   async loadModel() {
     let gltf;
     try {
-      gltf = await gltfLoader.loadAsync(new URL('../assets/props/ambulance.glb', import.meta.url).href);
+      gltf = await gltfLoader.loadAsync(new URL(`../assets/props/${this.modelName}.glb`, import.meta.url).href);
     } catch {
       return false;
     }
     const model = gltf.scene;
-    model.rotation.y = MODEL_YAW;
+    this.prepare?.(model); // (e.g. a showroom car's paint)
+    model.rotation.y = this.modelYaw;
     model.updateMatrixWorld(true);
     // scale to LENGTH along its longest horizontal axis, centre it, wheels on the ground
     let box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
-    const s = LENGTH / Math.max(size.x, size.z);
+    const s = this.len / Math.max(size.x, size.z);
     model.scale.setScalar(s);
     model.updateMatrixWorld(true);
     box = new THREE.Box3().setFromObject(model);
     const c = box.getCenter(new THREE.Vector3());
     model.position.set(-c.x, -box.min.y, -c.z);
-    toonify(model, OUTLINE);
+    if (this.toonMaterials) toonify(model, OUTLINE);
     model.traverse((o) => { if (o.isMesh) { o.frustumCulled = true; o.receiveShadow = true; } });
     const fitted = new THREE.Box3().setFromObject(model);
     this.width = Math.min(fitted.max.x - fitted.min.x, fitted.max.z - fitted.min.z);
@@ -82,6 +90,13 @@ export class Ambulance {
     this.model = model;
     this.placeLights();
     return true;
+  }
+
+  /** Take it out of the world (a car you've traded in). */
+  dispose() {
+    this.root.removeFromParent();
+    const list = getColliders();
+    for (const c of this.circles) { const i = list.indexOf(c); if (i >= 0) list.splice(i, 1); }
   }
 
   /** Doctor Shop paint job: multiplies the van's colours (null = original white). */
@@ -134,7 +149,7 @@ export class Ambulance {
   /** On the cab's light bar (measured on the generated model: ~18% of the length back from the nose). */
   placeLights() {
     const y = this.model ? this.height * 0.885 : this.height + 0.08;
-    const z = this.model ? LENGTH * 0.17 : LENGTH * 0.22;
+    const z = this.model ? this.len * 0.17 : this.len * 0.22;
     this.lights.red.position.set(0.3, y, z); // red on the driver's (left) side, like the reference
     this.lights.blue.position.set(-0.3, y, z);
     this.lights.glow.position.set(0, y + 0.4, z);
@@ -145,7 +160,7 @@ export class Ambulance {
 
   /** Where Doctor Guy stands to get in, and where he's put when he gets out (driver's side). */
   get doorPoint() {
-    return this.pos.clone().addScaledVector(this.right, -(this.width / 2 + 0.9)).addScaledVector(this.forward, LENGTH * 0.18);
+    return this.pos.clone().addScaledVector(this.right, -(this.width / 2 + 0.9)).addScaledVector(this.forward, this.len * 0.18);
   }
 
   syncTransform() {
@@ -153,8 +168,8 @@ export class Ambulance {
     this.root.position.y = this.y ?? 0;
     this.root.rotation.y = this.heading;
     for (const c of this.circles) {
-      c.x = this.pos.x + Math.sin(this.heading) * c.k * REACH;
-      c.z = this.pos.z + Math.cos(this.heading) * c.k * REACH;
+      c.x = this.pos.x + Math.sin(this.heading) * c.k * this.reach;
+      c.z = this.pos.z + Math.cos(this.heading) * c.k * this.reach;
       c.r = this.width / 2 + 0.05;
     }
   }
@@ -176,7 +191,7 @@ export class Ambulance {
     // rolling resistance
     const drag = (throttle === 0 || !this.driving ? DRAG * 2.2 : DRAG) * dt;
     this.speed = Math.abs(this.speed) <= drag ? 0 : this.speed - Math.sign(this.speed) * drag;
-    const top = onOpenRoad(this.pos) ? MAX_ROAD : MAX_FWD;
+    const top = (onOpenRoad(this.pos) ? MAX_ROAD : MAX_FWD) * this.speedMul;
     // leaving the road: ease down to the normal top speed instead of snapping
     this.speed = THREE.MathUtils.clamp(this.speed, -MAX_REV, Math.max(top, this.speed - 12 * dt));
 
@@ -265,8 +280,8 @@ export class Ambulance {
     let hit = false;
     for (let pass = 0; pass < 2; pass++) {
       for (const cc of this.circles) {
-        const cx = this.pos.x + Math.sin(this.heading) * cc.k * REACH;
-        const cz = this.pos.z + Math.cos(this.heading) * cc.k * REACH;
+        const cx = this.pos.x + Math.sin(this.heading) * cc.k * this.reach;
+        const cz = this.pos.z + Math.cos(this.heading) * cc.k * this.reach;
         const r = this.width / 2;
         let px = 0, pz = 0;
         for (const c of collidersNear(cx, cz, 3)) {

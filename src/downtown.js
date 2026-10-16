@@ -6,6 +6,7 @@ import { part, toon, canvasTexture, signTexture, FONT, roundRect } from './toon.
 import { addBox, addCircle } from './world.js';
 import { scatter, kit, WALL_TINTS, KIT_SIZES } from './kit.js';
 import { buildStreets, street, gx, gz, TILE, HW } from './streets.js';
+import { buildDealership } from './dealership.js';
 import { RAMPS } from './stunts.js';
 import { seeded, slab, kerb, streetLamps, buildings, addCameraBlocker, parkedCars, trees, hedgeLine, pavingTexture, signBoard, bakeStatic } from './cityprops.js';
 
@@ -72,7 +73,7 @@ export function buildDowntown(scene) {
   for (let bx = 0; bx < 3; bx++) {
     for (let bz = 0; bz < 3; bz++) {
       const b = block(bx, bz);
-      const kind = bx === 1 && bz === 1 ? 'plaza' : bx === 2 && bz === 1 ? 'court' : bx === 0 && bz === 1 ? 'shops' : (bz === 0 && bx < 2) ? 'towers' : 'mixed';
+      const kind = bx === 1 && bz === 1 ? 'plaza' : bx === 2 && bz === 1 ? 'court' : bx === 0 && bz === 1 ? 'shops' : bx === 0 && bz === 2 ? 'dealer' : (bz === 0 && bx < 2) ? 'towers' : 'mixed';
       DT_MAP.blocks.push({ ...b, kind });
       slab(group, b.x0, b.z0, b.x1, b.z1, 0xffffff, { y: 0.03, map: pave.clone(), repeat: [(b.x1 - b.x0) / 6, (b.z1 - b.z0) / 6] });
       kerb(group, b.x0, b.z0, b.x1, b.z1);
@@ -81,6 +82,7 @@ export function buildDowntown(scene) {
         [b.x0 + 0.7, b.z0 + 0.7, -Math.PI / 2], [b.x1 - 0.7, b.z1 - 0.7, Math.PI / 2],
         [b.cx, b.z0 + 0.7, Math.PI], [b.cx, b.z1 - 0.7, 0],
       ]) lamps.push({ x, z, rot });
+      if (kind === 'dealer') { DT_SPOTS.dealer = buildDealership(group, b, animated); continue; } // Ilan Motors (dealership.js)
       if (kind === 'plaza' || kind === 'court') continue;
       const pool = kind === 'towers' ? towers : kind === 'shops' ? shopsRow : midrise;
       const wall = kind === 'towers' ? null : WALL_TINTS[(bx * 3 + bz) % WALL_TINTS.length];

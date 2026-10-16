@@ -802,3 +802,21 @@ html.touch.driving #prompt { bottom: calc(124px + env(safe-area-inset-bottom)); 
   #wheel-knob { width: 74px; height: 74px; margin: -37px 0 0 -37px; font-size: 56px; }
   #throttle { height: 196px; }
 }
+
+/* --- Ilan Motors catalogue --- */
+#dealer { position: fixed; inset: 0; z-index: 55; display: grid; place-items: center; background: rgba(15,5,30,0.72); padding: 12px; }
+#dealer.hidden { display: none; }
+#dealer .dealer-head { border-bottom-color: #e0b44a; }
+#dealer .st-ic { color: #e0b44a; }
+#dealer-list { display: grid; gap: 10px; padding: 14px; overflow-y: auto; }
+.dl-car { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 14px; background: #fff; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
+.dl-car.here { border-color: #e0b44a; box-shadow: 0 4px 0 #b8862a; }
+.dl-swatch { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ink); box-shadow: inset 0 -8px 12px rgba(0,0,0,0.25), inset 0 6px 10px rgba(255,255,255,0.45); }
+.dl-info { display: grid; gap: 2px; }
+.dl-info b { font: 400 22px 'Anton', 'Impact', sans-serif; letter-spacing: 0.5px; }
+.dl-info small { font-size: 13px; opacity: 0.75; }
+.dl-info em { font-style: normal; font-size: 12px; font-weight: 700; color: #b8862a; }
+.dl-car button { display: inline-flex; align-items: center; gap: 4px; font-size: 16px; padding: 8px 16px; border-radius: 12px; box-shadow: 0 3px 0 var(--ink); }
+.dl-car button:disabled { background: #b8b0a8; cursor: not-allowed; }
+.dl-tag { font-weight: 700; color: #b8862a; padding: 0 6px; }
+@media (max-height: 500px) { .dl-info small { display: none; } .dl-car { padding: 6px 10px; } }

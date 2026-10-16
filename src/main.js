@@ -28,6 +28,7 @@ import { buildBusStops, Buses, STOPS } from './bus.js';
 import { Radio } from './radio.js';
 import { Caspi } from './caspi.js';
 import { Lakash } from './lakash.js';
+import { Ilan } from './ilan.js';
 import { Races, RACES } from './races.js';
 import { Outbreak } from './outbreak.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
@@ -203,7 +204,7 @@ function renderTrophies() {
 const openTrophies = (v) => { trophiesEl.classList.toggle('hidden', !v); if (v) renderTrophies(); };
 document.getElementById('trophies-open').addEventListener('click', () => openTrophies(true));
 document.getElementById('trophies-close').addEventListener('click', () => openTrophies(false));
-addEventListener('keydown', (e) => { if (e.code === 'Escape') { openShop(false); openTrophies(false); } });
+addEventListener('keydown', (e) => { if (e.code === 'Escape') { openShop(false); openTrophies(false); ilan?.close(); } });
 
 /* ---- Getting in and out of the ambulance ---- */
 const setButtons = (driving) => {
@@ -241,15 +242,44 @@ function exitAmbulance(force = false) {
   engine.stop();
   setButtons(false);
 }
+/* ---- Your own car (bought from Ilan): same driving, no siren, no patients ---- */
+let myCar = null; // parked on Ilan's YOUR CAR bay, or wherever you left it
+const driven = () => (myCar?.driving ? myCar : ambulance);
+function enterCar() {
+  if (missions?.missions.some((m) => m.state === 'carried')) { notify('Patients ride in the ambulance!', { icon: 'ambulance', tone: 'alert', ms: 2400 }); return; }
+  myCar.driving = true;
+  player.rig.root.visible = false;
+  player.vel.set(0, 0, 0);
+  sfx.door();
+  engine.start();
+  setButtons(true);
+  notify(myCar.label, { icon: 'flag', tone: 'success', sub: isTouch ? 'Wheel to steer · lever for gas · door to get out' : 'W/S drive · A/D steer · E get out', ms: 3000 });
+}
+function exitCar() {
+  if (Math.abs(myCar.speed) > 2.5) { notify('Stop first!', { icon: 'stop', tone: 'alert', ms: 1400 }); return; }
+  myCar.driving = false;
+  myCar.speed = 0;
+  player.pos.copy(myCar.doorPoint);
+  player.collide();
+  player.facing = myCar.heading;
+  player.rig.root.visible = true;
+  sfx.door();
+  engine.stop();
+  setButtons(false);
+}
+/** Next to a vehicle: by the driver's door, or anywhere right beside it. */
+function besideVehicle(v) {
+  const p = player.pos;
+  if (Math.hypot(p.x - v.doorPoint.x, p.z - v.doorPoint.z) < 2.6) return true;
+  const local = p.clone().sub(v.pos);
+  return Math.abs(local.dot(v.forward)) < v.len * 0.7 && Math.abs(local.dot(v.right)) < v.width / 2 + 1.6;
+}
 function vehicleAction() {
   if (ambulance.driving) return { label: 'Get out of the ambulance', run: exitAmbulance };
-  const p = player.pos;
-  // close to the driver's door, or anywhere right next to the van
-  const nearDoor = Math.hypot(p.x - ambulance.doorPoint.x, p.z - ambulance.doorPoint.z) < 2.6;
-  const local = p.clone().sub(ambulance.pos);
-  const along = local.dot(ambulance.forward), across = local.dot(ambulance.right);
-  const beside = Math.abs(along) < 4.2 && Math.abs(across) < ambulance.width / 2 + 1.6;
-  return nearDoor || beside ? { label: 'Drive the ambulance 🚑', run: enterAmbulance } : null;
+  if (myCar?.driving) return { label: `Get out of the ${myCar.label}`, run: exitCar };
+  if (besideVehicle(ambulance)) return { label: 'Drive the ambulance 🚑', run: enterAmbulance };
+  if (myCar && besideVehicle(myCar)) return { label: `🏁 Drive your ${myCar.label}`, run: enterCar };
+  return null;
 }
 /* ---- Going in and out of the hospital (fade, then teleport between the outside and the interior) ---- */
 let transitioning = false;
@@ -294,7 +324,7 @@ function extraAction() {
   if (frenzy?.available && Math.hypot(p.x - FRENZY_TOKEN.x, p.z - FRENZY_TOKEN.z) < 2.2) {
     return { label: `⚡ Start Check-up Frenzy${progress.data.frenzyBest ? ` (best ${progress.data.frenzyBest})` : ''}`, run: () => frenzy.start() };
   }
-  const chat = caspi?.chatAction(p) ?? lakash?.chatAction(p);
+  const chat = caspi?.chatAction(p) ?? lakash?.chatAction(p) ?? ilan?.chatAction(p);
   if (chat) return chat;
   const stop = buses?.nearStop(p);
   if (stop) return { label: '🚌 Take the bus', run: () => buses.show(stop) };
@@ -373,6 +403,7 @@ let photo = null; // photo mode (P / 📷)
 let buses = null; // bus stops in every area (fast travel)
 let caspi = null; // Doctor Guy's friend (and Gorge the cat)
 let lakash = null; // the zookeeper (and his six cats)
+let ilan = null; // the car dealer (Ilan Motors, Downtown)
 let races = null; // ambulance time trials
 let outbreak = null; // flu outbreaks
 let bandages = null; // Golden Bandages (created once the world is built)
@@ -526,7 +557,8 @@ function frame() {
   t += dt;
   for (const a of animated) a.update(t, dt);
 
-  if (started && ambulance.driving) {
+  if (started && (ambulance.driving || myCar?.driving)) {
+    const V = driven(); // the ambulance, or your own car
     input.enabled = true;
     const k = (...c) => (input.down(...c) ? 1 : 0);
     const stick = input.stick ?? { x: 0, y: 0 };
@@ -537,29 +569,31 @@ function frame() {
     const d = input.drive; // phones: wheel + gas lever
     if (d) { if (Math.abs(d.throttle) > 0.05) throttle = d.throttle; if (Math.abs(d.steer) > 0.03) steer = d.steer; }
     // lane keeping: hands off the wheel on a straight street and the van eases into the middle of its lane
-    ambulance.assist = 0;
-    if (Math.abs(steer) < 0.05 && ambulance.speed > 3) {
-      const lane = laneAssist(ambulance.pos.x, ambulance.pos.z, ambulance.heading);
+    V.assist = 0;
+    if (Math.abs(steer) < 0.05 && V.speed > 3) {
+      const lane = laneAssist(V.pos.x, V.pos.z, V.heading);
       if (lane) {
-        const k = Math.min(1, ambulance.speed / 8);
-        steer = ambulance.assist = THREE.MathUtils.clamp((0.25 * lane.lateral + 2.6 * lane.align) * k, -0.5, 0.5); // (a damped PD: settles in a second or two)
+        const k = Math.min(1, V.speed / 8);
+        steer = V.assist = THREE.MathUtils.clamp((0.25 * lane.lateral + 2.6 * lane.align) * k, -0.5, 0.5); // (a damped PD: settles in a second or two)
       }
     }
-    if (input.hit('Space')) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); }
-    const before = ambulance.pos.clone();
-    ambulance.update(dt, t, { throttle, steer });
-    career.travel(Math.hypot(ambulance.pos.x - before.x, ambulance.pos.z - before.z), true, ambulance.siren);
-    engine.set(ambulance.speed);
+    if (input.hit('Space')) { if (V === ambulance) { ambulance.siren = !ambulance.siren; ambulance.siren ? siren.on() : siren.off(); } else sfx.horn?.(); }
+    const before = V.pos.clone();
+    V.update(dt, t, { throttle, steer });
+    career.travel(Math.hypot(V.pos.x - before.x, V.pos.z - before.z), true, V.siren);
+    engine.set(V.speed);
     // Doctor Guy rides inside: zones, spawning, lollipops and the minimap follow the van
-    player.pos.copy(ambulance.pos);
+    player.pos.copy(V.pos);
     player.vel.set(0, 0, 0);
-    player.facing = ambulance.heading;
+    player.facing = V.heading;
     missions.update(dt, t, input);
     frenzy.update(dt, t);
-    bandages?.update(dt, t, ambulance.pos);
+    bandages?.update(dt, t, V.pos);
     hud.update(missions, player, ambulance, input.yaw);
+    if (V !== ambulance) ambulance.update(dt, t, {}); else myCar?.update(dt, t, {}); // (the other one stays parked)
   } else if (started) {
     ambulance.update(dt, t, {});
+    myCar?.update(dt, t, {});
     input.enabled = !minigame.active;
     const wasGround = player.onGround;
     const before = player.pos.clone();
@@ -586,13 +620,14 @@ function frame() {
     const want = target.clone().add(new THREE.Vector3(side.x * 11 - Math.sin(a.heading) * 5, 3.2, side.z * 11 - Math.cos(a.heading) * 5));
     c.lerp(want, Math.min(1, rawDt * 4));
     camera.lookAt(target);
-  } else if (started && ambulance.driving) {
+  } else if (started && (ambulance.driving || myCar?.driving)) {
+    const V = driven();
     // swing round behind the van unless you've just looked around yourself
     if (performance.now() - (input.lastLook ?? 0) > 1500) {
-      const want = ambulance.heading + Math.PI;
+      const want = V.heading + Math.PI;
       input.yaw += Math.atan2(Math.sin(want - input.yaw), Math.cos(want - input.yaw)) * Math.min(1, dt * 2.5);
     }
-    follow.update(dt, { pos: ambulance.root.position }, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.38), distance: Math.max(input.distance, 12.5) }); // high enough to see the road ahead
+    follow.update(dt, { pos: V.root.position }, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.38), distance: Math.max(input.distance, V === ambulance ? 12.5 : 11) }); // high enough to see the road ahead
   } else if (started && isInside(player.pos)) {
     // indoors: look down into the rooms over the (roofless) walls
     follow.update(dt, player, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.78), distance: THREE.MathUtils.clamp(input.distance, 6, 11) });
@@ -665,6 +700,7 @@ function frame() {
   if (caspi && started) {
     caspi.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
     lakash?.update(dt, t, { hour: dayNight.hour, inside: isInside(player.pos) });
+    ilan?.update(dt, t);
     minigame.slow = caspi.calming(player.pos) ? 0.6 : 1; // his calm makes treatments easier
   }
   radioBtn.style.display = started && ambulance.driving ? '' : 'none';
@@ -800,7 +836,13 @@ outbreak = new Outbreak({ missions, progress, ui: { toast: (h, ms) => hud.toast(
 window.__game.outbreak = outbreak;
 lakash = new Lakash({ scene, player, gps: hud.radar.gps, zoo, ui: {} });
 window.__game.lakash = lakash;
-hud.radar.extraBlips = () => [...caspi.blips(), ...lakash.blips(), ...outbreak.blips(), ...(races.active ? [] : races.blips())];
+ilan = new Ilan({
+  scene, player, progress, renderer,
+  wallet: { get: () => missions.lollipops, add: (n) => { missions.lollipops += n; } },
+  ui: { onCar: (car) => { myCar = car; window.__game.myCar = car; } },
+});
+window.__game.ilan = ilan;
+hud.radar.extraBlips = () => [...caspi.blips(), ...lakash.blips(), ...ilan.blips(), ...(myCar && !myCar.driving ? [{ x: myCar.pos.x, z: myCar.pos.z, icon: '🏎️', name: 'Your car' }] : []), ...outbreak.blips(), ...(races.active ? [] : races.blips())];
 window.__game.races = races;
 window.__game.raceDefs = { RACES };
 window.__game.caspi = caspi;

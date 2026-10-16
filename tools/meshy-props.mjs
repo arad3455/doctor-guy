@@ -2,6 +2,7 @@
 //
 //   node tools/meshy-props.mjs concept <id>   text → reference image (review it!)  assets/props/source/<id>-concept.png
 //   node tools/meshy-props.mjs model <id>     image → textured, remeshed 3D model → assets/props/<id>.glb (compressed)
+//   node tools/meshy-props.mjs text <id>      text → 3D (preview + textured refine), no concept image needed (showroom cars)
 //
 // Task ids live in assets/props/source/pipeline.json so stages resume instead of paying twice (--fresh to redo).
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -13,11 +14,18 @@ const OUT = join(ROOT, 'assets/props');
 const SRC = join(OUT, 'source');
 const STATE = join(SRC, 'pipeline.json');
 const API = 'https://api.meshy.ai/openapi/v1';
+const API2 = 'https://api.meshy.ai/openapi/v2'; // (text-to-3d lives on v2)
 const dotenv = existsSync(join(ROOT, '.env')) ? readFileSync(join(ROOT, '.env'), 'utf8') : '';
 const KEY = process.env.MESHY_API_KEY ?? dotenv.match(/^MESHY_API_KEY=(.+)$/m)?.[1].trim();
 if (!KEY) { console.error('Set MESHY_API_KEY in .env'); process.exit(1); }
 
+// Ilan's showroom: invented luxury cars (no real brands or logos), realistic and glossy
+const CAR = 'Highly detailed realistic 3D model, glossy car paint, chrome details, detailed alloy wheels, tinted glass, headlights and tail lights, no logos, no text, no people.';
 export const PROPS = {
+  carSuper: { polycount: 30000, text: `A low, wide Italian-style mid-engine supercar with sharp angular wedge styling, scissor-door look, big side air intakes, in bright metallic red. ${CAR}`, texture: 'Bright metallic red supercar, black carbon details, silver alloy wheels, dark tinted windows, red brake calipers.' },
+  carGT: { polycount: 30000, text: `A long, elegant British-style luxury grand tourer coupe with a long bonnet and a sweeping fastback roof, in dark emerald green. ${CAR}`, texture: 'Dark emerald green luxury coupe, chrome grille and trim, cream leather interior, silver multi-spoke wheels.' },
+  carSuv: { polycount: 30000, text: `A big, boxy, very luxurious off-road SUV with a tall upright front, chrome grille, in gloss black. ${CAR}`, texture: 'Gloss black luxury SUV, chrome grille and trim, black multi-spoke wheels, dark tinted windows.' },
+  carEv: { polycount: 30000, text: `A futuristic electric sports coupe with smooth rounded aerodynamic lines, a thin light bar across the front and back, in pearl white. ${CAR}`, texture: 'Pearl white electric coupe, black glass roof, thin glowing light bars, black aero wheels.' },
   gorge: {
     polycount: 8000,
     prompt: 'Gorge, a cute brown tabby cat with dark stripes, amber-green eyes and a red-and-black check collar with a small bell, standing on all four legs.',
@@ -99,7 +107,7 @@ const readState = () => (existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf
 const setState = (k, v) => writeFileSync(STATE, JSON.stringify({ ...readState(), [k]: v }, null, 2));
 
 async function api(method, path, body) {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${path.startsWith('/text-to-3d') ? API2 : API}${path}`, {
     method,
     headers: { Authorization: `Bearer ${KEY}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
@@ -155,7 +163,14 @@ if (stage === 'concept') {
   await download(t.model_urls.glb, join(SRC, `${id}-textured.glb`));
   glbTool('model', join(SRC, `${id}-textured.glb`), join(OUT, `${id}.glb`), '2048');
   glbTool('compress', join(OUT, `${id}.glb`), join(OUT, `${id}.glb`));
+} else if (stage === 'text') {
+  // preview (the shape) then refine (the textures); both resumable
+  const pre = await run('text-to-3d', { mode: 'preview', prompt: prop.text, art_style: 'realistic', ai_model: process.env.MESHY_MODEL ?? 'latest', should_remesh: true, topology: 'triangle', target_polycount: prop.polycount }, `${id}.preview`);
+  const ref = await run('text-to-3d', { mode: 'refine', preview_task_id: pre.id, texture_prompt: prop.texture, enable_pbr: false }, `${id}.refine`);
+  await download(ref.model_urls.glb, join(SRC, `${id}-textured.glb`));
+  glbTool('model', join(SRC, `${id}-textured.glb`), join(OUT, `${id}.glb`), '2048');
+  glbTool('compress', join(OUT, `${id}.glb`), join(OUT, `${id}.glb`));
 } else {
-  console.error('usage: node tools/meshy-props.mjs <concept|model> <id> [--fresh]');
+  console.error('usage: node tools/meshy-props.mjs <concept|model|text> <id> [--fresh]');
   process.exit(1);
 }

@@ -12,7 +12,8 @@
     "teddyToddler": "teddyToddler.glb",
     "caspi": "caspi.glb",
     "caspiDad": "caspiDad.glb",
-    "lakash": "lakash.glb"
+    "lakash": "lakash.glb",
+    "ilan": "ilan.glb"
   },
   "clips": {
     "walk": "anims/walk.glb",
