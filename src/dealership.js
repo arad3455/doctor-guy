@@ -205,16 +205,17 @@ export function buildDealership(group, b, animated) {
   // the tall pylon sign on the forecourt corner
   const pylon = new THREE.Group();
   pylon.position.set(b.x1 - 2, 0, b.z0 + 2);
-  const pole = part(new THREE.BoxGeometry(0.9, 9, 0.9), 0x111216, { outline: 0.02 });
-  pole.position.y = 4.5;
+  // (the pole stops under the panel, and the panel is thicker than the pole: nothing covers the name)
+  const pole = part(new THREE.BoxGeometry(0.7, 7.4, 0.7), 0x111216, { outline: 0.02 });
+  pole.position.y = 3.7;
   pylon.add(pole);
-  const panel = part(new THREE.BoxGeometry(0.6, 2.4, 4.4), 0x111216, { outline: 0.02 });
-  panel.position.y = 8.6;
+  const panel = part(new THREE.BoxGeometry(1.0, 2.6, 4.6), 0x111216, { outline: 0.02 });
+  panel.position.y = 8.7;
   pylon.add(panel);
   for (const s of [-1, 1]) {
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.2), new THREE.MeshBasicMaterial({ map: nameTexture('ILAN\nMOTORS', true) }));
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(4.3, 2.3), new THREE.MeshBasicMaterial({ map: nameTexture('ILAN\nMOTORS', true) }));
     face.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2;
-    face.position.set(s * 0.31, 8.6, 0);
+    face.position.set(s * 0.52, 8.7, 0);
     pylon.add(face);
   }
   g.add(pylon);
@@ -225,7 +226,7 @@ export function buildDealership(group, b, animated) {
 
   // ---- inside: turntables, spotlights, the register
   const tables = [
-    { x: bx0 + 5, z: bz0 + 5.2 }, { x: bx0 + 5, z: bz1 - 5.2 }, { x: bx0 + 10.5, z: mid + 0.2 },
+    { x: bx0 + 5, z: bz0 + 5.2 }, { x: bx0 + 5, z: bz1 - 5.2 }, { x: bx0 + 10, z: mid + 0.2 },
     { x: bx1 + 7.5, z: bz0 + 3.5, outside: true }, { x: bx1 + 7.5, z: bz1 - 3.5, outside: true },
   ];
   const turners = [];
@@ -270,12 +271,12 @@ export function buildDealership(group, b, animated) {
   // a couple of leather chairs and a plant by the door
   for (const z of [mid - 5.5, mid + 5.5]) {
     const chair = part(new THREE.BoxGeometry(1, 0.6, 1), 0x7a3e22, { outline: 0.01 });
-    chair.position.set(bx1 - 1.4, 0.3, z);
+    chair.position.set(bx1 - 1.0, 0.3, z);
     g.add(chair);
     const backrest = part(new THREE.BoxGeometry(0.25, 0.8, 1), 0x7a3e22, { outline: 0.01 });
-    backrest.position.set(bx1 - 0.95, 0.75, z);
+    backrest.position.set(bx1 - 0.55, 0.75, z);
     g.add(backrest);
-    addBox(bx1 - 1.3, z, 1.1, 1.1);
+    addBox(bx1 - 0.9, z, 1.1, 1.1);
   }
   // the YOUR CAR bay on the forecourt, by the road
   const bay = { x: b.x1 - 4.5, z: mid, heading: 0 };
@@ -292,6 +293,16 @@ export function buildDealership(group, b, animated) {
   return {
     group: g,
     ilan: { x: bx0 + 8.2, z: mid - 3.6, rot: Math.PI / 2 },
+    // Ilan's stroll round the floor (clear of the platforms): stop = seconds he lingers, look = what he looks at
+    tour: [
+      { x: bx0 + 8.2, z: bz0 + 9.4, stop: 6, look: [bx0 + 10, mid] },
+      { x: bx0 + 8.8, z: bz0 + 2.6, stop: 5, look: [bx0 + 5, bz0 + 5.2] },
+      { x: bx0 + 13.9, z: bz0 + 3.2, stop: 5, look: [bx1 + 10, bz0 + 3.2] },
+      { x: bx0 + 13.9, z: bz1 - 3.2, stop: 5, look: [bx1 + 10, bz1 - 3.2] },
+      { x: bx0 + 8.8, z: bz1 - 2.6, stop: 5, look: [bx0 + 5, bz1 - 5.2] },
+      { x: bx0 + 8.6, z: bz0 + 17, stop: 0 },
+      { x: bx0 + 5.2, z: mid, stop: 6, look: [bx0 + 10, mid] },
+    ],
     register: { x: reg.x + 1.4, z: reg.z, face: -Math.PI / 2 },
     bay,
     door: { x: bx1, z: mid },

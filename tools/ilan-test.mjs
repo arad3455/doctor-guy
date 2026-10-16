@@ -28,11 +28,11 @@ await g((s) => { __game.player.pos.set(s.reg.x + 0.4, 0, s.reg.z); }, spots);
 await p.waitForFunction(() => /catalogue/i.test(document.getElementById('prompt').textContent), { timeout: 30000 }).catch(() => {});
 r.registerFirst = await g(() => document.getElementById('prompt').textContent);
 // talk to Ilan
-await g((s) => { __game.player.pos.set(s.ilan.x + 1.6, 0, s.ilan.z); }, spots);
+await g(() => { const L = __game.ilan.pos; __game.player.pos.set(L.x + 1.6, 0, L.z); }); // (he strolls about: go to where he is)
 await p.waitForFunction(() => /Ilan/.test(document.getElementById('prompt').textContent), { timeout: 30000 }).catch(() => {});
 await p.keyboard.press('KeyE');
 await wait(1200);
-r.talked = await g(() => ({ met: !!__game.progress.data.metIlan, bubble: !!__game.ilan.bubble }));
+r.talked = await g(() => ({ met: !!__game.progress.data.metIlan, bubble: !!__game.ilan.bubble, paused: !!__game.ilan.paused, line: __game.ilan.bubble ? 'yes' : '' }));
 await g((s) => { const G = __game; G.input.yaw = Math.PI / 2 + 0.6; G.input.distance = 5; G.input.pitch = 0.15; }, spots);
 await wait(2500);
 await p.screenshot({ path: '.shots/ilan-2-talk.png' });

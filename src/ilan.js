@@ -11,17 +11,17 @@ import { icon } from './icons.js';
 import { sfx } from './audio.js';
 
 const RANGE = 2.8;
-// deadpan, car-obsessed one-liners ("forget X, check out Y" / "whatever, but the …, hah")
+// deadpan, always the same two loves: cars… and tzizi ("forget X, check out Y" / "whatever, but the tzizi, hah")
 const LINES = [
-  'Forget the Lambo. Check out the boot space.',
-  'Whatever. But the horsepower, hah.',
-  'I don’t smile. The car smiles for me.',
-  'Forget the ambulance, Doc. Check out the exhaust.',
-  'Zero to a hundred in 2.5. Whatever, but the brakes, hah.',
-  'You want the red one. Everyone wants the red one.',
-  'Nice shoes. Nicer wheels.',
-  'Forget the paint job. Check out the stitching.',
-  'Whatever, but the cupholders, hah.',
+  'Forget the Lambo. Check out the tzizi.',
+  'Whatever. But the tzizi, hah.',
+  'Zero to a hundred in 2.5. Whatever, but the tzizi, hah.',
+  'Forget the horsepower, Doc. Tzizi-power, hah.',
+  'I don’t smile. The tzizi make me smile.',
+  'Forget the leather seats. Check out the tzizi.',
+  'Nice wheels, right? Whatever, but the tzizi, hah.',
+  'Forget the ambulance. Check out the tzizi.',
+  'Carbon fibre, twin turbo… whatever, but the tzizi, hah.',
 ];
 
 export class Ilan {
@@ -39,6 +39,9 @@ export class Ilan {
     this.cooldown = 0;
     this.car = null; // the car you own, waiting on the bay (an Ambulance-class vehicle)
     this.dealer.addCars(renderer);
+    const t0 = this.dealer.tour[0];
+    this.rig.root.position.set(t0.x, 0, t0.z);
+    this.setupIdle();
     this.el = document.getElementById('dealer');
     this.el.querySelector('#dealer-close').addEventListener('click', () => this.close());
     this.el.addEventListener('click', (e) => { const id = e.target.closest('[data-car]')?.dataset.car; if (id) this.choose(id); });
@@ -61,7 +64,7 @@ export class Ilan {
   talk() {
     const first = !this.talked;
     if (first) { this.progress.data.metIlan = true; this.progress.dirty = true; }
-    this.say(first ? 'Doc. You need a real car. The register is right there.' : LINES[this.line = ((this.line ?? -1) + 1) % LINES.length]);
+    this.say(first ? 'Doc. You need a real car. Forget the ambulance, check out the tzizi. The register is right there.' : LINES[this.line = ((this.line ?? -1) + 1) % LINES.length]);
     this.cooldown = 3;
     this.lookAt = 3;
   }
@@ -105,7 +108,7 @@ export class Ilan {
       this.progress.data.cars = [...owned, id];
       sfx.buy?.();
       headline({ kicker: 'ILAN MOTORS', icon: 'flag', tone: 'success', title: `${c.name} — sold!`, sub: 'It’s waiting for you outside, on the YOUR CAR bay', ms: 3600 });
-      this.say('Good choice. Whatever, but the leather, hah.');
+      this.say('Good choice. Whatever, but the tzizi, hah.');
     } else notify(`${c.name} is outside`, { icon: 'flag', tone: 'info', sub: 'On the YOUR CAR bay', ms: 2600 });
     this.progress.data.car = id;
     this.progress.dirty = true;
@@ -138,11 +141,46 @@ export class Ilan {
     if (this.bubble && (this.bubbleT -= dt) <= 0) { this.rig.root.remove(this.bubble); this.bubble = null; }
     const near = Math.hypot(p.x - this.pos.x, p.z - this.pos.z);
     if (near > 120) return;
-    // he looks at you while he talks, then back at his cars
-    this.lookAt = Math.max(0, (this.lookAt ?? 0) - dt);
-    const want = this.lookAt > 0 || near < 4 ? Math.atan2(p.x - this.pos.x, p.z - this.pos.z) : this.dealer.ilan.rot;
-    this.rig.root.rotation.y += Math.atan2(Math.sin(want - this.rig.root.rotation.y), Math.cos(want - this.rig.root.rotation.y)) * Math.min(1, dt * 3);
-    animateRig(this.rig, 'idle', t, dt, 0);
+    const tour = this.dealer.tour;
+    this.tourI ??= 0;
+    this.wait ??= 2;
+    // you're close: he stops what he's doing and turns to you (and carries on when you step away)
+    if (near < 4.5) this.paused = true;
+    else if (near > 6) this.paused = false;
+    let moving = false, want = null;
+    if (this.paused || (this.lookAt = Math.max(0, (this.lookAt ?? 0) - dt)) > 0) want = Math.atan2(p.x - this.pos.x, p.z - this.pos.z);
+    else if (this.wait > 0) {
+      // lingering at a car (or by the glass), now and then glancing round the showroom
+      this.wait -= dt;
+      const stop = tour[this.tourI];
+      if (stop.look) want = Math.atan2(stop.look[0] - this.pos.x, stop.look[1] - this.pos.z);
+      if (this.wait <= 0) this.tourI = (this.tourI + 1) % tour.length;
+    } else {
+      const tgt = tour[this.tourI], dx = tgt.x - this.pos.x, dz = tgt.z - this.pos.z, d = Math.hypot(dx, dz);
+      if (d < 0.15) this.wait = tgt.stop || 0.01;
+      else {
+        const step = Math.min(d, 1.1 * dt); // a slow, relaxed walk
+        this.pos.x += (dx / d) * step; this.pos.z += (dz / d) * step;
+        want = Math.atan2(dx, dz);
+        moving = true;
+      }
+    }
+    if (want !== null) this.rig.root.rotation.y += Math.atan2(Math.sin(want - this.rig.root.rotation.y), Math.cos(want - this.rig.root.rotation.y)) * Math.min(1, dt * (moving ? 5 : 3));
+    this.moving = moving;
+    animateRig(this.rig, moving ? 'walk' : 'idle', t, dt, moving ? 1.1 : 0);
+  }
+
+  /** Life in the idle pose: the head looks round slowly, a little weight shift (he isn't a mannequin). */
+  setupIdle() {
+    const head = this.rig.bone?.(/^Head$/i), spine = this.rig.bone?.(/^Spine01$/i) ?? this.rig.bone?.(/^Spine$/i);
+    if (!head) return;
+    this.rig.overlay = (dt, t) => {
+      if (this.moving) return;
+      const k = this.paused ? 0.25 : 1;
+      head.rotation.y += Math.sin(t * 0.45) * 0.35 * k + Math.sin(t * 1.3) * 0.05;
+      head.rotation.x += Math.sin(t * 0.7 + 1) * 0.06;
+      if (spine) spine.rotation.z += Math.sin(t * 0.6) * 0.035;
+    };
   }
 
   blips() { return [{ x: this.pos.x, z: this.pos.z, icon: '🚗', name: 'Ilan Motors' }]; }
