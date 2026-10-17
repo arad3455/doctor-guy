@@ -19,7 +19,8 @@ export const INTERIOR = {
 };
 const O = INTERIOR.origin;
 const W = (x, z, y = 0) => new THREE.Vector3(O.x + x, y, O.z + z);
-export const isInside = (p) => p.z < -300;
+/** Indoors: the hospital (z < -300) or Ilan Motors' showroom hall (z > 500, showroom.js). */
+export const isInside = (p) => p.z < -300 || p.z > 500;
 
 // Meshy props: target size in game units, how to fit it, and the yaw that turns its front to +z
 const PROP_FIT = {

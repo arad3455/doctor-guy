@@ -24,6 +24,24 @@ const LINES = [
   'Carbon fibre, twin turbo… whatever, but the tzizi, hah.',
 ];
 
+// what he says when you stop by a car (any other car gets the default)
+const PITCH = {
+  rosso: 'The red one. Forget the price, check out the tzizi.',
+  nero: 'Black on black. Whatever, but the tzizi, hah.',
+  giallo: 'Loud yellow. Everybody looks. At the car. And the tzizi.',
+  blu: 'Track edition. Forget the lap time, check out the tzizi.',
+  bianco: 'Pearl white. I keep this one for myself. Mostly.',
+  kaze: 'A 90s legend. Forget the wing, check out the tzizi.',
+  atlas: 'Panniers, top case… whatever, but the tzizi, hah.',
+  ventora: 'The hypercar. Forget the 370 km/h, check out the tzizi.',
+  azure: 'Grand touring. Forget the bonnet, check out the tzizi.',
+  kaido: 'Street legend. Whatever, but the tzizi, hah.',
+  bigblock: 'Seventies muscle. Forget the V8, check out the tzizi.',
+  terra: 'A family car. Hah. Whatever, but the tzizi.',
+  trail: 'Sensible. I fall asleep. The tzizi wake me up.',
+};
+const pitch = (car) => PITCH[car.id] ?? `The ${car.name}. Forget the specs, check out the tzizi.`;
+
 export class Ilan {
   constructor({ scene, player, progress, wallet, renderer, ui }) {
     Object.assign(this, { scene, player, progress, wallet, renderer, ui });
@@ -94,7 +112,7 @@ export class Ilan {
       const btn = here ? '<span class="dl-tag">Outside</span>'
         : has ? `<button data-car="${c.id}">Take it out</button>`
         : `<button data-car="${c.id}" ${money < c.price ? 'disabled' : ''}>${icon('lollipop')}${c.price}</button>`;
-      return `<div class="dl-car ${here ? 'here' : ''}"><span class="dl-swatch" style="background:${c.paint ?? '#e0323a'}"></span>`
+      return `<div class="dl-car ${here ? 'here' : ''}"><span class="dl-swatch" style="background:${c.swatch ?? c.paint ?? '#e0323a'}"></span>`
         + `<span class="dl-info"><b>${c.name}</b><small>${c.blurb}</small><em>${c.zero} · ${c.top}</em></span>${btn}</div>`;
     }).join('');
   }
@@ -137,10 +155,79 @@ export class Ilan {
     this.ui.onCar?.(this.car);
   }
 
+  // ---- inside the big showroom: he comes in with you and shows you round
+  /** You've come in through the portal: he's right behind you. */
+  host(showroom) {
+    this.showroom = showroom;
+    this.hosting = true;
+    this.pitched = null;
+    const e = this.player.pos;
+    this.pos.set(e.x + 1.6, 0, e.z + 1.2);
+    this.say('Welcome to the real showroom, Doc. Come, I show you.', 3.4);
+  }
+  /** Back outside: he goes back to his tour of the glass showroom. */
+  unhost() {
+    this.hosting = false;
+    const t0 = this.dealer.tour[0];
+    this.pos.set(t0.x, 0, t0.z);
+    this.tourI = 0; this.wait = 2;
+  }
+  /** Buy (or take out) the car you're standing next to. */
+  buyHere(car) {
+    const owned = this.progress.data.cars ?? [];
+    if (!owned.includes(car.id) && this.wallet.get() < car.price) {
+      this.say(`${car.price} lollipops, Doc. Go save some kids first.`, 3);
+      return;
+    }
+    this.choose(car.id);
+    this.showroom?.refresh(this.progress.data.cars ?? []);
+  }
+
+  /** While hosting: walk with you; when you stop at a car, stand by it and pitch it. */
+  updateHost(dt, t) {
+    const p = this.player.pos;
+    const table = this.showroom.carNear(p);
+    let target;
+    if (table) {
+      // beside the car, on the other side of you from the plaque
+      const side = new THREE.Vector3(p.x - table.x, 0, p.z - table.z).normalize();
+      const across = new THREE.Vector3(-side.z, 0, side.x);
+      target = new THREE.Vector3(table.x, 0, table.z).addScaledVector(side, table.r + 0.7).addScaledVector(across, 1.6);
+      if (this.pitched !== table.car.id && (Math.hypot(this.pos.x - target.x, this.pos.z - target.z) < 2.5 || Math.hypot(this.pos.x - p.x, this.pos.z - p.z) < 4)) {
+        this.pitched = table.car.id;
+        this.say(pitch(table.car), 4);
+      }
+    } else {
+      // a step behind and to the side of you
+      const back = new THREE.Vector3(Math.sin(this.player.facing), 0, Math.cos(this.player.facing));
+      target = p.clone().addScaledVector(back, -2).add(new THREE.Vector3(back.z, 0, -back.x).multiplyScalar(1.4));
+      if (Math.hypot(this.pos.x - p.x, this.pos.z - p.z) < 3) target = null; // close enough: stay put
+    }
+    let moving = false, want = Math.atan2(p.x - this.pos.x, p.z - this.pos.z);
+    if (target) {
+      const dx = target.x - this.pos.x, dz = target.z - this.pos.z, d = Math.hypot(dx, dz);
+      if (d > 0.3) {
+        const sp = d > 6 ? 3.4 : 1.6; // he hurries if you get ahead of him
+        const step = Math.min(d, sp * dt);
+        this.pos.x += (dx / d) * step; this.pos.z += (dz / d) * step;
+        want = Math.atan2(dx, dz);
+        moving = true;
+        this.hurry = sp;
+      }
+    }
+    if (table && !moving) want = Math.atan2(table.x - this.pos.x, table.z - this.pos.z) * 0.5 + want * 0.5; // between you and the car
+    const diff = Math.atan2(Math.sin(want - this.rig.root.rotation.y), Math.cos(want - this.rig.root.rotation.y));
+    this.rig.root.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), (moving ? 3 : 1.7) * dt);
+    this.moving = moving;
+    this.paused = !moving;
+    animateRig(this.rig, moving ? (this.hurry > 2 ? 'run' : 'walk') : 'idle', t, dt, moving ? this.hurry : 0);
+  }
+
   update(dt, t) {
     const p = this.player.pos;
     this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.bubble && (this.bubbleT -= dt) <= 0) { this.rig.root.remove(this.bubble); this.bubble = null; }
+    if (this.hosting) { this.updateHost(dt, t); return; }
     const near = Math.hypot(p.x - this.pos.x, p.z - this.pos.z);
     if (near > 120) return;
     const tour = this.dealer.tour;

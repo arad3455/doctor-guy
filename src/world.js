@@ -78,14 +78,15 @@ export function inPond(x, z) {
 
 /** True where Doctor Guy is wading (pond or the shallow sea) — slower, and he sinks to the knees. */
 export function inWater(x, z) {
-  return inPond(x, z) || inLake(x, z) || (z > WORLD.shoreline + 1 && !onPier(x, z) && !onJetty(x, z));
+  return inPond(x, z) || inLake(x, z) || (z > WORLD.shoreline + 1 && z < 500 && !onPier(x, z) && !onJetty(x, z)); // (z > 500: Ilan's showroom hall, not the sea)
 }
 
 /** Which zone a point belongs to (drives streaming, spawning and the zone banner). */
-export const zoneAt = (z, x = 0) => (z < -300 ? 'hospital' : z < -95 && x > 0 ? 'camp' : z < -89 && x < -14 ? 'airport' : x < -88 && z > 51.5 ? 'harbor' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
+export const zoneAt = (z, x = 0) => (z > 500 ? 'showroom' : z < -300 ? 'hospital' : z < -95 && x > 0 ? 'camp' : z < -89 && x < -14 ? 'airport' : x < -88 && z > 51.5 ? 'harbor' : x < -60 ? 'downtown' : x > 88 && z > 63 ? 'pier' : x > 137 ? 'zoo' : x > 58 && z > -33 && z < 63 ? 'suburbs' : x > 100 ? 'zoo' : z > 62 ? 'beach' : 'park');
 
 /** GTA-style location name for the corner label. */
 export function locationName(p) {
+  if (p.z > 500) return 'Ilan Motors';
   if (p.z < -300) return p.z < -413.5 ? 'X-Ray · Wolfson Medical Center' : 'Wolfson Medical Center';
   if (p.z < -95 && p.x > 0) return campName(p);
   if (p.z < -89 && p.x < -14) return p.z > -96.5 && Math.abs(p.x + 111.5) < 4 ? 'Airport Road' : p.z < -182 ? 'Runway 09/27' : p.z > -110 ? 'Wolfson Airport · Departures' : p.z > -128 && p.x > -160 && p.x < -80 ? 'Wolfson Airport · Terminal' : 'Wolfson Airport';
@@ -166,6 +167,9 @@ export function clampWalkable(p) {
   p.x = best[0];
   p.z = best[1];
 }
+
+/** Another walkable area (e.g. an interior far away from the city). */
+export function addWalkable(r) { WALKABLE.push(r); }
 
 /** For other zone modules that register their own colliders. */
 export { addBox, addCircle };

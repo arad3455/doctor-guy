@@ -27,6 +27,8 @@ const baseColourOnly = () => {
     mat.setMetallicRoughnessTexture(null);
     mat.setOcclusionTexture(null);
     mat.setEmissiveTexture(null);
+    mat.setEmissiveFactor([0, 0, 0]); // (without its map, a full emissive factor would glow white)
+    if (!mat.getMetallicRoughnessTexture()) { mat.setMetallicFactor(Math.min(mat.getMetallicFactor(), 0.3)); mat.setRoughnessFactor(Math.max(mat.getRoughnessFactor(), 0.4)); }
   }
 };
 
@@ -62,7 +64,9 @@ if (mode === 'rig-input') {
   for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) tris += (prim.getIndices()?.getCount() ?? prim.getAttribute('POSITION').getCount()) / 3;
   const ratio = Math.min(1, target / tris);
   console.log(`decimate: ${Math.round(tris)} → ~${target} triangles (ratio ${ratio.toFixed(4)})`);
-  await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 }), prune(), dedup(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+  baseColourOnly(); // (textured community models: keep the colour map only, as WebP)
+  await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 }), prune(), dedup(),
+    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], quality: 85 }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
 } else if (mode === 'shrink') {
   // re-encode textures at a smaller size (default 1024px), keeping meshopt compression
   await doc.transform(textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [SIZE === 2048 && !sizeArg ? 1024 : SIZE, SIZE === 2048 && !sizeArg ? 1024 : SIZE], quality: 82 }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));

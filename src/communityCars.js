@@ -123,3 +123,15 @@ export function dressMoto(model, paint, envMap) {
   model.traverse((o) => { if (o.isMesh) { o.material = glossy(envMap); o.material.side = THREE.FrontSide; o.castShadow = true; o.receiveShadow = true; } });
   return model;
 }
+
+/** The textured community cars: keep their own paint job, give it gloss and the studio reflections. */
+export function dressTextured(model, envMap) {
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    const src = o.userData.srcMat ??= o.material;
+    o.material = new THREE.MeshStandardMaterial({ map: src.map ?? null, color: 0xffffff, metalness: 0.4, roughness: 0.32, envMap, envMapIntensity: 1.0, side: THREE.DoubleSide });
+    o.castShadow = true;
+    o.receiveShadow = true;
+  });
+  return model;
+}

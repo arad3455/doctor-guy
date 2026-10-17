@@ -9,7 +9,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { part, toon, canvasTexture, FONT } from './toon.js';
 import { addBox, addCircle } from './world.js';
 import { gltfLoader } from './skinned.js';
-import { dressSupra, dressMoto } from './communityCars.js';
+import { dressSupra, dressMoto, dressTextured } from './communityCars.js';
 
 /** The catalogue (prices in lollipops). paint: the body colour; null keeps the model's own red. */
 export const CARS = [
@@ -20,6 +20,12 @@ export const CARS = [
   { id: 'bianco', name: 'Fulmine Bianco', paint: '#f2f3f5', price: 220, top: '340 km/h', zero: '2.5 s', blurb: 'Pearl white. The one Ilan keeps for himself.' },
   // community models from Meshy (CC0), coloured in communityCars.js
   { id: 'kaze', name: 'Kaze Mk4', model: 'supra', paint: '#f08a1a', length: 5.0, price: 140, top: '285 km/h', zero: '4.6 s', blurb: 'A 90s legend with a wing you can see from space.' },
+  { id: 'ventora', name: 'Ventora', model: 'blue', textured: true, swatch: '#2aa3ff', length: 5.3, price: 260, top: '370 km/h', zero: '2.3 s', blurb: 'The hypercar. Ilan says it’s not for sale. It is.' },
+  { id: 'azure', name: 'Azure GT', model: 'coupe', textured: true, swatch: '#1f4fe8', length: 5.2, price: 200, top: '320 km/h', zero: '3.0 s', blurb: 'Long bonnet, big wheels, deep blue. Pure grand touring.' },
+  { id: 'kaido', name: 'Kaido R', model: 'r34', textured: true, swatch: '#f2f3f5', length: 5.0, price: 150, top: '300 km/h', zero: '3.8 s', blurb: 'A street-racing icon. Stripes, wing and attitude.' },
+  { id: 'bigblock', name: 'Big Block ’70', model: 'muscle', textured: true, swatch: '#e2620f', length: 5.2, price: 110, top: '240 km/h', zero: '5.2 s', blurb: 'Seventies muscle. Loud, proud, a little rusty.' },
+  { id: 'terra', name: 'Terra X', model: 'suv', textured: true, swatch: '#e9eaec', length: 5.1, price: 85, top: '210 km/h', zero: '6.9 s', blurb: 'The family crossover. Red calipers, because why not.' },
+  { id: 'trail', name: 'Trail 4', model: 'rav', textured: true, swatch: '#dfe1e4', length: 5.0, price: 70, top: '190 km/h', zero: '7.8 s', blurb: 'Sensible, roomy, goes anywhere. Ilan yawns.' },
   { id: 'atlas', name: 'Atlas Adventure', model: 'moto', paint: '#f2f3f5', length: 3.2, bike: true, price: 100, top: '220 km/h', zero: '3.4 s', blurb: 'Panniers, a top case and nowhere it can’t go.' },
 ];
 export const CAR_LENGTH = 5.4;
@@ -45,6 +51,7 @@ export async function loadCarModel(name = 'carSuper') {
 export function dressCar(model, car, renderer) {
   if (car.model === 'supra') return dressSupra(model, car.paint, studioEnv(renderer));
   if (car.model === 'moto') return dressMoto(model, car.paint, studioEnv(renderer));
+  if (car.textured) return dressTextured(model, studioEnv(renderer));
   return paintCar(model, car.paint, renderer);
 }
 

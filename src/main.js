@@ -29,6 +29,7 @@ import { Radio } from './radio.js';
 import { Caspi } from './caspi.js';
 import { Lakash } from './lakash.js';
 import { Ilan } from './ilan.js';
+import { buildShowroom, SHOWROOM, inShowroom } from './showroom.js';
 import { animateRig } from './characters.js';
 import { reach } from './poses.js';
 import { Races, RACES } from './races.js';
@@ -36,7 +37,7 @@ import { Outbreak } from './outbreak.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
 import { buildRoadNetwork, ROAD_TEXT } from './roads.js';
 import { laneAssist, HW } from './streets.js';
-import { DT_MAP } from './downtown.js';
+import { DT_MAP, DT_SPOTS } from './downtown.js';
 import { MH_MAP, MH } from './suburbs.js';
 import { CAMP } from './camp.js';
 import { loadKits } from './kit.js';
@@ -311,6 +312,28 @@ function enterHospital() {
     hospital.greet();
   });
 }
+function enterShowroom() {
+  fadeTo(() => {
+    player.pos.copy(SHOWROOM.entry);
+    player.vel.set(0, 0, 0);
+    player.facing = Math.PI; // into the hall (north)
+    input.yaw = 0; // (behind him; the hall's walls keep the camera in)
+    follow.dist = 4;
+    sfx.door();
+    ilan?.host(showroom);
+  });
+}
+function leaveShowroom() {
+  fadeTo(() => {
+    const d = DT_SPOTS.dealer.door;
+    player.pos.set(d.x + 5, 0, d.z + 1.5); // a few steps out on the forecourt, looking back at the showroom
+    player.vel.set(0, 0, 0);
+    player.facing = -Math.PI / 2;
+    input.yaw = Math.PI / 2 + 0.3;
+    sfx.door();
+    ilan?.unhost();
+  });
+}
 function leaveHospital() {
   fadeTo(() => {
     player.pos.copy(INTERIOR.exitTo);
@@ -324,6 +347,16 @@ function leaveHospital() {
 function extraAction() {
   if (ambulance.driving) return vehicleAction();
   const p = player.pos;
+  if (inShowroom(p)) {
+    if (Math.hypot(p.x - SHOWROOM.exitDoor.x, p.z - SHOWROOM.exitDoor.z) < 2.8) return { label: 'Leave Ilan Motors 🚪', run: leaveShowroom };
+    const t = showroom.carNear(p);
+    if (t) {
+      const owned = (progress.data.cars ?? []).includes(t.car.id);
+      if (owned) return progress.data.car === t.car.id ? { label: `🏁 Your ${t.car.name} is outside` , run: () => notify('It’s on the YOUR CAR bay outside', { icon: 'car', ms: 2400 }) } : { label: `🏁 Take out the ${t.car.name}`, run: () => ilan.buyHere(t.car) };
+      return { label: `🏁 Buy the ${t.car.name} · ${t.car.price} 🍭`, run: () => ilan.buyHere(t.car) };
+    }
+    return ilan?.chatAction(p) ?? null;
+  }
   if (isInside(p)) {
     return Math.hypot(p.x - INTERIOR.exitDoor.x, p.z - INTERIOR.exitDoor.z) < 2.4 ? { label: 'Leave the hospital 🚪', run: leaveHospital } : null;
   }
@@ -336,6 +369,9 @@ function extraAction() {
   if (stop) return { label: '🚌 Take the bus', run: () => buses.show(stop) };
   if (Math.hypot(p.x - WORLD.stand.x, p.z - WORLD.stand.z) < 3.4) {
     return { label: '🛍️ Doctor Shop', run: () => openShop(true) };
+  }
+  if (showroom && Math.hypot(p.x - DT_SPOTS.dealer.door.x - 1.2, p.z - DT_SPOTS.dealer.door.z) < 2.4) {
+    return { label: '🚗 Enter Ilan Motors', run: enterShowroom };
   }
   if (hospital && Math.hypot(p.x - INTERIOR.frontDoor.x, p.z - INTERIOR.frontDoor.z) < 2.6) {
     return { label: 'Enter the hospital 🏥', run: enterHospital };
@@ -410,6 +446,7 @@ let buses = null; // bus stops in every area (fast travel)
 let caspi = null; // Doctor Guy's friend (and Gorge the cat)
 let lakash = null; // the zookeeper (and his six cats)
 let ilan = null; // the car dealer (Ilan Motors, Downtown)
+let showroom = null; // Ilan Motors, inside (showroom.js)
 let races = null; // ambulance time trials
 let outbreak = null; // flu outbreaks
 let bandages = null; // Golden Bandages (created once the world is built)
@@ -647,6 +684,9 @@ function frame() {
       input.yaw += Math.atan2(Math.sin(want - input.yaw), Math.cos(want - input.yaw)) * Math.min(1, dt * 2.5);
     }
     follow.update(dt, { pos: V.root.position }, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.38), distance: Math.max(input.distance, V === ambulance ? 12.5 : 11) }); // high enough to see the road ahead
+  } else if (started && inShowroom(player.pos)) {
+    // the showroom: the normal free camera (drag to look round, scroll / pinch to zoom); the walls keep it inside
+    follow.update(dt, player, input);
   } else if (started && isInside(player.pos)) {
     // indoors: look down into the rooms over the (roofless) walls
     follow.update(dt, player, { yaw: input.yaw, pitch: Math.max(input.pitch, 0.78), distance: THREE.MathUtils.clamp(input.distance, 6, 11) });
@@ -674,7 +714,8 @@ function frame() {
   }
   base.visible = !inside;
   ambulance.root.visible = !inside;
-  if (hospital) hospital.group.visible = inside;
+  if (hospital) hospital.group.visible = inside && player.pos.z < -300;
+  if (showroom) showroom.group.visible = inShowroom(player.pos);
   scene.background = inside ? INDOOR_BG : OUTDOOR_BG;
   scene.fog = inside ? null : outdoorFog;
 
@@ -861,6 +902,18 @@ ilan = new Ilan({
   ui: { onCar: (car) => { myCar = car; window.__game.myCar = car; } },
 });
 window.__game.ilan = ilan;
+// the big showroom behind the portal, and the portal itself in the glass front
+showroom = buildShowroom(scene, renderer);
+animated.push(...showroom.animated);
+showroom.addCars().then(() => showroom.refresh(progress.data.cars ?? []));
+window.__game.showroom = showroom;
+{
+  const d = DT_SPOTS.dealer, gate = makeGate(0x3fa9ff, 'ENTER', { width: 3.2, height: 3.4, labelY: 4.6, labelSize: 2 });
+  gate.group.position.set(d.door.x + 0.15, 0, d.door.z);
+  gate.group.rotation.y = Math.PI / 2; // facing the forecourt
+  downtown.group.add(gate.group);
+  animated.push(gate);
+}
 hud.radar.extraBlips = () => [...caspi.blips(), ...lakash.blips(), ...ilan.blips(), ...(myCar && !myCar.driving ? [{ x: myCar.pos.x, z: myCar.pos.z, icon: '🏎️', name: 'Your car' }] : []), ...outbreak.blips(), ...(races.active ? [] : races.blips())];
 window.__game.races = races;
 window.__game.raceDefs = { RACES };
@@ -882,6 +935,8 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyR' && !e.repeat && start
 window.__game.ambience = ambience;
 window.__game.ramps = RAMPS;
 window.__game.enterHospital = enterHospital;
+window.__game.enterShowroom = enterShowroom;
+window.__game.leaveShowroom = leaveShowroom;
 window.__game.leaveHospital = leaveHospital;
 // Compile every shader now (phones can take seconds on the first draw) so the backdrop only fades
 // once the park can actually be shown — no empty/black screen behind the title.
