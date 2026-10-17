@@ -4,6 +4,8 @@
 //   node tools/glb-tools.mjs anim <in.glb> <out.glb>        → animation-only file: skeleton + clips, no mesh/textures
 //   node tools/glb-tools.mjs compress <in.glb> <out.glb>    → meshopt-compress geometry + animation (smaller download)
 //   node tools/glb-tools.mjs lod <in.glb> <out.glb>         → simplified far-away copy (~20% triangles)
+//   node tools/glb-tools.mjs decimate <in.glb> <out.glb> [n] → down to about n triangles (default 60000), compressed
+//                                                              (community models made for 3D printing are millions)
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { prune, dedup, textureCompress, meshopt, resample, simplify, weld } from '@gltf-transform/functions';
@@ -53,6 +55,14 @@ if (mode === 'rig-input') {
   await MeshoptSimplifier.ready;
   await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: 0.2, error: 0.02 }), prune(), dedup(),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 80 }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+} else if (mode === 'decimate') {
+  await MeshoptSimplifier.ready;
+  const target = Number(sizeArg) || 60000;
+  let tris = 0;
+  for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) tris += (prim.getIndices()?.getCount() ?? prim.getAttribute('POSITION').getCount()) / 3;
+  const ratio = Math.min(1, target / tris);
+  console.log(`decimate: ${Math.round(tris)} → ~${target} triangles (ratio ${ratio.toFixed(4)})`);
+  await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 }), prune(), dedup(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
 } else if (mode === 'shrink') {
   // re-encode textures at a smaller size (default 1024px), keeping meshopt compression
   await doc.transform(textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [SIZE === 2048 && !sizeArg ? 1024 : SIZE, SIZE === 2048 && !sizeArg ? 1024 : SIZE], quality: 82 }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));

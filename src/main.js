@@ -29,6 +29,8 @@ import { Radio } from './radio.js';
 import { Caspi } from './caspi.js';
 import { Lakash } from './lakash.js';
 import { Ilan } from './ilan.js';
+import { animateRig } from './characters.js';
+import { reach } from './poses.js';
 import { Races, RACES } from './races.js';
 import { Outbreak } from './outbreak.js';
 import { trimShadows, bakeStatic } from './cityprops.js';
@@ -244,11 +246,14 @@ function exitAmbulance(force = false) {
 }
 /* ---- Your own car (bought from Ilan): same driving, no siren, no patients ---- */
 let myCar = null; // parked on Ilan's YOUR CAR bay, or wherever you left it
+let riderArms = null; // Doctor Guy's arm bones (riding the bike)
 const driven = () => (myCar?.driving ? myCar : ambulance);
 function enterCar() {
   if (missions?.missions.some((m) => m.state === 'carried')) { notify('Patients ride in the ambulance!', { icon: 'ambulance', tone: 'alert', ms: 2400 }); return; }
   myCar.driving = true;
-  player.rig.root.visible = false;
+  // on the bike he rides standing on the footpegs, like an off-road rider (he rides with it: a child of its body)
+  if (myCar.bike) { myCar.body.add(player.rig.root); player.rig.root.position.set(0, myCar.height * 0.18, -0.15); player.rig.root.rotation.set(0, 0, 0); }
+  else player.rig.root.visible = false;
   player.vel.set(0, 0, 0);
   sfx.door();
   engine.start();
@@ -259,6 +264,7 @@ function exitCar() {
   if (Math.abs(myCar.speed) > 2.5) { notify('Stop first!', { icon: 'stop', tone: 'alert', ms: 1400 }); return; }
   myCar.driving = false;
   myCar.speed = 0;
+  if (player.rig.root.parent === myCar.body) scene.add(player.rig.root); // off the bike
   player.pos.copy(myCar.doorPoint);
   player.collide();
   player.facing = myCar.heading;
@@ -591,6 +597,19 @@ function frame() {
     bandages?.update(dt, t, V.pos);
     hud.update(missions, player, ambulance, input.yaw);
     if (V !== ambulance) ambulance.update(dt, t, {}); else myCar?.update(dt, t, {}); // (the other one stays parked)
+    if (V.bike) { // the rider, standing on the pegs, hands on the bars
+      animateRig(player.rig, 'idle', t, dt, 0);
+      const arms = (riderArms ??= ['Left', 'Right'].map((side) => {
+        const f = (re) => { let b = null; player.rig.root.traverse((o) => { if (!b && o.isBone && re.test(o.name)) b = o; }); return b; };
+        const upper = f(new RegExp(`${side}Arm$`, 'i')), fore = f(new RegExp(`${side}ForeArm$`, 'i')), hand = f(new RegExp(`${side}Hand$`, 'i'));
+        return upper && fore && hand ? { upper, fore, hand, s: side === 'Left' ? -1 : 1 } : null;
+      }));
+      player.rig.root.updateMatrixWorld(true);
+      for (const a of arms) if (a) {
+        const bar = V.pos.clone().addScaledVector(V.forward, V.len * 0.27).addScaledVector(V.right, a.s * V.width * 0.42).setY(V.height * 0.8);
+        reach(a, bar, new THREE.Vector3(0, -1, 0).addScaledVector(V.right, a.s * 0.8).normalize());
+      }
+    }
   } else if (started) {
     ambulance.update(dt, t, {});
     myCar?.update(dt, t, {});

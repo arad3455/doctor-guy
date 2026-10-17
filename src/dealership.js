@@ -9,6 +9,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { part, toon, canvasTexture, FONT } from './toon.js';
 import { addBox, addCircle } from './world.js';
 import { gltfLoader } from './skinned.js';
+import { dressSupra, dressMoto } from './communityCars.js';
 
 /** The catalogue (prices in lollipops). paint: the body colour; null keeps the model's own red. */
 export const CARS = [
@@ -17,6 +18,9 @@ export const CARS = [
   { id: 'giallo', name: 'Fulmine Giallo', paint: '#ffc61a', price: 120, top: '330 km/h', zero: '2.7 s', blurb: 'Loud. Very loud. You will be seen.' },
   { id: 'blu', name: 'Fulmine Blu', paint: '#1f5fe0', price: 160, top: '335 km/h', zero: '2.6 s', blurb: 'Track edition. Lighter, meaner, bluer.' },
   { id: 'bianco', name: 'Fulmine Bianco', paint: '#f2f3f5', price: 220, top: '340 km/h', zero: '2.5 s', blurb: 'Pearl white. The one Ilan keeps for himself.' },
+  // community models from Meshy (CC0), coloured in communityCars.js
+  { id: 'kaze', name: 'Kaze Mk4', model: 'supra', paint: '#f08a1a', length: 5.0, price: 140, top: '285 km/h', zero: '4.6 s', blurb: 'A 90s legend with a wing you can see from space.' },
+  { id: 'atlas', name: 'Atlas Adventure', model: 'moto', paint: '#f2f3f5', length: 3.2, bike: true, price: 100, top: '220 km/h', zero: '3.4 s', blurb: 'Panniers, a top case and nowhere it can’t go.' },
 ];
 export const CAR_LENGTH = 5.4;
 export const CAR_YAW = Math.PI / 2; // the model's nose points -x, like the ambulance's
@@ -31,13 +35,17 @@ export function studioEnv(renderer) {
   return env;
 }
 
-let baseModel = null;
-/** Loads the Fulmine once. */
-export async function loadCarModel() {
-  if (baseModel) return baseModel;
-  const gltf = await gltfLoader.loadAsync(new URL('../assets/props/carSuper.glb', import.meta.url).href);
-  baseModel = gltf.scene;
-  return baseModel;
+const baseModels = {};
+/** Loads a showroom model once ('carSuper' = the Fulmine, 'supra', 'moto'). */
+export async function loadCarModel(name = 'carSuper') {
+  baseModels[name] ??= gltfLoader.loadAsync(new URL(`../assets/props/${name}.glb`, import.meta.url).href).then((g) => g.scene);
+  return baseModels[name];
+}
+/** Dress a freshly loaded / cloned model as catalogue entry `car` (paint, materials, wheels for the coupe). */
+export function dressCar(model, car, renderer) {
+  if (car.model === 'supra') return dressSupra(model, car.paint, studioEnv(renderer));
+  if (car.model === 'moto') return dressMoto(model, car.paint, studioEnv(renderer));
+  return paintCar(model, car.paint, renderer);
 }
 
 const paintCache = new Map();
@@ -110,15 +118,16 @@ export function paintCar(model, paint, renderer) {
   return model;
 }
 
-/** A display copy of the Fulmine, sized and centred (nose along +z when yaw = 0). */
-function displayCar(paint, renderer) {
-  const m = baseModel.clone(true);
-  paintCar(m, paint, renderer);
+/** A display copy of a catalogue car, sized and centred (nose along +z when yaw = 0). */
+async function displayCar(car, renderer) {
+  const m = (await loadCarModel(car.model ?? 'carSuper')).clone(true);
+  m.traverse((o) => { if (o.isMesh) o.geometry = o.geometry.clone(); }); // (own colour attribute per copy)
+  dressCar(m, car, renderer);
   m.rotation.y = CAR_YAW;
   m.updateMatrixWorld(true);
   let box = new THREE.Box3().setFromObject(m);
   const size = box.getSize(new THREE.Vector3());
-  m.scale.setScalar(CAR_LENGTH / Math.max(size.x, size.z));
+  m.scale.setScalar((car.length ?? CAR_LENGTH) / Math.max(size.x, size.z));
   m.updateMatrixWorld(true);
   box = new THREE.Box3().setFromObject(m);
   const c = box.getCenter(new THREE.Vector3());
@@ -308,9 +317,11 @@ export function buildDealership(group, b, animated) {
     door: { x: bx1, z: mid },
     /** Put a car on every platform (once the model has loaded). */
     async addCars(renderer) {
-      try { await loadCarModel(); } catch (e) { console.warn('[dealer] car model failed', e); return; }
-      const order = ['giallo', 'rosso', 'blu', 'nero', 'bianco'];
-      turners.forEach((tt, i) => tt.add(displayCar(CARS.find((c) => c.id === order[i]).paint, renderer)));
+      // inside: the Fulmine, the Kaze in the middle; out front: the bike and the white Fulmine
+      const order = ['giallo', 'rosso', 'kaze', 'atlas', 'bianco'];
+      await Promise.all(turners.map(async (tt, i) => {
+        try { tt.add(await displayCar(CARS.find((c) => c.id === order[i]), renderer)); } catch (e) { console.warn('[dealer] car model failed', order[i], e); }
+      }));
     },
   };
 }

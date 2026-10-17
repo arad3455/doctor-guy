@@ -4,7 +4,7 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 </head><body>
 <script type="module">
-// tools/carview.html?src=../assets/props/carSuper.glb&yaw=40 — one model, lit like a studio, for checking Meshy output
+// tools/carview.html?src=../assets/props/carSuper.glb&yaw=40[&dress=supra|moto&paint=%23rrggbb] — one model, lit like a studio, for checking Meshy output
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
@@ -14,6 +14,13 @@ const s = new THREE.Scene(); s.background = new THREE.Color(0xdde3ea);
 s.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.6)); const d = new THREE.DirectionalLight(0xffffff, 2.2); d.position.set(4, 6, 5); s.add(d);
 const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder);
 const g = await l.loadAsync(q.get('src'));
+// &dress=supra|moto&paint=%23rrggbb: the colouring used in the game (communityCars.js)
+if (q.get('dress')) {
+  const { dressSupra, dressMoto } = await import('../src/communityCars.js');
+  const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+  const pm = new THREE.PMREMGenerator(r), env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+  (q.get('dress') === 'moto' ? dressMoto : dressSupra)(g.scene, q.get('paint') ?? '#d81e2a', env);
+}
 const box = new THREE.Box3().setFromObject(g.scene); const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
 g.scene.position.sub(c);
 const holder = new THREE.Group(); holder.add(g.scene); holder.rotation.y = THREE.MathUtils.degToRad(Number(q.get('yaw') ?? 0)); s.add(holder);

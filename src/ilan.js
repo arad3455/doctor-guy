@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { buildKid, animateRig, makeBubble } from './characters.js';
 import { DT_SPOTS } from './downtown.js';
-import { CARS, CAR_LENGTH, CAR_YAW, paintCar } from './dealership.js';
+import { CARS, CAR_LENGTH, CAR_YAW, dressCar } from './dealership.js';
 import { Ambulance } from './vehicle.js';
 import { notify, headline } from './notify.js';
 import { icon } from './icons.js';
@@ -125,11 +125,13 @@ export class Ilan {
     this.car?.dispose();
     const bay = this.dealer.bay;
     this.car = new Ambulance(this.scene, {
-      model: 'carSuper', yaw: CAR_YAW, length: CAR_LENGTH, lights: false, speed: 1.35, toonMaterials: false,
+      model: c.model ?? 'carSuper', yaw: CAR_YAW, length: c.length ?? CAR_LENGTH, lights: false, speed: c.bike ? 1.2 : 1.35, toonMaterials: false,
+      lean: c.bike ? -8 : 1, // (a car rolls out of a turn; a bike leans into it)
       start: { x: bay.x, z: bay.z, heading: Math.PI / 2 },
-      prepare: (m) => paintCar(m, c.paint, this.renderer),
+      prepare: (m) => dressCar(m, c, this.renderer),
     });
     this.car.carId = id;
+    this.car.bike = !!c.bike;
     this.car.label = c.name;
     this.car.loadModel();
     this.ui.onCar?.(this.car);

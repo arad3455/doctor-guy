@@ -35,8 +35,8 @@ export const PARKING = { x: -12, z: -38.9, heading: Math.PI / 2 }; // its bay on
  * { model: 'carSuper', yaw, length, lights: false, start: { x, z, heading }, speed (top-speed factor), prepare(model) }.
  */
 export class Ambulance {
-  constructor(scene, { model = 'ambulance', yaw = MODEL_YAW, length = LENGTH, lights = true, start = PARKING, speed = 1, prepare = null, toonMaterials = true } = {}) {
-    Object.assign(this, { scene, modelName: model, modelYaw: yaw, len: length, hasLights: lights, speedMul: speed, prepare, toonMaterials });
+  constructor(scene, { model = 'ambulance', yaw = MODEL_YAW, length = LENGTH, lights = true, start = PARKING, speed = 1, prepare = null, toonMaterials = true, lean = 1 } = {}) {
+    Object.assign(this, { scene, modelName: model, modelYaw: yaw, len: length, hasLights: lights, speedMul: speed, prepare, toonMaterials, leanMul: lean });
     this.reach = length / 2 - 1.15;
     this.root = new THREE.Group();
     this.body = new THREE.Group(); // tilts with acceleration/turning
@@ -234,7 +234,7 @@ export class Ambulance {
     const accel = (this.speed - (this.lastSpeed ?? 0)) / Math.max(dt, 1e-3);
     this.lastSpeed = this.speed;
     this.body.rotation.x += (THREE.MathUtils.clamp(-accel * 0.004, -0.05, 0.05) - this.body.rotation.x) * Math.min(1, dt * 6);
-    this.body.rotation.z += (this.steer * grip * 0.05 * Math.sign(this.speed) - this.body.rotation.z) * Math.min(1, dt * 6);
+    this.body.rotation.z += (this.steer * grip * 0.05 * this.leanMul * Math.sign(this.speed) - this.body.rotation.z) * Math.min(1, dt * 6);
     if (this.bumped > 0) { this.bumped -= dt; this.body.position.y = Math.sin(this.bumped * 40) * 0.04; } else this.body.position.y = 0;
 
     this.updateLights(t);
