@@ -906,6 +906,7 @@ window.__game.ilan = ilan;
 showroom = buildShowroom(scene, renderer);
 animated.push(...showroom.animated);
 showroom.addCars().then(() => showroom.refresh(progress.data.cars ?? []));
+showroom.addDecor();
 window.__game.showroom = showroom;
 {
   const d = DT_SPOTS.dealer, gate = makeGate(0x3fa9ff, 'ENTER', { width: 3.2, height: 3.4, labelY: 4.6, labelSize: 2 });

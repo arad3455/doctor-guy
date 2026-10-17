@@ -8,6 +8,7 @@ import { part, toon, canvasTexture, FONT } from './toon.js';
 import { addBox, addCircle, addWalkable, cameraBlockers } from './world.js';
 import { makeGate } from './hospital.js';
 import { CARS, loadCarModel, dressCar, CAR_LENGTH, CAR_YAW, studioEnv } from './dealership.js';
+import { gltfLoader } from './skinned.js';
 
 export const SHOWROOM = {
   origin: new THREE.Vector3(0, 0, 700),
@@ -34,6 +35,7 @@ export function buildShowroom(scene, renderer) {
   const at = (x, z) => new THREE.Vector3(O.x + x, 0, O.z + z);
   const env = studioEnv(renderer);
   const animated = [];
+  const decor = []; // furniture from the Meshy community (CC0), swapped in once loaded: { holder, name, fit }
   addWalkable({ minX: O.x - HX + 0.6, maxX: O.x + HX - 0.6, minZ: O.z - HZ + 0.6, maxZ: O.z + HZ - 0.6 });
 
   // ---- floor: black marble tiles, polished (reflections from the studio env)
@@ -240,6 +242,7 @@ export function buildShowroom(scene, renderer) {
     const back = part(new THREE.BoxGeometry(3, 0.9, 0.3), leather, { outline: 0.01 }); back.position.set(0, 0.9, -0.45); g.add(back);
     for (const s of [-1, 1]) { const arm = part(new THREE.BoxGeometry(0.3, 0.75, 1.1), leather, { outline: 0.01 }); arm.position.set(s * 1.5, 0.6, 0); g.add(arm); }
     group.add(g);
+    decor.push({ holder: g, name: 'sofa', fit: { length: 3.1 }, yaw: Math.PI }); // (the model faces -z; the block sofa faced +z)
     addBox(O.x + x, O.z + z, Math.abs(Math.cos(rot)) * 3.2 + Math.abs(Math.sin(rot)) * 1.2, Math.abs(Math.sin(rot)) * 3.2 + Math.abs(Math.cos(rot)) * 1.2);
   };
   sofa(-27, 21.5, Math.PI); sofa(-30.5, 18, Math.PI / 2); sofa(-23.5, 18, -Math.PI / 2);
@@ -254,14 +257,16 @@ export function buildShowroom(scene, renderer) {
   bar.position.copy(at(-26, 9.5)).setY(0.55);
   group.add(bar);
   const barTop = part(new THREE.BoxGeometry(6.2, 0.08, 1.2), 0x111216, { outline: 0 }); barTop.position.copy(at(-26, 9.5)).setY(1.14); group.add(barTop);
-  const machine = part(new THREE.BoxGeometry(0.9, 0.6, 0.5), 0xbfc4ca, { outline: 0.01 }); machine.position.copy(at(-27.5, 9.4)).setY(1.48); group.add(machine);
+  const machine = new THREE.Group(); machine.position.copy(at(-27.5, 9.4)).setY(1.18); machine.rotation.y = Math.PI; group.add(machine);
+  const mbox = part(new THREE.BoxGeometry(0.9, 0.6, 0.5), 0xbfc4ca, { outline: 0.01 }); mbox.position.y = 0.3; machine.add(mbox);
+  decor.push({ holder: machine, name: 'espresso', fit: { length: 1.0 } });
   for (let k = 0; k < 3; k++) { const cup = part(new THREE.CylinderGeometry(0.08, 0.06, 0.12, 10), 0xffffff, { outline: 0 }); cup.position.copy(at(-25.6 + k * 0.4, 9.5)).setY(1.24); group.add(cup); }
   const barSign = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.7), new THREE.MeshBasicMaterial({ map: goldText('ESPRESSO BAR', 600, 140, 90), transparent: true }));
   barSign.position.copy(at(-26, 9.0)).setY(3.2);
   group.add(barSign);
   addBox(O.x - 26, O.z + 9.5, 6.2, 1.2);
   // plants in tall pots by the doors and the columns
-  for (const [x, z] of [[-6, 22.5], [6, 22.5], [-32, 23], [32, 23], [-32, -23], [32, -23]]) plant(group, at(x, z), env);
+  for (const [x, z] of [[-6, 22.5], [6, 22.5], [-32, 23], [32, 23], [-32, -23], [32, -23], [-17, -22.5], [17, -22.5]]) decor.push({ holder: plant(group, at(x, z), env), name: 'plant', fit: { height: 2.3 } });
 
   // ---- Ilan's glass office (front right): desk, chair, a trophy
   const office = { x: 27, z: 19 };
@@ -295,6 +300,30 @@ export function buildShowroom(scene, renderer) {
 
   return {
     group, animated, tables,
+    /** Swap the hand-built sofas, plants and espresso machine for the Meshy community models. */
+    async addDecor() {
+      const models = {};
+      await Promise.all(['sofa', 'plant', 'espresso'].map(async (n) => {
+        try { models[n] = (await gltfLoader.loadAsync(new URL(`../assets/props/${n}.glb`, import.meta.url).href)).scene; } catch { /* keep the hand-built one */ }
+      }));
+      for (const d of decor) {
+        const src = models[d.name];
+        if (!src) continue;
+        const m = src.clone(true);
+        m.rotation.y = d.yaw ?? 0;
+        m.updateMatrixWorld(true);
+        let box = new THREE.Box3().setFromObject(m);
+        const size = box.getSize(new THREE.Vector3());
+        m.scale.setScalar(d.fit.height ? d.fit.height / size.y : d.fit.length / Math.max(size.x, size.z));
+        m.updateMatrixWorld(true);
+        box = new THREE.Box3().setFromObject(m);
+        const c = box.getCenter(new THREE.Vector3());
+        m.position.set(-c.x, -box.min.y, -c.z);
+        m.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) { o.material.envMap = env; o.material.envMapIntensity = 0.5; o.material.needsUpdate = true; } } });
+        d.holder.clear();
+        d.holder.add(m);
+      }
+    },
     /** Puts every catalogue car on a turntable (hero first). */
     async addCars() {
       const order = [...CARS].sort((a, b) => (b.price ?? 0) - (a.price ?? 0)); // the priciest is the hero
@@ -333,18 +362,23 @@ export function buildShowroom(scene, renderer) {
   };
 }
 
+/** A tall plant in a pot (hand-built; addDecor swaps in the community model). Returns its holder group. */
 function plant(group, pos, env) {
+  const g = new THREE.Group();
+  g.position.copy(pos);
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.42, 1.1, 20), new THREE.MeshStandardMaterial({ color: 0x111216, roughness: 0.15, metalness: 0.3, envMap: env }));
-  pot.position.copy(pos).setY(0.55);
-  group.add(pot);
+  pot.position.y = 0.55;
+  g.add(pot);
   for (let k = 0; k < 7; k++) {
     const leaf = part(new THREE.ConeGeometry(0.22, 1.6 + (k % 3) * 0.3, 6), 0x2e8b3c, { outline: 0.006 });
     const a = (k / 7) * Math.PI * 2;
-    leaf.position.copy(pos).add(new THREE.Vector3(Math.cos(a) * 0.18, 1.7, Math.sin(a) * 0.18));
+    leaf.position.set(Math.cos(a) * 0.18, 1.7, Math.sin(a) * 0.18);
     leaf.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35);
-    group.add(leaf);
+    g.add(leaf);
   }
-  addCircle(pos.x, pos.z, 0.6);
+  group.add(g);
+  addCircle(pos.x, pos.z, 0.7);
+  return g;
 }
 
 function goldText(text, w, h, size) {
